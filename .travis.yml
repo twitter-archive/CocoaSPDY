@@ -1,0 +1,4 @@
+language: objective-c
+before_install:
+    - brew update
+script: "xcodebuild test -workspace SPDY.xcodeproj/project.xcworkspace/ -scheme SPDYUnitTests -sdk iphonesimulator"
