@@ -1,7 +1,9 @@
-# SPDY for Cocoa and Cocoa Touch
-A SPDY/3.1 framework for iOS and Mac OS X [![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=master)](https://travis-ci.org/twitter/CocoaSPDY)
+# CocoaSPDY
+#### A SPDY/3.1 framework for iOS and Mac OS X
 
-[Download v1.0.0](https://github.com/twitter/CocoaSPDY/releases/download/v1.0.0/SPDY.framework.tar.gz)
+[![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=master)](https://travis-ci.org/twitter/CocoaSPDY)
+
+### [Download v1.0.0](https://github.com/twitter/CocoaSPDY/releases/download/v1.0.0/SPDY.framework.tar.gz)
 
 ## The SPDY protocol
 The short version is that [SPDY](http://en.wikipedia.org/wiki/SPDY) can make your HTTP requests faster. Sometimes a lot faster. For more details, see the following:
