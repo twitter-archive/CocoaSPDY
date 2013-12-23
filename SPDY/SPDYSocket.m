@@ -11,8 +11,8 @@
 //  https://github.com/robbiehanson/CocoaAsyncSocket
 //
 
-#if ! __has_feature(objc_arc)
-#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
 #endif
 
 #import "SPDYSocket.h"
