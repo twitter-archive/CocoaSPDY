@@ -28,4 +28,6 @@ Pod::Spec.new do |s|
 
   s.source_files = source_files
   s.requires_arc = true
+
+  s.libraries = 'z'
 end
