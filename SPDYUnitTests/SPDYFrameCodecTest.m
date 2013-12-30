@@ -9,12 +9,13 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
+
 #import "SPDYFrameEncoder.h"
 #import "SPDYFrameDecoder.h"
 #import "SPDYMockFrameDecoderDelegate.h"
 
-@interface SPDYFrameCodecTest : SenTestCase
+@interface SPDYFrameCodecTest : XCTestCase
 @end
 
 @interface SPDYFrameDecoder (CodecTest) <SPDYFrameEncoderDelegate>
@@ -37,13 +38,13 @@
 }
 
 #define AssertLastFrameClass(CLASS_NAME) \
-    STAssertEqualObjects(NSStringFromClass([_mock.lastFrame class]), CLASS_NAME, @"expected mock delegate's last frame received to be of class %@, but was %@", CLASS_NAME, NSStringFromClass([_mock.lastFrame class]))
+    XCTAssertEqualObjects(NSStringFromClass([_mock.lastFrame class]), CLASS_NAME, @"expected mock delegate's last frame received to be of class %@, but was %@", CLASS_NAME, NSStringFromClass([_mock.lastFrame class]))
 
 #define AssertFramesReceivedCount(COUNT) \
-    STAssertTrue(_mock.frameCount == COUNT, @"expected property framesReceived of mock delegate to contain %d elements, but had %d elements", COUNT, _mock.frameCount)
+    XCTAssertTrue(_mock.frameCount == COUNT, @"expected property framesReceived of mock delegate to contain %d elements, but had %d elements", COUNT, _mock.frameCount)
 
 #define AssertLastDelegateMessage(SELECTOR_NAME) \
-    STAssertEqualObjects(_mock.lastDelegateMessage, SELECTOR_NAME, @"expected mock delegate's last message received to be %@ but was %@", SELECTOR_NAME, _mock.lastDelegateMessage)
+    XCTAssertEqualObjects(_mock.lastDelegateMessage, SELECTOR_NAME, @"expected mock delegate's last message received to be %@ but was %@", SELECTOR_NAME, _mock.lastDelegateMessage)
 
 NSDictionary *testHeaders()
 {
@@ -87,11 +88,11 @@ NSDictionary *testHeaders()
 
     SPDYDataFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.last, outFrame.last, nil);
-    STAssertEquals(inFrame.data.length, outFrame.data.length, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.last, outFrame.last);
+    XCTAssertEqual(inFrame.data.length, outFrame.data.length);
     for (uint8_t i = 0; i < 100; i++) {
-        STAssertEquals(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame.data.bytes)[i], nil);
+        XCTAssertEqual(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame.data.bytes)[i]);
     }
 }
 
@@ -113,11 +114,11 @@ NSDictionary *testHeaders()
 //
 //    SPDYDataFrame *outFrame = _mock.lastFrame;
 //
-//    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-//    STAssertEquals(inFrame.last, outFrame.last, nil);
-//    STAssertEquals(inFrame.data.length, outFrame.data.length, nil);
+//    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+//    XCTAssertEqual(inFrame.last, outFrame.last);
+//    XCTAssertEqual(inFrame.data.length, outFrame.data.length);
 //    for (uint8_t i = 0; i < 1024 * 1024; i++) {
-//        STAssertEquals(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame.data.bytes)[i], nil);
+//        XCTAssertEqual(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame.data.bytes)[i]);
 //    }
 //}
 
@@ -138,12 +139,12 @@ NSDictionary *testHeaders()
 
     SPDYSynStreamFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.associatedToStreamId, outFrame.associatedToStreamId, nil);
-    STAssertEquals(inFrame.unidirectional, outFrame.unidirectional, nil);
-    STAssertEquals(inFrame.last, outFrame.last, nil);
-    STAssertEquals(inFrame.priority, outFrame.priority, nil);
-    STAssertEquals(inFrame.slot, outFrame.slot, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.associatedToStreamId, outFrame.associatedToStreamId);
+    XCTAssertEqual(inFrame.unidirectional, outFrame.unidirectional);
+    XCTAssertEqual(inFrame.last, outFrame.last);
+    XCTAssertEqual(inFrame.priority, outFrame.priority);
+    XCTAssertEqual(inFrame.slot, outFrame.slot);
 }
 
 - (void)testSynStreamFrameWithHeaders
@@ -164,14 +165,14 @@ NSDictionary *testHeaders()
 
     SPDYSynStreamFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.associatedToStreamId, outFrame.associatedToStreamId, nil);
-    STAssertEquals(inFrame.unidirectional, outFrame.unidirectional, nil);
-    STAssertEquals(inFrame.last, outFrame.last, nil);
-    STAssertEquals(inFrame.priority, outFrame.priority, nil);
-    STAssertEquals(inFrame.slot, outFrame.slot, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.associatedToStreamId, outFrame.associatedToStreamId);
+    XCTAssertEqual(inFrame.unidirectional, outFrame.unidirectional);
+    XCTAssertEqual(inFrame.last, outFrame.last);
+    XCTAssertEqual(inFrame.priority, outFrame.priority);
+    XCTAssertEqual(inFrame.slot, outFrame.slot);
     for (NSString *key in inFrame.headers) {
-        STAssertTrue([inFrame.headers[key] isEqual:outFrame.headers[key]], nil);
+        XCTAssertTrue([inFrame.headers[key] isEqual:outFrame.headers[key]]);
     }
 }
 
@@ -188,8 +189,8 @@ NSDictionary *testHeaders()
 
     SPDYSynReplyFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.last, outFrame.last, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.last, outFrame.last);
 }
 
 - (void)testSynReplyFrameWithHeaders
@@ -206,10 +207,10 @@ NSDictionary *testHeaders()
 
     SPDYSynReplyFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.last, outFrame.last, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.last, outFrame.last);
     for (NSString *key in inFrame.headers) {
-        STAssertTrue([inFrame.headers[key] isEqual:outFrame.headers[key]], nil);
+        XCTAssertTrue([inFrame.headers[key] isEqual:outFrame.headers[key]]);
     }
 }
 
@@ -226,8 +227,8 @@ NSDictionary *testHeaders()
 
     SPDYRstStreamFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.statusCode, outFrame.statusCode, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.statusCode, outFrame.statusCode);
 }
 
 - (void)testSettingsFrame
@@ -263,12 +264,12 @@ NSDictionary *testHeaders()
 
     SPDYSettingsFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.clearSettings, outFrame.clearSettings, nil);
+    XCTAssertEqual(inFrame.clearSettings, outFrame.clearSettings);
     SPDY_SETTINGS_ITERATOR(i) {
-        STAssertEquals(inFrame.settings[i].set, outFrame.settings[i].set, nil);
+        XCTAssertEqual(inFrame.settings[i].set, outFrame.settings[i].set);
         if (inFrame.settings[i].set) {
-            STAssertEquals(inFrame.settings[i].flags, outFrame.settings[i].flags, nil);
-            STAssertEquals(inFrame.settings[i].value, outFrame.settings[i].value, nil);
+            XCTAssertEqual(inFrame.settings[i].flags, outFrame.settings[i].flags);
+            XCTAssertEqual(inFrame.settings[i].value, outFrame.settings[i].value);
         }
     }
 }
@@ -285,7 +286,7 @@ NSDictionary *testHeaders()
 
     SPDYPingFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.id, outFrame.id, nil);
+    XCTAssertEqual(inFrame.id, outFrame.id);
 }
 
 - (void)testGoAwayFrame
@@ -300,7 +301,7 @@ NSDictionary *testHeaders()
 
     SPDYGoAwayFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.statusCode, outFrame.statusCode, nil);
+    XCTAssertEqual(inFrame.statusCode, outFrame.statusCode);
 }
 
 - (void)testHeadersFrame
@@ -316,8 +317,8 @@ NSDictionary *testHeaders()
 
     SPDYHeadersFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.last, outFrame.last, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.last, outFrame.last);
 }
 
 - (void)testHeadersFrameWithHeaders
@@ -334,10 +335,10 @@ NSDictionary *testHeaders()
 
     SPDYHeadersFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.last, outFrame.last, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.last, outFrame.last);
     for (NSString *key in inFrame.headers) {
-        STAssertTrue([inFrame.headers[key] isEqual:outFrame.headers[key]], nil);
+        XCTAssertTrue([inFrame.headers[key] isEqual:outFrame.headers[key]]);
     }
 }
 
@@ -354,8 +355,8 @@ NSDictionary *testHeaders()
 
     SPDYWindowUpdateFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-    STAssertEquals(inFrame.deltaWindowSize, outFrame.deltaWindowSize, nil);
+    XCTAssertEqual(inFrame.streamId, outFrame.streamId);
+    XCTAssertEqual(inFrame.deltaWindowSize, outFrame.deltaWindowSize);
 }
 
 - (void)tearDown

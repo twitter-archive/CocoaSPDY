@@ -9,10 +9,10 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYStream.h"
 
-@interface SPDYStreamTest : SenTestCase
+@interface SPDYStreamTest : XCTestCase
 @end
 
 typedef void (^SPDYAsyncTestCallback)();
@@ -70,9 +70,9 @@ static NSMutableData *_uploadData;
 
     __block bool finished = NO;
 
-    STAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
+    XCTAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        STAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
+        XCTAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
 
         // Run off-thread runloop
         while(spdyStream.hasDataAvailable) {
@@ -89,7 +89,7 @@ static NSMutableData *_uploadData;
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
     }
 
-    STAssertTrue([producedData isEqualToData:_uploadData], nil);
+    XCTAssertTrue([producedData isEqualToData:_uploadData]);
 }
 
 - (void)testBodyStreamViaData
@@ -106,9 +106,9 @@ static NSMutableData *_uploadData;
         });
     };
 
-    STAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
+    XCTAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        STAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
+        XCTAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
 
         [spdyStream performSelector:@selector(_scheduleCFReadStream)];
 
@@ -123,7 +123,7 @@ static NSMutableData *_uploadData;
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
     }
 
-    STAssertTrue([mockDataDelegate.data isEqualToData:_uploadData], nil);
+    XCTAssertTrue([mockDataDelegate.data isEqualToData:_uploadData]);
 }
 
 - (void)testBodyStreamViaFile
@@ -133,7 +133,7 @@ static NSMutableData *_uploadData;
     NSString *filePath = @"/var/tmp/com.twitter.spdy.StreamTestData";
     NSError *error = nil;
     NSDataWritingOptions fileOptions = NSDataWritingAtomic | NSDataWritingFileProtectionNone;
-    STAssertTrue([_uploadData writeToFile:filePath options:fileOptions error:&error],
+    XCTAssertTrue([_uploadData writeToFile:filePath options:fileOptions error:&error], @"%@",
         error.localizedDescription);
     spdyStream.dataDelegate = mockDataDelegate;
     spdyStream.dataStream = [[NSInputStream alloc] initWithFileAtPath:filePath];
@@ -145,9 +145,9 @@ static NSMutableData *_uploadData;
         });
     };
 
-    STAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
+    XCTAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        STAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
+        XCTAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
 
         [spdyStream performSelector:@selector(_scheduleCFReadStream)];
 
@@ -162,7 +162,7 @@ static NSMutableData *_uploadData;
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
     }
 
-    STAssertTrue([mockDataDelegate.data isEqualToData:_uploadData], nil);
+    XCTAssertTrue([mockDataDelegate.data isEqualToData:_uploadData]);
 }
 
 @end
