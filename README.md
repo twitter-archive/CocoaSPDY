@@ -72,6 +72,13 @@ In the near future, we will be working on:
 * [Server Push](https://github.com/twitter/CocoaSPDY/issues/1)
 * [Discretionary/Deferrable Request Scheduling](https://github.com/twitter/CocoaSPDY/issues/2)
 
+## Adopters
+
+* [Amahi](https://github.com/twitter/CocoaSPDY/issues/9#issuecomment-31307581)
+* [Twitter](https://twitter.com/TwitterOSS/status/413746448367230976)
+
+Please feel free to send us a pull request to add yourself to this list (bonus points to link to a tweet).
+
 ## Problems?
 If you find any issues please [report them](https://github.com/twitter/CocoaSPDY/issues) or better,
 send a [pull request](https://github.com/twitter/CocoaSPDY/pulls).
