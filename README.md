@@ -32,6 +32,8 @@ The framework contains a multi-architecture/multi-platform ("fat") binary that s
 ## Enabling SPDY
 The way you enable SPDY in your application will be slightly different depending on whether you are using NSURLConnection or NSURLSession to manage your HTTP calls. In order to cause requests issued via the NSURLConnection stack to be carried over SPDY, you'll make a method call to specify one or more origins (protocol-host-port tuple) to be handled by SPDY:
 
+    #import "CocoaSPDY/SPDYProtocol.h"
+    ...
     [SPDYURLConnectionProtocol registerOrigin:@"https://api.twitter.com:443"];
 
 For NSURLSession, you can configure sessions to use SPDY via NSURLSessionConfiguration:
