@@ -287,7 +287,7 @@
     }
 
 #if INCLUDE_SPDY_RESPONSE_HEADERS
-    allHTTPHeaders[@"x-spdy-version"] = @"3";
+    allHTTPHeaders[@"x-spdy-version"] = @"3.1";
     allHTTPHeaders[@"x-spdy-stream-id"] = [@(_streamId) stringValue];
 #endif
 
