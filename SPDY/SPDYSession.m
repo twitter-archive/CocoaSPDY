@@ -100,7 +100,7 @@
 
             if ([_origin.scheme isEqualToString:@"https"]) {
                 SPDY_DEBUG(@"session using TLS");
-                [_socket secureWithTLS:@{ /* use Apple default TLS settings */ }];
+                [_socket secureWithTLS:configuration.tlsSettings];
             }
 
             _frameDecoder = [[SPDYFrameDecoder alloc] initWithDelegate:self];
