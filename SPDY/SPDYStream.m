@@ -339,24 +339,14 @@
         _zlibStream.avail_in = (uInt)data.length;
         _zlibStream.next_in = (uint8_t *)data.bytes;
 
+        uint8_t inflatedBytes[DECOMPRESSED_CHUNK_LENGTH];
+        NSMutableData *inflatedData = [[NSMutableData alloc] init];
         while (_zlibStreamStatus == Z_OK && (_zlibStream.avail_in > 0 || _zlibStream.avail_out == 0)) {
-            uint8_t *inflatedBytes = malloc(sizeof(uint8_t) * DECOMPRESSED_CHUNK_LENGTH);
-            if (inflatedBytes == NULL) {
-                SPDY_ERROR(@"error decompressing response data: malloc failed");
-                NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                                            code:NSURLErrorCannotDecodeContentData
-                                                        userInfo:nil];
-                [_client URLProtocol:_protocol didFailWithError:error];
-                return;
-            }
-
             _zlibStream.avail_out = DECOMPRESSED_CHUNK_LENGTH;
             _zlibStream.next_out = inflatedBytes;
             _zlibStreamStatus = inflate(&_zlibStream, Z_SYNC_FLUSH);
 
-            NSMutableData *inflatedData = [[NSMutableData alloc] initWithBytesNoCopy:inflatedBytes length:DECOMPRESSED_CHUNK_LENGTH freeWhenDone:YES];
-            inflatedData.length = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
-            [_client URLProtocol:_protocol didLoadData:inflatedData];
+            [inflatedData appendBytes:inflatedBytes length:DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out];
 
             // This can happen if the decompressed data is size N * DECOMPRESSED_CHUNK_LENGTH,
             // in which case we had to make an additional call to inflate() despite there being
@@ -373,9 +363,16 @@
                                                         code:NSURLErrorCannotDecodeContentData
                                                     userInfo:nil];
             [_client URLProtocol:_protocol didFailWithError:error];
+            return;
+        }
+        
+        if (inflatedData.length > 0) {
+            [_client URLProtocol:_protocol didLoadData:inflatedData];
         }
     } else {
-        [_client URLProtocol:_protocol didLoadData:[data copy]];
+        if (data.length > 0) {
+            [_client URLProtocol:_protocol didLoadData:[data copy]];
+        }
     }
 }
 
