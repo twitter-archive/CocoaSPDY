@@ -356,8 +356,10 @@
 
             NSMutableData *inflatedData = [[NSMutableData alloc] initWithBytesNoCopy:inflatedBytes length:DECOMPRESSED_CHUNK_LENGTH freeWhenDone:YES];
             inflatedData.length = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
-            [_client URLProtocol:_protocol didLoadData:inflatedData];
-
+            if (inflatedData.length > 0) {
+                [_client URLProtocol:_protocol didLoadData:inflatedData];
+            }
+            
             // This can happen if the decompressed data is size N * DECOMPRESSED_CHUNK_LENGTH,
             // in which case we had to make an additional call to inflate() despite there being
             // no more input to ensure there wasn't any pending output in the zlib stream.
@@ -375,7 +377,9 @@
             [_client URLProtocol:_protocol didFailWithError:error];
         }
     } else {
-        [_client URLProtocol:_protocol didLoadData:[data copy]];
+        if (data.length > 0) {
+            [_client URLProtocol:_protocol didLoadData:[data copy]];
+        }
     }
 }
 
