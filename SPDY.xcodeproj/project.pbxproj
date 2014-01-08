@@ -99,6 +99,11 @@
 		06B290D01861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
 		06B290D11861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
 		06B290D21861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
+		06DFBA3D187CDAD3002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
+		06DFBA44187CDD6B002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
+		06DFBA45187CDD70002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
+		06DFBA46187CDD73002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
+		06DFBA47187CDD78002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
 		06E7BF131824371F004DB65D /* SPDYTLSTrustEvaluator.h in Headers */ = {isa = PBXBuildFile; fileRef = 06E7BF111823B74D004DB65D /* SPDYTLSTrustEvaluator.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		06FC94151694B92400FC95DF /* SPDYSettingsStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FC94131694B92400FC95DF /* SPDYSettingsStore.m */; };
 		06FDA20616717DF100137DBD /* SPDYSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14D0161A9EE9002E37CF /* SPDYSocket.m */; };
@@ -184,6 +189,7 @@
 		06A4E518180F21D500A82D93 /* libSPDY.iphoneos.arm64.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSPDY.iphoneos.arm64.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		06B290CC1861018900540A03 /* SPDYOrigin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYOrigin.h; sourceTree = "<group>"; };
 		06B290CD1861018900540A03 /* SPDYOrigin.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOrigin.m; sourceTree = "<group>"; };
+		06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		06E7BF111823B74D004DB65D /* SPDYTLSTrustEvaluator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYTLSTrustEvaluator.h; sourceTree = "<group>"; };
 		06FC94121694B92400FC95DF /* SPDYSettingsStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYSettingsStore.h; sourceTree = "<group>"; };
 		06FC94131694B92400FC95DF /* SPDYSettingsStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSettingsStore.m; sourceTree = "<group>"; };
@@ -212,10 +218,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				06FDA21616717F1800137DBD /* libz.dylib in Frameworks */,
-				06FDA21716717F5E00137DBD /* CFNetwork.framework in Frameworks */,
-				064EFB1816715C9F002F0AEC /* Foundation.framework in Frameworks */,
+				06DFBA47187CDD78002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				064EFB1516715C9F002F0AEC /* SenTestingKit.framework in Frameworks */,
+				064EFB1816715C9F002F0AEC /* Foundation.framework in Frameworks */,
+				06FDA21716717F5E00137DBD /* CFNetwork.framework in Frameworks */,
+				06FDA21616717F1800137DBD /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,6 +230,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06DFBA46187CDD73002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				0651EBE916F3F7C800CE44D2 /* Foundation.framework in Frameworks */,
 				0651EC4916F3FA4300CE44D2 /* CFNetwork.framework in Frameworks */,
 				0651EC4A16F3FA4500CE44D2 /* libz.dylib in Frameworks */,
@@ -233,6 +241,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06DFBA44187CDD6B002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				0651EBF916F3F7DC00CE44D2 /* Foundation.framework in Frameworks */,
 				0651EC4716F3FA3A00CE44D2 /* CFNetwork.framework in Frameworks */,
 				0651EC4816F3FA3D00CE44D2 /* libz.dylib in Frameworks */,
@@ -243,6 +252,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06DFBA3D187CDAD3002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				0651EC0916F3F7E500CE44D2 /* Foundation.framework in Frameworks */,
 				0651EC1E16F3F92300CE44D2 /* CFNetwork.framework in Frameworks */,
 				0651EC1F16F3F92500CE44D2 /* libz.dylib in Frameworks */,
@@ -253,6 +263,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06DFBA45187CDD70002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				06A4E512180F21D500A82D93 /* Foundation.framework in Frameworks */,
 				06A4E513180F21D500A82D93 /* CFNetwork.framework in Frameworks */,
 				06A4E514180F21D500A82D93 /* libz.dylib in Frameworks */,
@@ -331,6 +342,7 @@
 				0651EBFA16F3F7DC00CE44D2 /* SPDY.iphonesimulator */,
 				0651EC0A16F3F7E500CE44D2 /* SPDY.macosx */,
 				D2CC14B116179B43002E37CF /* Frameworks */,
+				06FDA21416717F0500137DBD /* libz.dylib */,
 				D2CC14AF16179B43002E37CF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -354,7 +366,7 @@
 				D2CC14D2161B608C002E37CF /* CFNetwork.framework */,
 				D2CC14B216179B43002E37CF /* Foundation.framework */,
 				064EFB1416715C9F002F0AEC /* SenTestingKit.framework */,
-				06FDA21416717F0500137DBD /* libz.dylib */,
+				06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -768,8 +780,9 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_ARC = YES;
 				FRAMEWORK_SEARCH_PATHS = (
-					"\"$(SDKROOT)/Developer/Library/Frameworks\"",
-					"\"$(DEVELOPER_LIBRARY_DIR)/Frameworks\"",
+					"\\\"$(SDKROOT)/Developer/Library/Frameworks\\\"",
+					"\\\"$(DEVELOPER_LIBRARY_DIR)/Frameworks\\\"",
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SPDYUnitTests/SPDYUnitTests-Prefix.pch";
@@ -785,8 +798,9 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_ARC = YES;
 				FRAMEWORK_SEARCH_PATHS = (
-					"\"$(SDKROOT)/Developer/Library/Frameworks\"",
-					"\"$(DEVELOPER_LIBRARY_DIR)/Frameworks\"",
+					"\\\"$(SDKROOT)/Developer/Library/Frameworks\\\"",
+					"\\\"$(DEVELOPER_LIBRARY_DIR)/Frameworks\\\"",
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SPDYUnitTests/SPDYUnitTests-Prefix.pch";
