@@ -15,11 +15,11 @@
 #error "This file requires ARC support."
 #endif
 
+#import <arpa/inet.h>
+#import <netinet/in.h>
+#import <sys/socket.h>
 #import "SPDYSocket.h"
 #import "SPDYCommonLogger.h"
-#import <sys/socket.h>
-#import <netinet/in.h>
-#import <arpa/inet.h>
 
 #pragma mark Declarations
 
