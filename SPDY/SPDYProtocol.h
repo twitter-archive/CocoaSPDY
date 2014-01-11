@@ -137,7 +137,7 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 @property BOOL enableSettingsMinorVersion;
 
 /**
-  TLS settings for the underlying CFSocketStream. Possible keys and 
+  TLS settings for the underlying CFSocketStream. Possible keys and
   values for TLS settings can be found in CFSocketStream.h
 
   Default is no settings.
