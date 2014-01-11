@@ -30,12 +30,21 @@ The SPDY framework is designed to work seamlessly with your existing apps and pr
 The framework contains a multi-architecture/multi-platform ("fat") binary that supports versions of iOS 6 and above, and OS X Lion and above, as well as all hardware capable of running those operating systems. When you distribute your application, the size of the included binary will be dramatically reduced, provided you have code stripping enabled.
 
 ## Enabling SPDY
+
+To use the SPDY framework you'll need to link CFNetwork.framework and libz.dylib in your project. This can be done in the "Link Binary with Libraries" section under "Build Phases" for your compilation target.
+
 The way you enable SPDY in your application will be slightly different depending on whether you are using NSURLConnection or NSURLSession to manage your HTTP calls. In order to cause requests issued via the NSURLConnection stack to be carried over SPDY, you'll make a method call to specify one or more origins (protocol-host-port tuple) to be handled by SPDY:
 
+    #import <SPDY/SPDYProtocol.h>
+    ...
     [SPDYURLConnectionProtocol registerOrigin:@"https://api.twitter.com:443"];
+
+Note that origins containing "http" vs. "https" are distinct from each other, will be handled by separate SPDY sessions, and must be registered independently. Only sessions for origins containing "https" will be encrypted with TLS.
 
 For NSURLSession, you can configure sessions to use SPDY via NSURLSessionConfiguration:
 
+    #import <SPDY/SPDYProtocol.h>
+    ...
     configuration.protocolClasses = @[[SPDYURLSessionProtocol class]];
 
 You can freely use either or both methods, and existing SPDY sessions will be shared across both networking stacks. If you do use the former approach, note that registered origins will also be handled by SPDY with the default NSURLSession.
@@ -71,6 +80,13 @@ In the near future, we will be working on:
 
 * [Server Push](https://github.com/twitter/CocoaSPDY/issues/1)
 * [Discretionary/Deferrable Request Scheduling](https://github.com/twitter/CocoaSPDY/issues/2)
+
+## Adopters
+
+* [Amahi](https://github.com/twitter/CocoaSPDY/issues/9#issuecomment-31307581)
+* [Twitter](https://twitter.com/TwitterOSS/status/413746448367230976)
+
+Please feel free to send us a pull request to add yourself to this list (bonus points to link to a tweet).
 
 ## Problems?
 If you find any issues please [report them](https://github.com/twitter/CocoaSPDY/issues) or better,
