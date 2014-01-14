@@ -375,7 +375,7 @@
             [_client URLProtocol:_protocol didFailWithError:error];
         }
     } else {
-        [_client URLProtocol:_protocol didLoadData:[data copy]];
+        [_client URLProtocol:_protocol didLoadData:data];
     }
 }
 
