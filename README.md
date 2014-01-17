@@ -54,6 +54,7 @@ Either of the above one-liners is all you need to do to shift HTTP requests tran
 * [netty](http://netty.io/4.0/api/io/netty/handler/codec/spdy/package-summary.html)
 * [jetty](http://www.eclipse.org/jetty/documentation/current/spdy.html)
 * apache (with [mod_spdy](https://code.google.com/p/mod-spdy/))
+* [Tengine](https://github.com/alibaba/tengine)
 
 ## A note on NPN
 Most existing SPDY implementations use a TLS extension called Next Protocol Implementation (NPN) to negotiate SPDY instead of HTTP. Unfortunately, this extension isn't supported by Secure Transport (Apple's TLS implementation), and so in order to use SPDY in your application, you'll either need to issue requests to a server that's configured to speak SPDY on a dedicated port, or use a server that's smart enough to examine the incoming request and determine whether the connection will be SPDY or HTTP based on what it looks like. At Twitter we do the latter, but the former solution may be simpler for most applications.
