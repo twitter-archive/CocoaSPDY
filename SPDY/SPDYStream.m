@@ -287,7 +287,7 @@
     }
 
 #if INCLUDE_SPDY_RESPONSE_HEADERS
-    allHTTPHeaders[@"x-spdy-version"] = @"3";
+    allHTTPHeaders[@"x-spdy-version"] = @"3.1";
     allHTTPHeaders[@"x-spdy-stream-id"] = [@(_streamId) stringValue];
 #endif
 
@@ -335,8 +335,11 @@
 
 - (void)didLoadData:(NSData *)data
 {
-    if (_compressedResponse && data.length > 0) {
-        _zlibStream.avail_in = (uInt)data.length;
+    NSUInteger dataLength = data.length;
+    if (dataLength == 0) return;
+
+    if (_compressedResponse) {
+        _zlibStream.avail_in = (uInt)dataLength;
         _zlibStream.next_in = (uint8_t *)data.bytes;
 
         while (_zlibStreamStatus == Z_OK && (_zlibStream.avail_in > 0 || _zlibStream.avail_out == 0)) {
@@ -355,8 +358,11 @@
             _zlibStreamStatus = inflate(&_zlibStream, Z_SYNC_FLUSH);
 
             NSMutableData *inflatedData = [[NSMutableData alloc] initWithBytesNoCopy:inflatedBytes length:DECOMPRESSED_CHUNK_LENGTH freeWhenDone:YES];
-            inflatedData.length = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
-            [_client URLProtocol:_protocol didLoadData:inflatedData];
+            NSUInteger inflatedLength = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
+            inflatedData.length = inflatedLength;
+            if (inflatedLength > 0) {
+                [_client URLProtocol:_protocol didLoadData:inflatedData];
+            }
 
             // This can happen if the decompressed data is size N * DECOMPRESSED_CHUNK_LENGTH,
             // in which case we had to make an additional call to inflate() despite there being
@@ -375,7 +381,8 @@
             [_client URLProtocol:_protocol didFailWithError:error];
         }
     } else {
-        [_client URLProtocol:_protocol didLoadData:[data copy]];
+        NSData *dataCopy = [[NSData alloc] initWithBytes:data.bytes length:dataLength];
+        [_client URLProtocol:_protocol didLoadData:dataCopy];
     }
 }
 

@@ -11,15 +11,15 @@
 //  https://github.com/robbiehanson/CocoaAsyncSocket
 //
 
-#if ! __has_feature(objc_arc)
-#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
 #endif
 
+#import <arpa/inet.h>
+#import <netinet/in.h>
+#import <sys/socket.h>
 #import "SPDYSocket.h"
 #import "SPDYCommonLogger.h"
-#import <sys/socket.h>
-#import <netinet/in.h>
-#import <arpa/inet.h>
 
 #pragma mark Declarations
 
@@ -1724,6 +1724,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         if ([_delegate respondsToSelector:@selector(socket:securedWithTrust:)]) {
             SecTrustRef trust = (SecTrustRef)CFReadStreamCopyProperty(_readStream, kCFStreamPropertySSLPeerTrust);
             acceptTrust = [_delegate socket:self securedWithTrust:trust];
+            if (trust) {
+                CFRelease(trust);
+            }
         }
 
         if (!acceptTrust) {

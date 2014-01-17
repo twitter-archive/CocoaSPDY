@@ -16,10 +16,17 @@
 @class SPDYOrigin;
 
 @interface SPDYSession : NSObject
+
 @property (nonatomic, readonly) SPDYOrigin *origin;
+@property (nonatomic, readonly) bool isCellular;
 @property (nonatomic, readonly) bool isOpen;
-- (id)initWithOrigin:(SPDYOrigin *)origin configuration:(SPDYConfiguration *)configuration error:(NSError **)pError;
+
+- (id)initWithOrigin:(SPDYOrigin *)origin
+       configuration:(SPDYConfiguration *)configuration
+            cellular:(bool)cellular
+               error:(NSError **)pError;
 - (void)issueRequest:(SPDYProtocol *)protocol;
 - (void)cancelRequest:(SPDYProtocol *)protocol;
 - (void)close;
+
 @end

@@ -69,9 +69,13 @@
     bool _enableSettingsMinorVersion;
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
+    bool _cellular;
 }
 
-- (id)initWithOrigin:(SPDYOrigin *)origin configuration:(SPDYConfiguration *)configuration error:(NSError **)pError
+- (id)initWithOrigin:(SPDYOrigin *)origin
+       configuration:(SPDYConfiguration *)configuration
+            cellular:(bool)cellular
+               error:(NSError **)pError
 {
     NSParameterAssert(origin != nil);
 
@@ -98,9 +102,12 @@
             _origin = origin;
             SPDY_INFO(@"session connecting to %@", _origin);
 
+            // TODO: for accuracy confirm this later from the socket
+            _cellular = cellular;
+
             if ([_origin.scheme isEqualToString:@"https"]) {
                 SPDY_DEBUG(@"session using TLS");
-                [_socket secureWithTLS:@{ /* use Apple default TLS settings */ }];
+                [_socket secureWithTLS:configuration.tlsSettings];
             }
 
             _frameDecoder = [[SPDYFrameDecoder alloc] initWithDelegate:self];
@@ -219,6 +226,11 @@
     _frameDecoder.delegate = nil;
     _frameEncoder.delegate = nil;
     [_socket disconnect];
+}
+
+- (bool)isCellular
+{
+    return _cellular;
 }
 
 - (bool)isOpen
