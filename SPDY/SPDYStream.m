@@ -200,6 +200,8 @@
 {
     if (_dataStream) {
         if (length > 0 && _dataStream.hasBytesAvailable) {
+		
+            length = MIN(length, 1024*1024); // protect again arbitrarily large window size
             NSMutableData *writeData = [[NSMutableData alloc] initWithLength:length];
             NSInteger bytesRead = [_dataStream read:(uint8_t *)writeData.bytes maxLength:length];
 
