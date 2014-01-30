@@ -22,6 +22,8 @@
 
 #define INCLUDE_SPDY_RESPONSE_HEADERS 1
 #define DECOMPRESSED_CHUNK_LENGTH 8192
+#define MIN_WRITE_CHUNK_LENGTH 4096
+#define MAX_WRITE_CHUNK_LENGTH 131072
 #define USE_CFSTREAM 0
 
 #if USE_CFSTREAM
@@ -48,6 +50,7 @@
     CFReadStreamRef _dataStreamRef;
     CFRunLoopRef _runLoopRef;
     NSUInteger _writeDataIndex;
+    NSUInteger _writeStreamChunkLength;
     z_stream _zlibStream;
     bool _compressedResponse;
     bool _writeStreamOpened;
@@ -90,6 +93,7 @@
     _sendWindowSizeLowerBound = 0;
     _receiveWindowSizeLowerBound = 0;
     _writeDataIndex = 0;
+    _writeStreamChunkLength = MIN_WRITE_CHUNK_LENGTH;
 
     if (_request.HTTPBody) {
         _data = _request.HTTPBody;
@@ -200,12 +204,17 @@
 {
     if (_dataStream) {
         if (length > 0 && _dataStream.hasBytesAvailable) {
-		
-            length = MIN(length, 1024*1024); // protect again arbitrarily large window size
-            NSMutableData *writeData = [[NSMutableData alloc] initWithLength:length];
-            NSInteger bytesRead = [_dataStream read:(uint8_t *)writeData.bytes maxLength:length];
+            NSUInteger maxLength = MIN(length, _writeStreamChunkLength);
+            NSMutableData *writeData = [[NSMutableData alloc] initWithLength:maxLength];
+            NSInteger bytesRead = [_dataStream read:(uint8_t *)writeData.bytes maxLength:maxLength];
 
             if (bytesRead > 0) {
+                // If upstream window size is large enough to accommodate, progressively increase
+                // the amount read with each pass, to balance memory usage against read calls.
+                if (bytesRead == _writeStreamChunkLength) {
+                    _writeStreamChunkLength = MIN(2 * _writeStreamChunkLength, MAX_WRITE_CHUNK_LENGTH);
+                }
+
                 writeData.length = (NSUInteger)bytesRead;
                 return writeData;
             } else if (bytesRead < 0) {
