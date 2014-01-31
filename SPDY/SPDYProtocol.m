@@ -222,6 +222,7 @@ static SPDYConfiguration *defaultConfiguration;
 {
     defaultConfiguration = [[SPDYConfiguration alloc] init];
     defaultConfiguration.headerCompressionLevel = 9;
+    defaultConfiguration.sessionPoolSize = 1;
     defaultConfiguration.sessionReceiveWindow = 10485760;
     defaultConfiguration.streamReceiveWindow = 10485760;
     defaultConfiguration.enableSettingsMinorVersion = NO;
@@ -239,6 +240,7 @@ static SPDYConfiguration *defaultConfiguration;
 {
     SPDYConfiguration *copy = [[SPDYConfiguration allocWithZone:zone] init];
     copy.headerCompressionLevel = _headerCompressionLevel;
+    copy.sessionPoolSize = _sessionPoolSize;
     copy.sessionReceiveWindow = _sessionReceiveWindow;
     copy.streamReceiveWindow = _streamReceiveWindow;
     copy.enableSettingsMinorVersion = _enableSettingsMinorVersion;

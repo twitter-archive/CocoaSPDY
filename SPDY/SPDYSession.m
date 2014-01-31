@@ -335,7 +335,7 @@
 - (void)socketDidDisconnect:(SPDYSocket *)socket
 {
     SPDY_INFO(@"session connection closed");
-    [SPDYSessionManager sessionClosed:self];
+    [SPDYSessionManager removeSession:self];
 }
 
 #pragma mark SPDYStreamDataDelegate

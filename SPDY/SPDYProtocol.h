@@ -107,6 +107,13 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 + (SPDYConfiguration *)defaultConfiguration;
 
 /**
+  The number of parallel TCP connections to open to a single origin.
+
+  Default is 1.
+*/
+@property NSUInteger sessionPoolSize;
+
+/**
   Initial session window size for client flow control.
 
   Default is 10MB. If your application is receiving large responses and
