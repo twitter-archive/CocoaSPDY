@@ -98,6 +98,6 @@ send a [pull request](https://github.com/twitter/CocoaSPDY/pulls).
 * Jeffrey Pinner <https://twitter.com/jpinner>
 
 ## License
-Copyright 2013 Twitter, Inc. and other contributors.
+Copyright 2014 Twitter, Inc. and other contributors.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0

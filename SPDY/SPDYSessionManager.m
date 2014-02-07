@@ -2,7 +2,7 @@
 //  SPDYSessionManager.m
 //  SPDY
 //
-//  Copyright (c) 2013 Twitter, Inc. All rights reserved.
+//  Copyright (c) 2014 Twitter, Inc. All rights reserved.
 //  Licensed under the Apache License v2.0
 //  http://www.apache.org/licenses/LICENSE-2.0
 //
