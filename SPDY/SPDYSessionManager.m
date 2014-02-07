@@ -161,8 +161,6 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 + (NSMutableDictionary *)_sessionPoolTable:(bool)cellular
 {
     NSMutableDictionary *threadDictionary = [NSThread currentThread].threadDictionary;
-    SPDY_DEBUG(@"Thread %@: %@", [NSThread currentThread].name, [NSThread currentThread]);
-    SPDY_DEBUG(@"thread dictionary: %@", threadDictionary);
     NSArray *sessionPools = threadDictionary[SPDYSessionManagerKey];
     if (!sessionPools) {
         sessionPools = @[
