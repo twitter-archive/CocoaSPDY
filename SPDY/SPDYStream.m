@@ -20,7 +20,6 @@
 #import "SPDYProtocol.h"
 #import "SPDYStream.h"
 
-#define INCLUDE_SPDY_RESPONSE_HEADERS 1
 #define DECOMPRESSED_CHUNK_LENGTH 8192
 #define MIN_WRITE_CHUNK_LENGTH 4096
 #define MAX_WRITE_CHUNK_LENGTH 131072
@@ -298,11 +297,6 @@
                                                       mainDocumentURL:_protocol.request.mainDocumentURL];
         }
     }
-
-#if INCLUDE_SPDY_RESPONSE_HEADERS
-    allHTTPHeaders[@"x-spdy-version"] = @"3.1";
-    allHTTPHeaders[@"x-spdy-stream-id"] = [@(_streamId) stringValue];
-#endif
 
     NSString *encoding = allHTTPHeaders[@"content-encoding"];
     _compressedResponse = [encoding hasPrefix:@"deflate"] || [encoding hasPrefix:@"gzip"];

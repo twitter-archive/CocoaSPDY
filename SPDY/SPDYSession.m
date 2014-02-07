@@ -36,6 +36,7 @@
 #define INITIAL_INPUT_BUFFER_SIZE      65536
 #define LOCAL_MAX_CONCURRENT_STREAMS   0
 #define REMOTE_MAX_CONCURRENT_STREAMS  INT32_MAX
+#define INCLUDE_SPDY_RESPONSE_HEADERS  1
 
 @interface SPDYSession () <SPDYFrameDecoderDelegate, SPDYFrameEncoderDelegate, SPDYStreamDataDelegate, SPDYSocketDelegate>
 @property (nonatomic, readonly) SPDYStreamId nextStreamId;
@@ -49,11 +50,12 @@
 
 @implementation SPDYSession
 {
-    SPDYSocket *_socket;
+    SPDYConfiguration *_configuration;
     SPDYFrameDecoder *_frameDecoder;
     SPDYFrameEncoder *_frameEncoder;
     SPDYStreamManager *_activeStreams;
     SPDYStreamManager *_inactiveStreams;
+    SPDYSocket *_socket;
     NSMutableData *_inputBuffer;
 
     SPDYStreamId _lastGoodStreamId;
@@ -100,6 +102,7 @@
                                           error:pError];
 
         if (connecting) {
+            _configuration = configuration;
             _socket = socket;
             _origin = origin;
             SPDY_INFO(@"session connecting to %@", _origin);
@@ -553,10 +556,22 @@
         return;
     }
 
-    [stream didReceiveResponse:synReplyFrame.headers];
+#if INCLUDE_SPDY_RESPONSE_HEADERS
+    NSMutableDictionary *headers = [synReplyFrame.headers mutableCopy];
+    NSString *version = ENABLE_SESSION_FLOW_CONTROL ? @"3.1" : @"3";
+    if (_configuration.sessionPoolSize > 1) {
+        headers[@"x-spdy-version"] = [[NSString alloc] initWithFormat:@"%@-TCPx%lu", version, (unsigned long)_configuration.sessionPoolSize];
+    } else {
+        headers[@"x-spdy-version"] = version;
+    }
+    headers[@"x-spdy-stream-id"] = [@(streamId) stringValue];
+#else
+    NSDictionary *headers = synReplyFrame.headers;
+#endif
+
+    [stream didReceiveResponse:headers];
 
     stream.remoteSideClosed = synReplyFrame.last;
-
 
     if (stream.closed) {
         [_activeStreams removeStreamWithStreamId:streamId];
