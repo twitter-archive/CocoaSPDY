@@ -79,7 +79,7 @@
             _port = port;
         }
 
-        _serialization = [[NSString alloc] initWithFormat:@"%@://%@:%uh", _scheme, _host, _port];
+        _serialization = [[NSString alloc] initWithFormat:@"%@://%@:%u", _scheme, _host, _port];
     }
     return self;
 }
@@ -97,6 +97,11 @@
         _serialization = serialization;
     }
     return self;
+}
+
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"<SPDYOrigin: %@>", _serialization];
 }
 
 - (NSUInteger)hash
