@@ -78,6 +78,11 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 {
     SPDYSession *session;
 
+    // TODO: this nil check shouldn't be necessary, is there a threading issue?
+    if (_sessions.count == 0) {
+        return nil;
+    }
+
     do {
         session = _sessions[0];
     } while (session && !session.isOpen && [self remove:session] > 0);
@@ -131,15 +136,15 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 + (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError
 {
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:url error:pError];
-    NSMutableDictionary *sessionPools = [SPDYSessionManager _sessionPoolTable:reachabilityIsWWAN];
-    SPDYSessionPool *pool = sessionPools[origin];
+    NSMutableDictionary *poolTable = [SPDYSessionManager _sessionPoolTable:reachabilityIsWWAN];
+    SPDYSessionPool *pool = poolTable[origin];
     SPDYSession *session = [pool next];
     if (!session) {
         pool = [[SPDYSessionPool alloc] initWithOrigin:origin
                                                   size:currentConfiguration.sessionPoolSize
                                                  error:pError];
         if (pool) {
-            sessionPools[origin] = pool;
+            poolTable[origin] = pool;
             session = [pool next];
         }
     }
@@ -161,17 +166,17 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 + (NSMutableDictionary *)_sessionPoolTable:(bool)cellular
 {
     NSMutableDictionary *threadDictionary = [NSThread currentThread].threadDictionary;
-    NSArray *sessionPools = threadDictionary[SPDYSessionManagerKey];
-    if (!sessionPools) {
-        sessionPools = @[
+    NSArray *poolTables = threadDictionary[SPDYSessionManagerKey];
+    if (!poolTables) {
+        poolTables = @[
             [NSMutableDictionary new],
             [NSMutableDictionary new]  // WWAN
         ];
-        threadDictionary[SPDYSessionManagerKey] = sessionPools;
+        threadDictionary[SPDYSessionManagerKey] = poolTables;
     }
 
     SPDY_DEBUG(@"using %@ session pool", cellular ? @"cellular" : @"standard");
-    return sessionPools[cellular ? 1 : 0];
+    return poolTables[cellular ? 1 : 0];
 }
 
 @end
