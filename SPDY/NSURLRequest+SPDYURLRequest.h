@@ -30,6 +30,12 @@
 @property (nonatomic, readonly) NSString *SPDYBodyFile;
 
 /**
+  If set, SPDYProtocol will decline to handle the request and instead pass
+  it along to the next registered protocol (e.g. NSHTTPURLProtocol).
+*/
+@property (nonatomic, readonly) BOOL SPDYBypass;
+
+/**
   Priority per the SPDY draft spec. Defaults to 0.
 */
 @property (nonatomic, readonly) NSUInteger SPDYPriority;
@@ -49,6 +55,7 @@
 @interface NSMutableURLRequest (SPDYURLRequest)
 @property (nonatomic) NSInputStream *SPDYBodyStream;
 @property (nonatomic) NSString *SPDYBodyFile;
+@property (nonatomic) BOOL SPDYBypass;
 @property (nonatomic) NSUInteger SPDYPriority;
 @property (nonatomic) BOOL SPDYDiscretionary;
 @end

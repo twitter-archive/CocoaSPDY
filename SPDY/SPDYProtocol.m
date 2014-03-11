@@ -19,6 +19,7 @@
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYTLSTrustEvaluator.h"
+#import "NSURLRequest+SPDYURLRequest.h"
 
 NSString *const SPDYStreamErrorDomain = @"SPDYStreamErrorDomain";
 NSString *const SPDYSessionErrorDomain = @"SPDYSessionErrorDomain";
@@ -27,7 +28,6 @@ NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
 
-static NSString *const kSPDYOverride = @"SPDYOverride";
 static char *const SPDYOriginQueue = "com.twitter.SPDYOriginQueue";
 static char *const SPDYTrustQueue = "com.twitter.SPDYTrustQueue";
 
@@ -87,8 +87,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         return NO;
     }
 
-    NSNumber *override = [SPDYProtocol propertyForKey:kSPDYOverride inRequest:request];
-    return override == nil || override.boolValue;
+    return !request.SPDYBypass;
 }
 
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request

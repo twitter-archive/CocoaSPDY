@@ -28,6 +28,11 @@
     return [[SPDYProtocol propertyForKey:@"SPDYDiscretionary" inRequest:self] boolValue];
 }
 
+- (BOOL)SPDYBypass
+{
+    return [[SPDYProtocol propertyForKey:@"SPDYBypass" inRequest:self] boolValue];
+}
+
 - (NSInputStream *)SPDYBodyStream
 {
     return [SPDYProtocol propertyForKey:@"SPDYBodyStream" inRequest:self];
@@ -140,6 +145,16 @@
 - (void)setSPDYDiscretionary:(BOOL)Discretionary
 {
     [SPDYProtocol setProperty:@(Discretionary) forKey:@"SPDYDiscretionary" inRequest:self];
+}
+
+- (BOOL)SPDYBypass
+{
+    return [[SPDYProtocol propertyForKey:@"SPDYBypass" inRequest:self] boolValue];
+}
+
+- (void)setSPDYBypass:(BOOL)bypass
+{
+    [SPDYProtocol setProperty:@(bypass) forKey:@"SPDYBypass" inRequest:self];
 }
 
 - (NSInputStream *)SPDYBodyStream
