@@ -87,7 +87,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         return NO;
     }
 
-    return !request.SPDYBypass;
+    return !request.SPDYBypass && ![request valueForHTTPHeaderField:@"x-spdy-bypass"];
 }
 
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request
