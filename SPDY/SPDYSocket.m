@@ -1724,6 +1724,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         if ([_delegate respondsToSelector:@selector(socket:securedWithTrust:)]) {
             SecTrustRef trust = (SecTrustRef)CFReadStreamCopyProperty(_readStream, kCFStreamPropertySSLPeerTrust);
             acceptTrust = [_delegate socket:self securedWithTrust:trust];
+            CFRelease(trust);
         }
 
         if (!acceptTrust) {
