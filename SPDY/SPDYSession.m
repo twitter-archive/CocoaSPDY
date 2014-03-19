@@ -833,7 +833,7 @@
 {
     SPDYWindowUpdateFrame *windowUpdateFrame = [[SPDYWindowUpdateFrame alloc] init];
     windowUpdateFrame.streamId = streamId;
-    windowUpdateFrame.deltaWindowSize = deltaWindowSize;
+    windowUpdateFrame.deltaWindowSize = (uint32_t) deltaWindowSize;
     [_frameEncoder encodeWindowUpdateFrame:windowUpdateFrame];
     SPDY_DEBUG(@"sent WINDOW_UPDATE.%u (+%lu)", streamId, (unsigned long)deltaWindowSize);
 }
