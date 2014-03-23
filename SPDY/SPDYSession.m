@@ -34,7 +34,6 @@
 #define INITIAL_INPUT_BUFFER_SIZE      65536
 #define LOCAL_MAX_CONCURRENT_STREAMS   0
 #define REMOTE_MAX_CONCURRENT_STREAMS  INT32_MAX
-#define ENABLE_SESSION_FLOW_CONTROL    1
 
 @interface SPDYSession () <SPDYFrameDecoderDelegate, SPDYFrameEncoderDelegate, SPDYStreamDataDelegate, SPDYSocketDelegate>
 @property (nonatomic, readonly) SPDYStreamId nextStreamId;
@@ -152,10 +151,8 @@
             [self _sendServerPersistedSettings:settings];
             [self _sendClientSettings];
 
-#if ENABLE_SESSION_FLOW_CONTROL
             NSUInteger deltaWindowSize = _sessionReceiveWindowSize - DEFAULT_WINDOW_SIZE;
             [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
-#endif
         } else {
             self = nil;
         }
@@ -382,7 +379,6 @@
     SPDYStream *stream = _activeStreams[streamId];
     SPDY_DEBUG(@"received DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
-#if ENABLE_SESSION_FLOW_CONTROL
     // Check if session flow control is violated
     if (_sessionReceiveWindowSize < dataFrame.data.length) {
         [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
@@ -398,7 +394,6 @@
         [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
         _sessionReceiveWindowSize = _initialReceiveWindowSize;
     }
-#endif
 
     // Check if we received a data frame for a valid Stream-ID
     if (!stream) {
@@ -691,7 +686,6 @@
     SPDYStreamId streamId = windowUpdateFrame.streamId;
     SPDY_DEBUG(@"received WINDOW_UPDATE.%u (+%lu)", streamId, (unsigned long)windowUpdateFrame.deltaWindowSize);
 
-#if ENABLE_SESSION_FLOW_CONTROL
     if (streamId == kSPDYSessionStreamId) {
         // Check for numerical overflow
         if (_sessionSendWindowSize > INT32_MAX - windowUpdateFrame.deltaWindowSize) {
@@ -707,7 +701,6 @@
 
         return;
     }
-#endif
 
     // Ignore frames for non-existent or half-closed streams
     SPDYStream *stream = _activeStreams[streamId];
@@ -753,7 +746,7 @@
     if (_enableSettingsMinorVersion) {
         settingsFrame.settings[SPDY_SETTINGS_MINOR_VERSION].set = YES;
         settingsFrame.settings[SPDY_SETTINGS_MINOR_VERSION].flags = 0;
-        settingsFrame.settings[SPDY_SETTINGS_MINOR_VERSION].value = ENABLE_SESSION_FLOW_CONTROL;
+        settingsFrame.settings[SPDY_SETTINGS_MINOR_VERSION].value = 1;
     }
     settingsFrame.settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].set = YES;
     settingsFrame.settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].flags = 0;
@@ -781,12 +774,7 @@
 - (void)_sendData:(SPDYStream *)stream
 {
     SPDYStreamId streamId = stream.streamId;
-
-#if ENABLE_SESSION_FLOW_CONTROL
     NSUInteger sendWindowSize = MIN(_sessionSendWindowSize, stream.sendWindowSize);
-#else
-    NSUInteger sendWindowSize = stream.sendWindowSize;
-#endif
 
     while (!stream.localSideClosed && stream.hasDataAvailable && sendWindowSize > 0) {
         NSError *error;
@@ -803,10 +791,7 @@
             NSUInteger bytesSent = data.length;
             sendWindowSize -= bytesSent;
 
-#if !ENABLE_SESSION_FLOW_CONTROL
             _sessionSendWindowSize -= bytesSent;
-#endif
-
             stream.sendWindowSize -= bytesSent;
             stream.localSideClosed = dataFrame.last;
         } else {
