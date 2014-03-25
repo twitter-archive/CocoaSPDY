@@ -130,11 +130,11 @@
             SPDYSettings *settings = [SPDYSettingsStore settingsForOrigin:_origin];
             if (settings != NULL) {
                 if (settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set) {
-                    _remoteMaxConcurrentStreams = MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
+                    _remoteMaxConcurrentStreams = (uint32_t)MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
                 }
 
                 if (settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].set) {
-                    _initialSendWindowSize = MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
+                    _initialSendWindowSize = (uint32_t)MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
                 }
             }
 
@@ -605,12 +605,12 @@
     }
 
     if (settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set) {
-        _remoteMaxConcurrentStreams = MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
+        _remoteMaxConcurrentStreams = (uint32_t)MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
     }
 
     if (settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].set) {
         uint32_t previousWindowSize = _initialSendWindowSize;
-        _initialSendWindowSize = MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
+        _initialSendWindowSize = (uint32_t)MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
         uint32_t deltaWindowSize = _initialSendWindowSize - previousWindowSize;
 
         for (SPDYStream *stream in _activeStreams) {
