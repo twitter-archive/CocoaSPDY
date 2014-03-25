@@ -104,10 +104,11 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     NSMutableDictionary *threadDictionary = [NSThread currentThread].threadDictionary;
     NSArray *sessionPools = threadDictionary[SPDYSessionManagerKey];
     if (!sessionPools) {
-        threadDictionary[SPDYSessionManagerKey] = @[
+        sessionPools = @[
             [NSMutableDictionary new],
             [NSMutableDictionary new]  // WWAN
         ];
+        threadDictionary[SPDYSessionManagerKey] = sessionPools;
     }
 
     SPDY_DEBUG(@"using %@ session pool", cellular ? @"cellular" : @"standard");
