@@ -39,7 +39,7 @@
 @property (nonatomic, readonly) SPDYStreamId nextStreamId;
 - (void)_sendSynStream:(SPDYStream *)stream streamId:(SPDYStreamId)streamId closeLocal:(bool)close;
 - (void)_sendData:(SPDYStream *)stream;
-- (void)_sendWindowUpdate:(NSUInteger)deltaWindowSize streamId:(SPDYStreamId)streamId;
+- (void)_sendWindowUpdate:(uint32_t)deltaWindowSize streamId:(SPDYStreamId)streamId;
 - (void)_sendPingResponse:(SPDYPingFrame *)pingFrame;
 - (void)_sendRstStream:(SPDYStreamStatus)status streamId:(SPDYStreamId)streamId;
 - (void)_sendGoAway:(SPDYSessionStatus)status;
@@ -58,12 +58,12 @@
     SPDYStreamId _nextStreamId;
     NSUInteger _bufferReadIndex;
     NSUInteger _bufferWriteIndex;
-    NSUInteger _initialSendWindowSize;
-    NSUInteger _initialReceiveWindowSize;
-    NSUInteger _sessionSendWindowSize;
-    NSUInteger _sessionReceiveWindowSize;
-    NSUInteger _localMaxConcurrentStreams;
-    NSUInteger _remoteMaxConcurrentStreams;
+    uint32_t _initialSendWindowSize;
+    uint32_t _initialReceiveWindowSize;
+    uint32_t _sessionSendWindowSize;
+    uint32_t _sessionReceiveWindowSize;
+    uint32_t _localMaxConcurrentStreams;
+    uint32_t _remoteMaxConcurrentStreams;
     time_t _lastSocketActivity;
     bool _enableSettingsMinorVersion;
     bool _receivedGoAwayFrame;
@@ -122,7 +122,7 @@
             _bufferWriteIndex = 0;
 
             _initialSendWindowSize = DEFAULT_WINDOW_SIZE;
-            _initialReceiveWindowSize = configuration.streamReceiveWindow;
+            _initialReceiveWindowSize = (uint32_t)configuration.streamReceiveWindow;
             _localMaxConcurrentStreams = LOCAL_MAX_CONCURRENT_STREAMS;
             _remoteMaxConcurrentStreams = REMOTE_MAX_CONCURRENT_STREAMS;
             _enableSettingsMinorVersion = configuration.enableSettingsMinorVersion;
@@ -130,16 +130,16 @@
             SPDYSettings *settings = [SPDYSettingsStore settingsForOrigin:_origin];
             if (settings != NULL) {
                 if (settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set) {
-                    _remoteMaxConcurrentStreams = (NSUInteger)MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
+                    _remoteMaxConcurrentStreams = MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
                 }
 
                 if (settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].set) {
-                    _initialSendWindowSize = (NSUInteger)MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
+                    _initialSendWindowSize = MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
                 }
             }
 
             _sessionSendWindowSize = DEFAULT_WINDOW_SIZE;
-            _sessionReceiveWindowSize = configuration.sessionReceiveWindow;
+            _sessionReceiveWindowSize = (uint32_t)configuration.sessionReceiveWindow;
             _sentGoAwayFrame = NO;
             _receivedGoAwayFrame = NO;
 
@@ -151,7 +151,7 @@
             [self _sendServerPersistedSettings:settings];
             [self _sendClientSettings];
 
-            NSUInteger deltaWindowSize = _sessionReceiveWindowSize - DEFAULT_WINDOW_SIZE;
+            uint32_t deltaWindowSize = _sessionReceiveWindowSize - DEFAULT_WINDOW_SIZE;
             [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
         } else {
             self = nil;
@@ -390,7 +390,7 @@
 
     // Send a WINDOW_UPDATE frame if less than half the session window size remains
     if (_sessionReceiveWindowSize <= _initialReceiveWindowSize / 2) {
-        NSUInteger deltaWindowSize = _initialReceiveWindowSize - _sessionReceiveWindowSize;
+        uint32_t deltaWindowSize = _initialReceiveWindowSize - _sessionReceiveWindowSize;
         [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
         _sessionReceiveWindowSize = _initialReceiveWindowSize;
     }
@@ -459,7 +459,7 @@
     }
 
     // Update receive window size
-    stream.receiveWindowSize -= dataFrame.data.length;
+    stream.receiveWindowSize -= (uint32_t)dataFrame.data.length;
 
     // Send a WINDOW_UPDATE frame if less than half the window size remains
     if (stream.receiveWindowSize <= _initialReceiveWindowSize / 2 && !dataFrame.last) {
@@ -605,13 +605,13 @@
     }
 
     if (settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set) {
-        _remoteMaxConcurrentStreams = (NSUInteger)MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
+        _remoteMaxConcurrentStreams = MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
     }
 
     if (settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].set) {
-        NSUInteger previousWindowSize = _initialSendWindowSize;
-        _initialSendWindowSize = (NSUInteger)MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
-        NSUInteger deltaWindowSize = _initialSendWindowSize - previousWindowSize;
+        uint32_t previousWindowSize = _initialSendWindowSize;
+        _initialSendWindowSize = MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
+        uint32_t deltaWindowSize = _initialSendWindowSize - previousWindowSize;
 
         for (SPDYStream *stream in _activeStreams) {
             if (!stream.localSideClosed) {
@@ -774,7 +774,7 @@
 - (void)_sendData:(SPDYStream *)stream
 {
     SPDYStreamId streamId = stream.streamId;
-    NSUInteger sendWindowSize = MIN(_sessionSendWindowSize, stream.sendWindowSize);
+    uint32_t sendWindowSize = MIN(_sessionSendWindowSize, stream.sendWindowSize);
 
     while (!stream.localSideClosed && stream.hasDataAvailable && sendWindowSize > 0) {
         NSError *error;
@@ -788,9 +788,8 @@
             [_frameEncoder encodeDataFrame:dataFrame];
             SPDY_DEBUG(@"sent DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
-            NSUInteger bytesSent = data.length;
+            uint32_t bytesSent = (uint32_t)data.length;
             sendWindowSize -= bytesSent;
-
             _sessionSendWindowSize -= bytesSent;
             stream.sendWindowSize -= bytesSent;
             stream.localSideClosed = dataFrame.last;
@@ -826,7 +825,7 @@
     }
 }
 
-- (void)_sendWindowUpdate:(NSUInteger)deltaWindowSize streamId:(SPDYStreamId)streamId
+- (void)_sendWindowUpdate:(uint32_t)deltaWindowSize streamId:(SPDYStreamId)streamId
 {
     SPDYWindowUpdateFrame *windowUpdateFrame = [[SPDYWindowUpdateFrame alloc] init];
     windowUpdateFrame.streamId = streamId;

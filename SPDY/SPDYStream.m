@@ -85,7 +85,7 @@
     return self;
 }
 
-- (void)startWithStreamId:(SPDYStreamId)streamId sendWindowSize:(NSUInteger)sendWindowSize receiveWindowSize:(NSUInteger)receiveWindowSize
+- (void)startWithStreamId:(SPDYStreamId)streamId sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize
 {
     _streamId = streamId;
     _sendWindowSize = sendWindowSize;

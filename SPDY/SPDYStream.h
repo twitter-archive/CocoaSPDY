@@ -36,13 +36,13 @@
 @property (nonatomic) bool receivedReply;
 @property (nonatomic, readonly) bool hasDataAvailable;
 @property (nonatomic, readonly) bool hasDataPending;
-@property (nonatomic) NSUInteger sendWindowSize;
-@property (nonatomic) NSUInteger receiveWindowSize;
-@property (nonatomic) NSUInteger sendWindowSizeLowerBound;
-@property (nonatomic) NSUInteger receiveWindowSizeLowerBound;
+@property (nonatomic) uint32_t sendWindowSize;
+@property (nonatomic) uint32_t receiveWindowSize;
+@property (nonatomic) uint32_t sendWindowSizeLowerBound;
+@property (nonatomic) uint32_t receiveWindowSizeLowerBound;
 
 - (id)initWithProtocol:(SPDYProtocol *)protocol dataDelegate:(id<SPDYStreamDataDelegate>)delegate;
-- (void)startWithStreamId:(SPDYStreamId)id sendWindowSize:(NSUInteger)sendWindowSize receiveWindowSize:(NSUInteger)receiveWindowSize;
+- (void)startWithStreamId:(SPDYStreamId)id sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize;
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;
 - (void)closeWithError:(NSError *)error;
 - (void)closeWithStatus:(SPDYStreamStatus)status;

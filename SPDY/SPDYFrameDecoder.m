@@ -334,7 +334,7 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
 
 - (NSUInteger)_readDataFrame:(uint8_t *)buffer length:(NSUInteger)len
 {
-    NSUInteger streamId = _header.data.streamId;
+    SPDYStreamId streamId = _header.data.streamId;
     if (streamId == 0) {
         _state = FRAME_ERROR;
         return 0;
