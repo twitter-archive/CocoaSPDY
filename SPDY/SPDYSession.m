@@ -558,7 +558,7 @@
 
 #if INCLUDE_SPDY_RESPONSE_HEADERS
     NSMutableDictionary *headers = [synReplyFrame.headers mutableCopy];
-    NSString *version = ENABLE_SESSION_FLOW_CONTROL ? @"3.1" : @"3";
+    NSString *version = @"3.1";
     if (_configuration.sessionPoolSize > 1) {
         headers[@"x-spdy-version"] = [[NSString alloc] initWithFormat:@"%@-TCPx%lu", version, (unsigned long)_configuration.sessionPoolSize];
     } else {
