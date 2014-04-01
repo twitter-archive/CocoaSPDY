@@ -28,7 +28,6 @@
 		0651EBF916F3F7DC00CE44D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14B216179B43002E37CF /* Foundation.framework */; };
 		0651EC0916F3F7E500CE44D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14B216179B43002E37CF /* Foundation.framework */; };
 		0651EC1E16F3F92300CE44D2 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
-		0651EC1F16F3F92500CE44D2 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 06FDA21416717F0500137DBD /* libz.dylib */; };
 		0651EC2016F3FA0B00CE44D2 /* SPDYSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14D0161A9EE9002E37CF /* SPDYSocket.m */; };
 		0651EC2216F3FA0B00CE44D2 /* NSURLRequest+SPDYURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */; };
 		0651EC2316F3FA0B00CE44D2 /* SPDYFrame.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CA161A25CC002E37CF /* SPDYFrame.m */; };
@@ -66,9 +65,7 @@
 		0651EC4516F3FA1400CE44D2 /* SPDYSettingsStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FC94131694B92400FC95DF /* SPDYSettingsStore.m */; };
 		0651EC4616F3FA1400CE44D2 /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E89167F9D010037D8AF /* SPDYStream.m */; };
 		0651EC4716F3FA3A00CE44D2 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
-		0651EC4816F3FA3D00CE44D2 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 06FDA21416717F0500137DBD /* libz.dylib */; };
 		0651EC4916F3FA4300CE44D2 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
-		0651EC4A16F3FA4500CE44D2 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 06FDA21416717F0500137DBD /* libz.dylib */; };
 		0679F3CF186217FC006F122E /* SPDYOriginTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 0679F3CE186217FC006F122E /* SPDYOriginTest.m */; };
 		067EBFE717418F350029F16C /* SPDYStreamTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 067EBFE617418F350029F16C /* SPDYStreamTest.m */; };
 		06811C971714D426000D1677 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; };
@@ -93,7 +90,6 @@
 		06A4E510180F21D500A82D93 /* SPDYStreamManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 061C8E9317C5954400D22083 /* SPDYStreamManager.m */; };
 		06A4E512180F21D500A82D93 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14B216179B43002E37CF /* Foundation.framework */; };
 		06A4E513180F21D500A82D93 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
-		06A4E514180F21D500A82D93 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 06FDA21416717F0500137DBD /* libz.dylib */; };
 		06B290CE1861018900540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
 		06B290CF1861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
 		06B290D01861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
@@ -233,7 +229,6 @@
 				06DFBA46187CDD73002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				0651EBE916F3F7C800CE44D2 /* Foundation.framework in Frameworks */,
 				0651EC4916F3FA4300CE44D2 /* CFNetwork.framework in Frameworks */,
-				0651EC4A16F3FA4500CE44D2 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,7 +239,6 @@
 				06DFBA44187CDD6B002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				0651EBF916F3F7DC00CE44D2 /* Foundation.framework in Frameworks */,
 				0651EC4716F3FA3A00CE44D2 /* CFNetwork.framework in Frameworks */,
-				0651EC4816F3FA3D00CE44D2 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,7 +249,6 @@
 				06DFBA3D187CDAD3002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				0651EC0916F3F7E500CE44D2 /* Foundation.framework in Frameworks */,
 				0651EC1E16F3F92300CE44D2 /* CFNetwork.framework in Frameworks */,
-				0651EC1F16F3F92500CE44D2 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,7 +259,6 @@
 				06DFBA45187CDD70002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				06A4E512180F21D500A82D93 /* Foundation.framework in Frameworks */,
 				06A4E513180F21D500A82D93 /* CFNetwork.framework in Frameworks */,
-				06A4E514180F21D500A82D93 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -342,7 +334,6 @@
 				0651EBFA16F3F7DC00CE44D2 /* SPDY.iphonesimulator */,
 				0651EC0A16F3F7E500CE44D2 /* SPDY.macosx */,
 				D2CC14B116179B43002E37CF /* Frameworks */,
-				06FDA21416717F0500137DBD /* libz.dylib */,
 				D2CC14AF16179B43002E37CF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -363,10 +354,11 @@
 		D2CC14B116179B43002E37CF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D2CC14D2161B608C002E37CF /* CFNetwork.framework */,
-				D2CC14B216179B43002E37CF /* Foundation.framework */,
-				064EFB1416715C9F002F0AEC /* SenTestingKit.framework */,
 				06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */,
+				064EFB1416715C9F002F0AEC /* SenTestingKit.framework */,
+				D2CC14B216179B43002E37CF /* Foundation.framework */,
+				D2CC14D2161B608C002E37CF /* CFNetwork.framework */,
+				06FDA21416717F0500137DBD /* libz.dylib */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
