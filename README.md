@@ -55,6 +55,7 @@ Either of the above one-liners is all you need to do to shift HTTP requests tran
 * [netty](http://netty.io/4.0/api/io/netty/handler/codec/spdy/package-summary.html)
 * [jetty](http://www.eclipse.org/jetty/documentation/current/spdy.html)
 * apache (with [mod_spdy](https://code.google.com/p/mod-spdy/))
+* [nginx](http://nginx.org/)
 * [Tengine](https://github.com/alibaba/tengine)
 
 ## A note on NPN
