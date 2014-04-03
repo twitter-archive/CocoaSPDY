@@ -465,6 +465,11 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
                 headerCount--;
             }
 
+            if (headerCount > 0 || bufferIndex < _decompressedLength) {
+                _state = FRAME_ERROR;
+                return bytesRead;
+            }
+
             _headerBlockFrame.headers = headers;
 
             switch (_type) {
