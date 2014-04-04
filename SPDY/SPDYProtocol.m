@@ -224,7 +224,7 @@ static SPDYConfiguration *defaultConfiguration;
     defaultConfiguration.headerCompressionLevel = 9;
     defaultConfiguration.sessionReceiveWindow = 10485760;
     defaultConfiguration.streamReceiveWindow = 10485760;
-    defaultConfiguration.enableSettingsMinorVersion = YES;
+    defaultConfiguration.enableSettingsMinorVersion = NO;
     defaultConfiguration.tlsSettings = @{ /* use Apple default TLS settings */ };
 }
 
