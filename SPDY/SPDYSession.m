@@ -93,7 +93,7 @@
         SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self];
         bool connecting = [socket connectToHost:origin.host
                                          onPort:origin.port
-                                    withTimeout:(NSTimeInterval)60.0
+                                    withTimeout:configuration.connectionTimeout
                                           error:pError];
 
         if (connecting) {

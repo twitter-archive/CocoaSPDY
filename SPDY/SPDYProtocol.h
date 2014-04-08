@@ -144,4 +144,11 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 */
 @property NSDictionary *tlsSettings;
 
+/**
+  Set timeout for creating a socket (TCP handshake).
+ 
+  Default value is 60.0
+ */
+@property NSTimeInterval connectionTimeout;
+
 @end
