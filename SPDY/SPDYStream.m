@@ -287,6 +287,7 @@
             // NSHTTPCookie will fail to automatically parse cookies unless we
             // force the case-senstive name "Set-Cookie"
             NSDictionary *cookieHeaders = @{ @"Set-Cookie": httpSetCookie };
+            [allHTTPHeaders setObject:httpSetCookie forKey:@"Set-Cookie"];
             [allHTTPHeaders removeObjectForKey:@"set-cookie"];
             NSArray *cookies = [NSHTTPCookie cookiesWithResponseHeaderFields:cookieHeaders
                                                                       forURL:requestURL];

@@ -93,10 +93,13 @@
     }
 
     if (self.HTTPShouldHandleCookies) {
-        NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:self.URL];
-        if (cookies.count > 0) {
-            NSDictionary *cookieHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
-            spdyHeaders[@"cookie"] = cookieHeaders[@"Cookie"];
+        NSString *requestCookies = spdyHeaders[@"cookie"];
+        if (!requestCookies || requestCookies.length == 0) {
+            NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:self.URL];
+            if (cookies.count > 0) {
+                NSDictionary *cookieHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
+                spdyHeaders[@"cookie"] = cookieHeaders[@"Cookie"];
+            }
         }
     }
 
