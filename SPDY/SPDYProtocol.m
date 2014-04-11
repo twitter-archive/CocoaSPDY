@@ -227,6 +227,7 @@ static SPDYConfiguration *defaultConfiguration;
     defaultConfiguration.enableSettingsMinorVersion = NO;
     defaultConfiguration.tlsSettings = @{ /* use Apple default TLS settings */ };
     defaultConfiguration.connectionTimeout = 60.0;
+    defaultConfiguration.enableTcpNoDelay = NO;
 }
 
 + (SPDYConfiguration *)defaultConfiguration
@@ -243,6 +244,7 @@ static SPDYConfiguration *defaultConfiguration;
     copy.enableSettingsMinorVersion = _enableSettingsMinorVersion;
     copy.tlsSettings = _tlsSettings;
     copy.connectionTimeout = _connectionTimeout;
+    copy.enableTcpNoDelay = _enableTcpNoDelay;
     return copy;
 }
 

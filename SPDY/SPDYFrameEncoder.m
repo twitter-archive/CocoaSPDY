@@ -63,9 +63,9 @@
 
     [encodedData appendBytes:&streamId length:4];
     [encodedData appendBytes:&flags_length length:4];
+    [encodedData appendData:dataFrame.data];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    [_delegate didEncodeData:dataFrame.data frameEncoder:self];
     return YES;
 }
 
@@ -92,9 +92,9 @@
     [encodedData appendBytes:&streamId length:4];
     [encodedData appendBytes:&assocStreamId length:4];
     [encodedData appendBytes:&priority_slot length:2];
+    [encodedData appendData:encodedHeaders];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    [_delegate didEncodeData:encodedHeaders frameEncoder:self];
     return YES;
 }
 
@@ -117,9 +117,9 @@
     [encodedData appendBytes:&type length:2];
     [encodedData appendBytes:&flags_length length:4];
     [encodedData appendBytes:&streamId length:4];
+    [encodedData appendData:encodedHeaders];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    [_delegate didEncodeData:encodedHeaders frameEncoder:self];
     return YES;
 }
 
@@ -244,9 +244,9 @@
     [encodedData appendBytes:&type length:2];
     [encodedData appendBytes:&flags_length length:4];
     [encodedData appendBytes:&streamId length:4];
+    [encodedData appendData:encodedHeaders];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    [_delegate didEncodeData:encodedHeaders frameEncoder:self];
     return YES;
 }
 
