@@ -13,8 +13,6 @@
 #error "This file requires ARC support."
 #endif
 
-#import <netinet/in.h>
-#import <netinet/tcp.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYFrameDecoder.h"
@@ -268,13 +266,6 @@
 {
     SPDY_DEBUG(@"socket connected to %@:%u", host, port);
     time(&_lastSocketActivity);
-    
-    if([SPDYConfiguration defaultConfiguration].enableTcpNoDelay){
-        CFDataRef nativeSocket = CFWriteStreamCopyProperty(socket.cfWriteStream, kCFStreamPropertySocketNativeHandle);
-        CFSocketNativeHandle *sock = (CFSocketNativeHandle *)CFDataGetBytePtr(nativeSocket);
-        setsockopt(*sock, IPPROTO_TCP, TCP_NODELAY, &(int){ 1 }, sizeof(int));
-        CFRelease(nativeSocket);
-    }
 }
 
 - (void)socket:(SPDYSocket *)socket didReadData:(NSData *)data withTag:(long)tag

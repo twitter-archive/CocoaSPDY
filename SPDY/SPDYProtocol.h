@@ -151,12 +151,4 @@ extern NSString *const SPDYOriginUnregisteredNotification;
  */
 @property NSTimeInterval connectionTimeout;
 
-
-/**
- Enable or disable TCP_NODELAY
- 
- Default value is NO.
- */
-@property BOOL enableTcpNoDelay;
-
 @end
