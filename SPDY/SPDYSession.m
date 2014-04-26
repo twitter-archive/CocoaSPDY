@@ -13,6 +13,8 @@
 #error "This file requires ARC support."
 #endif
 
+#import <netinet/in.h>
+#import <netinet/tcp.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYFrameDecoder.h"
@@ -66,6 +68,7 @@
     uint32_t _remoteMaxConcurrentStreams;
     time_t _lastSocketActivity;
     bool _enableSettingsMinorVersion;
+    bool _enableTCPNoDelay;
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
     bool _cellular;
@@ -126,6 +129,7 @@
             _localMaxConcurrentStreams = LOCAL_MAX_CONCURRENT_STREAMS;
             _remoteMaxConcurrentStreams = REMOTE_MAX_CONCURRENT_STREAMS;
             _enableSettingsMinorVersion = configuration.enableSettingsMinorVersion;
+            _enableTCPNoDelay = configuration.enableTCPNoDelay;
 
             SPDYSettings *settings = [SPDYSettingsStore settingsForOrigin:_origin];
             if (settings != NULL) {
@@ -266,6 +270,13 @@
 {
     SPDY_DEBUG(@"socket connected to %@:%u", host, port);
     time(&_lastSocketActivity);
+
+    if(_enableTCPNoDelay){
+        CFDataRef nativeSocket = CFWriteStreamCopyProperty(socket.cfWriteStream, kCFStreamPropertySocketNativeHandle);
+        CFSocketNativeHandle *sock = (CFSocketNativeHandle *)CFDataGetBytePtr(nativeSocket);
+        setsockopt(*sock, IPPROTO_TCP, TCP_NODELAY, &(int){ 1 }, sizeof(int));
+        CFRelease(nativeSocket);
+    }
 }
 
 - (void)socket:(SPDYSocket *)socket didReadData:(NSData *)data withTag:(long)tag
