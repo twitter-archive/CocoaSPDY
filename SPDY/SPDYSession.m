@@ -96,7 +96,7 @@
         SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self];
         bool connecting = [socket connectToHost:origin.host
                                          onPort:origin.port
-                                    withTimeout:configuration.connectionTimeout
+                                    withTimeout:configuration.connectTimeout
                                           error:pError];
 
         if (connecting) {

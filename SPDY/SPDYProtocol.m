@@ -226,7 +226,7 @@ static SPDYConfiguration *defaultConfiguration;
     defaultConfiguration.streamReceiveWindow = 10485760;
     defaultConfiguration.enableSettingsMinorVersion = NO;
     defaultConfiguration.tlsSettings = @{ /* use Apple default TLS settings */ };
-    defaultConfiguration.connectionTimeout = 60.0;
+    defaultConfiguration.connectTimeout = 60.0;
     defaultConfiguration.enableTCPNoDelay = NO;
 }
 
@@ -243,7 +243,7 @@ static SPDYConfiguration *defaultConfiguration;
     copy.streamReceiveWindow = _streamReceiveWindow;
     copy.enableSettingsMinorVersion = _enableSettingsMinorVersion;
     copy.tlsSettings = _tlsSettings;
-    copy.connectionTimeout = _connectionTimeout;
+    copy.connectTimeout = _connectTimeout;
     copy.enableTCPNoDelay = _enableTCPNoDelay;
     return copy;
 }
