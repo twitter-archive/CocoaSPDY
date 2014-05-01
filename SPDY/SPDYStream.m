@@ -286,9 +286,10 @@
             // HTTP header field names are supposed to be case-insensitive, but
             // NSHTTPCookie will fail to automatically parse cookies unless we
             // force the case-senstive name "Set-Cookie"
-            NSDictionary *cookieHeaders = @{ @"Set-Cookie": httpSetCookie };
-            [allHTTPHeaders setObject:httpSetCookie forKey:@"Set-Cookie"];
+            allHTTPHeaders[@"Set-Cookie"] = httpSetCookie;
             [allHTTPHeaders removeObjectForKey:@"set-cookie"];
+
+            NSDictionary *cookieHeaders = @{ @"Set-Cookie": httpSetCookie };
             NSArray *cookies = [NSHTTPCookie cookiesWithResponseHeaderFields:cookieHeaders
                                                                       forURL:requestURL];
 
