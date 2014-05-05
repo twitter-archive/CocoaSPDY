@@ -276,7 +276,7 @@ NSDictionary *testHeaders()
 - (void)testPingFrame
 {
     SPDYPingFrame *inFrame = [[SPDYPingFrame alloc] init];
-    inFrame.id = arc4random() & 0xFFFFFFFE;
+    inFrame.pingId = arc4random() & 0xFFFFFFFE;
 
     [_encoder encodePingFrame:inFrame];
 
@@ -285,7 +285,7 @@ NSDictionary *testHeaders()
 
     SPDYPingFrame *outFrame = _mock.lastFrame;
 
-    STAssertEquals(inFrame.id, outFrame.id, nil);
+    STAssertEquals(inFrame.pingId, outFrame.pingId, nil);
 }
 
 - (void)testGoAwayFrame

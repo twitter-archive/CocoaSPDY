@@ -60,6 +60,9 @@
 
     SPDYStreamId _lastGoodStreamId;
     SPDYStreamId _nextStreamId;
+    CFAbsoluteTime _lastSocketActivity;
+    CFAbsoluteTime _sessionPingOut;
+    CFTimeInterval _sessionLatency;
     NSUInteger _bufferReadIndex;
     NSUInteger _bufferWriteIndex;
     uint32_t _initialSendWindowSize;
@@ -68,7 +71,6 @@
     uint32_t _sessionReceiveWindowSize;
     uint32_t _localMaxConcurrentStreams;
     uint32_t _remoteMaxConcurrentStreams;
-    time_t _lastSocketActivity;
     bool _enableSettingsMinorVersion;
     bool _enableTCPNoDelay;
     bool _receivedGoAwayFrame;
@@ -126,6 +128,7 @@
             _nextStreamId = 1;
             _bufferReadIndex = 0;
             _bufferWriteIndex = 0;
+            _sessionLatency = -1;
 
             _initialSendWindowSize = DEFAULT_WINDOW_SIZE;
             _initialReceiveWindowSize = (uint32_t)configuration.streamReceiveWindow;
@@ -160,6 +163,7 @@
 
             uint32_t deltaWindowSize = _sessionReceiveWindowSize - DEFAULT_WINDOW_SIZE;
             [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
+            [self _sendPing:1];
         } else {
             self = nil;
         }
@@ -265,14 +269,15 @@
 
 - (bool)socket:(SPDYSocket *)socket securedWithTrust:(SecTrustRef)trust
 {
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     id<SPDYTLSTrustEvaluator> evaluator = [SPDYProtocol sharedTLSTrustEvaluator];
     return evaluator == nil || [evaluator evaluateServerTrust:trust forHost:_origin.host];
 }
 
 - (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port
 {
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_DEBUG(@"socket connected to %@:%u", host, port);
-    time(&_lastSocketActivity);
 
     if(_enableTCPNoDelay){
         CFDataRef nativeSocket = CFWriteStreamCopyProperty(socket.cfWriteStream, kCFStreamPropertySocketNativeHandle);
@@ -284,8 +289,8 @@
 
 - (void)socket:(SPDYSocket *)socket didReadData:(NSData *)data withTag:(long)tag
 {
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_DEBUG(@"socket read[%li] (%lu)", tag, (unsigned long)data.length);
-    time(&_lastSocketActivity);
 
     _bufferWriteIndex += data.length;
     NSUInteger readableLength = _bufferWriteIndex - _bufferReadIndex;
@@ -318,16 +323,20 @@
 
 - (void)socket:(SPDYSocket *)socket didWriteDataWithTag:(long)tag
 {
-    time(&_lastSocketActivity);
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
+    if (tag == 1) {
+        _sessionPingOut = _lastSocketActivity;
+    }
 }
 
 - (void)socket:(SPDYSocket *)socket didWritePartialDataOfLength:(NSUInteger)partialLength tag:(long)tag
 {
-    time(&_lastSocketActivity);
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
 }
 
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error
 {
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_WARNING(@"session connection error: %@", error);
     for (SPDYStream *stream in _activeStreams) {
         [stream closeWithError:error];
@@ -337,6 +346,7 @@
 
 - (void)socketDidDisconnect:(SPDYSocket *)socket
 {
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_INFO(@"session connection closed");
     [SPDYSessionManager removeSession:self];
 }
@@ -360,6 +370,11 @@
 - (void)didEncodeData:(NSData *)data frameEncoder:(SPDYFrameEncoder *)encoder
 {
     [_socket writeData:data withTimeout:(NSTimeInterval)-1 tag:0];
+}
+
+- (void)didEncodeData:(NSData *)data withTag:(uint32_t)tag frameEncoder:(SPDYFrameEncoder *)encoder
+{
+    [_socket writeData:data withTimeout:(NSTimeInterval)-1 tag:tag];
 }
 
 #pragma mark SPDYFrameDecoderDelegate
@@ -592,7 +607,7 @@
 
     SPDYStreamId streamId = rstStreamFrame.streamId;
     SPDYStream *stream = _activeStreams[streamId];
-    SPDY_DEBUG(@"received RST_STREAM.%u", streamId);
+    SPDY_DEBUG(@"received RST_STREAM.%u (%u)", streamId, rstStreamFrame.statusCode);
 
     if (stream) {
         [stream closeWithStatus:rstStreamFrame.statusCode];
@@ -661,16 +676,22 @@
      * Receivers of a PING frame must ignore frames that it did not initiate
      */
 
-    SPDY_DEBUG(@"received PING");
+    SPDYPingId pingId = pingFrame.pingId;
 
-    if (!(pingFrame.id & 1)) {
+    if (pingId & 1) {
+        if (pingId == 1) {
+            _sessionLatency = CFAbsoluteTimeGetCurrent() - _sessionPingOut;
+            SPDY_DEBUG(@"received PING.%u response (%f)", pingId, _sessionLatency);
+        }
+    } else {
         [self _sendPingResponse:pingFrame];
+        SPDY_DEBUG(@"received PING.%u", pingId);
     }
 }
 
 - (void)didReadGoAwayFrame:(SPDYGoAwayFrame *)goAwayFrame frameDecoder:(SPDYFrameDecoder *)frameDecoder
 {
-    SPDY_DEBUG(@"received GOAWAY (%u)", goAwayFrame.statusCode);
+    SPDY_DEBUG(@"received GOAWAY.%u (%u)", goAwayFrame.lastGoodStreamId, goAwayFrame.statusCode);
 
     _receivedGoAwayFrame = YES;
 
@@ -860,10 +881,18 @@
     SPDY_DEBUG(@"sent WINDOW_UPDATE.%u (+%lu)", streamId, (unsigned long)deltaWindowSize);
 }
 
+- (void)_sendPing:(SPDYPingId)pingId
+{
+    SPDYPingFrame *pingFrame = [[SPDYPingFrame alloc] init];
+    pingFrame.pingId = pingId;
+    [_frameEncoder encodePingFrame:pingFrame];
+    SPDY_DEBUG(@"sent PING.%u", pingId);
+}
+
 - (void)_sendPingResponse:(SPDYPingFrame *)pingFrame
 {
     [_frameEncoder encodePingFrame:pingFrame];
-    SPDY_DEBUG(@"sent PING response");
+    SPDY_DEBUG(@"sent PING.%u response", pingFrame.pingId);
 }
 
 - (void)_sendRstStream:(SPDYStreamStatus)status streamId:(SPDYStreamId)streamId

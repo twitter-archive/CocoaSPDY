@@ -65,6 +65,7 @@ typedef struct {
     int32_t value;
 } SPDYSettings;
 
+typedef uint32_t SPDYPingId;
 typedef uint32_t SPDYStreamId;
 
 static const SPDYStreamId kSPDYSessionStreamId = 0;

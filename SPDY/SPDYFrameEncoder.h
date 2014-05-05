@@ -16,6 +16,7 @@
 
 @protocol SPDYFrameEncoderDelegate <NSObject>
 - (void)didEncodeData:(NSData *)data frameEncoder:(SPDYFrameEncoder *)encoder;
+- (void)didEncodeData:(NSData *)data withTag:(uint32_t)tag frameEncoder:(SPDYFrameEncoder *)encoder;
 @end
 
 @interface SPDYFrameEncoder : NSObject

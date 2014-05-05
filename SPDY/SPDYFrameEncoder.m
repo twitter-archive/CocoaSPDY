@@ -189,7 +189,7 @@
     uint8_t version = 3;
     uint16_t type = htons(SPDY_PING_FRAME);
     uint32_t flags_length = htonl(4); // no flags
-    uint32_t pingId = htonl(pingFrame.id);
+    uint32_t pingId = htonl(pingFrame.pingId);
 
     [encodedData appendBytes:&control length:1];
     [encodedData appendBytes:&version length:1];
@@ -197,7 +197,7 @@
     [encodedData appendBytes:&flags_length length:4];
     [encodedData appendBytes:&pingId length:4];
 
-    [_delegate didEncodeData:encodedData frameEncoder:self];
+    [_delegate didEncodeData:encodedData withTag:pingId frameEncoder:self];
     return YES;
 }
 
