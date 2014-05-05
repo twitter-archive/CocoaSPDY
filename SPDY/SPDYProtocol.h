@@ -109,7 +109,9 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 /**
   The number of parallel TCP connections to open to a single origin.
 
-  Default is 1.
+  Default is 1. It is STRONGLY recommended that you do not set this
+  higher than 2. Configuration of this option is experimental and
+  may be removed in a future version.
 */
 @property NSUInteger sessionPoolSize;
 
@@ -158,11 +160,11 @@ extern NSString *const SPDYOriginUnregisteredNotification;
  */
 @property NSTimeInterval connectTimeout;
 
-
 /**
- Enable or disable TCP_NODELAY.
+  Enable or disable TCP_NODELAY.
 
- Default value is NO.
+  Default value is NO. Configuration of this option is experimental and
+  may be removed in a future version.
  */
 @property BOOL enableTCPNoDelay;
 
