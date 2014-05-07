@@ -156,7 +156,7 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 /**
   Set timeout for creating a socket (TCP handshake).
 
-  Default value is 60.0s.
+  Default value is 60.0s. A negative value disables the timeout.
  */
 @property NSTimeInterval connectTimeout;
 
