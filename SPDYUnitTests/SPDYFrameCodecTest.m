@@ -27,6 +27,12 @@
     NSError *error;
     [self decode:(uint8_t *)data.bytes length:data.length error:&error];
 }
+
+- (void)didEncodeData:(NSData *)data withTag:(uint32_t)tag frameEncoder:(SPDYFrameEncoder *)encoder
+{
+    NSError *error;
+    [self decode:(uint8_t *)data.bytes length:data.length error:&error];
+}
 @end
 
 @implementation SPDYFrameCodecTest
@@ -94,32 +100,6 @@ NSDictionary *testHeaders()
         STAssertEquals(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame.data.bytes)[i], nil);
     }
 }
-
-//- (void)testLargeDataFrame
-//{
-//    SPDYDataFrame *inFrame = [[SPDYDataFrame alloc] init];
-//    inFrame.streamId = arc4random() & 0x7FFFFFFF;
-//    inFrame.last = YES;
-//
-//    uint8_t *data = malloc(sizeof(uint8_t) * 1024 * 1024);
-//    for (uint8_t i = 0; i < sizeof(data); i++) {
-//        data[i] = i;
-//    }
-//
-//    [_encoder encodeDataFrame:inFrame];
-//
-//    AssertLastFrameClass(@"SPDYDataFrame");
-//    AssertFramesReceivedCount(1);
-//
-//    SPDYDataFrame *outFrame = _mock.lastFrame;
-//
-//    STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
-//    STAssertEquals(inFrame.last, outFrame.last, nil);
-//    STAssertEquals(inFrame.data.length, outFrame.data.length, nil);
-//    for (uint8_t i = 0; i < 1024 * 1024; i++) {
-//        STAssertEquals(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame.data.bytes)[i], nil);
-//    }
-//}
 
 - (void)testSynStreamFrame
 {
