@@ -197,7 +197,7 @@
     [encodedData appendBytes:&flags_length length:4];
     [encodedData appendBytes:&pingId length:4];
 
-    [_delegate didEncodeData:encodedData withTag:pingId frameEncoder:self];
+    [_delegate didEncodeData:encodedData withTag:pingFrame.pingId frameEncoder:self];
     return YES;
 }
 
