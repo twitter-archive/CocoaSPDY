@@ -111,6 +111,7 @@
 		06FDA21216717DF100137DBD /* SPDYHeaderBlockDecompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE895BE087AC28BBBC857F9 /* SPDYHeaderBlockDecompressor.m */; };
 		06FDA21616717F1800137DBD /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 06FDA21416717F0500137DBD /* libz.dylib */; };
 		06FDA21716717F5E00137DBD /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
+		25959A3F1937DE3900FC9731 /* SPDYSessionManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25959A3E1937DE3900FC9731 /* SPDYSessionManagerTest.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -190,6 +191,7 @@
 		06FC94121694B92400FC95DF /* SPDYSettingsStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYSettingsStore.h; sourceTree = "<group>"; };
 		06FC94131694B92400FC95DF /* SPDYSettingsStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSettingsStore.m; sourceTree = "<group>"; };
 		06FDA21416717F0500137DBD /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		25959A3E1937DE3900FC9731 /* SPDYSessionManagerTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSessionManagerTest.m; sourceTree = "<group>"; };
 		4FE891C7065B348CC7EF4BFC /* SPDYHeaderBlockDecompressor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYHeaderBlockDecompressor.h; sourceTree = "<group>"; };
 		4FE895BE087AC28BBBC857F9 /* SPDYHeaderBlockDecompressor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYHeaderBlockDecompressor.m; sourceTree = "<group>"; };
 		D2CC14B216179B43002E37CF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -284,6 +286,7 @@
 				060C235D17CE9FCE000B4E9C /* SPDYStreamManagerTest.m */,
 				067EBFE617418F350029F16C /* SPDYStreamTest.m */,
 				064EFB1A16715C9F002F0AEC /* Supporting Files */,
+				25959A3E1937DE3900FC9731 /* SPDYSessionManagerTest.m */,
 			);
 			path = SPDYUnitTests;
 			sourceTree = "<group>";
@@ -629,6 +632,7 @@
 				069AA03916975B65005A72CA /* SPDYFrameCodecTest.m in Sources */,
 				067EBFE717418F350029F16C /* SPDYStreamTest.m in Sources */,
 				062EA642175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */,
+				25959A3F1937DE3900FC9731 /* SPDYSessionManagerTest.m in Sources */,
 				061C8E9517C5954400D22083 /* SPDYStreamManager.m in Sources */,
 				06B290CE1861018900540A03 /* SPDYOrigin.m in Sources */,
 			);
