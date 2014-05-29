@@ -265,6 +265,12 @@
     [_socket disconnectAfterWrites];
 }
 
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"<%@:%p isOpen=%@ isCellular=%@ origin=%@>",
+            [self class], self, self.isOpen ? @"YES" : @"NO", self.isCellular ? @"YES" : @"NO", self.origin];
+}
+
 #pragma mark SPDYSocketDelegate
 
 - (bool)socket:(SPDYSocket *)socket securedWithTrust:(SecTrustRef)trust
