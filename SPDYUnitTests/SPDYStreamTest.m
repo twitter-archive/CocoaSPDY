@@ -9,10 +9,10 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYStream.h"
 
-@interface SPDYStreamTest : SenTestCase
+@interface SPDYStreamTest : XCTestCase
 @end
 
 typedef void (^SPDYAsyncTestCallback)();
@@ -73,7 +73,7 @@ static NSThread *_streamThread;
         [producedData appendData:[spdyStream readData:10 error:nil]];
     }
 
-    STAssertTrue([producedData isEqualToData:_uploadData], nil);
+    XCTAssertTrue([producedData isEqualToData:_uploadData]);
 }
 
 - (void)testStreamingWithStream
@@ -90,9 +90,9 @@ static NSThread *_streamThread;
         });
     };
 
-    STAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
+    XCTAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        STAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
+        XCTAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
 
         [spdyStream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
@@ -107,7 +107,7 @@ static NSThread *_streamThread;
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
     }
 
-    STAssertTrue([mockDataDelegate.data isEqualToData:_uploadData], nil);
+    XCTAssertTrue([mockDataDelegate.data isEqualToData:_uploadData]);
 }
 
 @end

@@ -6,11 +6,11 @@
 //  Copyright (c) 2014 Twitter. All rights reserved.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 
-@interface SPDYSessionManagerTest : SenTestCase
+@interface SPDYSessionManagerTest : XCTestCase
 
 @end
 
@@ -22,10 +22,10 @@
     // Close it
     // Try to dequeue again
     SPDYSession *session = [SPDYSessionManager sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
-    STAssertNotNil(session, @"session should not be `nil`");
+    XCTAssertNotNil(session, @"session should not be `nil`");
     [session close];
     SPDYSession *session2 = [SPDYSessionManager sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
-    STAssertFalse([session isEqual:session2], @"Should not dequeue closed session");
+    XCTAssertFalse([session isEqual:session2], @"Should not dequeue closed session");
 }
 
 @end
