@@ -529,6 +529,7 @@
      */
 
     SPDYStreamId streamId = synStreamFrame.streamId;
+    SPDYStreamId associatedToStreamId = synStreamFrame.associatedToStreamId;
     SPDY_DEBUG(@"received SYN_STREAM.%u", streamId);
 
     // Stream-IDs must be monotonically increasing
@@ -537,16 +538,37 @@
         return;
     }
 
-    if (_receivedGoAwayFrame || _activeStreams.remoteCount >= _localMaxConcurrentStreams) {
+    // || _activeStreams.remoteCount >= _localMaxConcurrentStreams) {
+    if (_receivedGoAwayFrame) {
         [self _sendRstStream:SPDY_STREAM_REFUSED_STREAM streamId:streamId];
         return;
     }
-
+    
+    // If a client receives a server push stream with stream-id 0,
+    // it MUST issue a session error (Section 2.4.1) with the status code PROTOCOL_ERROR.
+    // Also the SYN_STREAM MUST include an Associated-To-Stream-ID,
+    // and MUST set the FLAG_UNIDIRECTIONAL flag.
+    if (streamId == 0 || associatedToStreamId == 0 || !synStreamFrame.unidirectional || !_activeStreams[associatedToStreamId]) {
+        [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+        return;
+    }
+    
+    // The SYN_STREAM MUST include headers for ":scheme", ":host",
+    // ":path", which represent the URL for the resource being pushed.
+    if (!synStreamFrame.headers[@":scheme"] ||
+        !synStreamFrame.headers[@":host"] ||
+        !synStreamFrame.headers[@":path"]) {
+        [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+        return;
+    }
+    
     SPDYStream *stream = [[SPDYStream alloc] init];
     stream.priority = synStreamFrame.priority;
     stream.remoteSideClosed = synStreamFrame.last;
     stream.sendWindowSize = _initialSendWindowSize;
     stream.receiveWindowSize = _initialReceiveWindowSize;
+    stream.local = NO;
+    stream.streamId = streamId;
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
