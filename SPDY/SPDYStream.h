@@ -16,6 +16,8 @@
 @class SPDYMetadata;
 @class SPDYStream;
 
+extern NSString *const SPDYStreamDidReceivePushedResponseNotification;
+
 @protocol SPDYStreamDelegate<NSObject>
 - (void)streamCanceled:(SPDYStream *)stream;
 @optional
@@ -29,7 +31,9 @@
 @property (nonatomic, weak) id<SPDYStreamDelegate> delegate;
 @property (nonatomic) SPDYMetadata *metadata;
 @property (nonatomic) NSData *data;
+@property (nonatomic) NSData *pushData;
 @property (nonatomic) NSInputStream *dataStream;
+@property (nonatomic) NSDictionary *headers;
 @property (nonatomic, weak) NSURLRequest *request;
 @property (nonatomic, weak) SPDYProtocol *protocol;
 @property (nonatomic) SPDYStreamId streamId;
@@ -52,7 +56,7 @@
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;
 - (void)cancel;
 - (void)closeWithError:(NSError *)error;
-- (void)didReceiveResponse:(NSDictionary *)headers;
+- (BOOL)didReceiveResponse:(NSDictionary *)headers;
 - (void)didLoadData:(NSData *)data;
 - (void)markBlocked;
 - (void)markUnblocked;

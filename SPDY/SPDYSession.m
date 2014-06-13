@@ -530,7 +530,8 @@ NSString *const SPDYSessionDidCloseNotification = @"SPDYSessionDidCloseNotificat
     }
 
     [stream didLoadData:dataFrame.data];
-
+    
+    // If it's a remote stream, do not close it.
     if (!stream.closed) {
         stream.remoteSideClosed = dataFrame.last;
     }
@@ -553,6 +554,7 @@ NSString *const SPDYSessionDidCloseNotification = @"SPDYSessionDidCloseNotificat
      */
 
     SPDYStreamId streamId = synStreamFrame.streamId;
+    SPDYStreamId associatedToStreamId = synStreamFrame.associatedToStreamId;
     SPDY_DEBUG(@"received SYN_STREAM.%u", streamId);
 
     // Stream-IDs must be monotonically increasing
@@ -561,17 +563,39 @@ NSString *const SPDYSessionDidCloseNotification = @"SPDYSessionDidCloseNotificat
         return;
     }
 
-    if (_receivedGoAwayFrame || _activeStreams.remoteCount >= _localMaxConcurrentStreams) {
+    // || _activeStreams.remoteCount >= _localMaxConcurrentStreams) {
+    if (_receivedGoAwayFrame) {
         [self _sendRstStream:SPDY_STREAM_REFUSED_STREAM streamId:streamId];
         return;
     }
-
-    SPDYStream *stream = [[SPDYStream alloc] init];
+    
+    // If a client receives a server push stream with stream-id 0,
+    // it MUST issue a session error (Section 2.4.1) with the status code PROTOCOL_ERROR.
+    // Also the SYN_STREAM MUST include an Associated-To-Stream-ID,
+    // and MUST set the FLAG_UNIDIRECTIONAL flag.
+    if (streamId == 0 || associatedToStreamId == 0 || !synStreamFrame.unidirectional || !_activeStreams[associatedToStreamId]) {
+        [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+        return;
+    }
+    
+    // The SYN_STREAM MUST include headers for ":scheme", ":host",
+    // ":path", which represent the URL for the resource being pushed.
+    if (!synStreamFrame.headers[@":scheme"] ||
+        !synStreamFrame.headers[@":host"] ||
+        !synStreamFrame.headers[@":path"]) {
+        [self _sendRstStream:SPDY_STREAM_REFUSED_STREAM streamId:streamId];
+        return;
+    }
+    
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:nil];
+    stream.local = NO;
     stream.priority = synStreamFrame.priority;
     stream.remoteSideClosed = synStreamFrame.last;
     stream.sendWindowSize = _initialSendWindowSize;
     stream.receiveWindowSize = _initialReceiveWindowSize;
     stream.metadata.rxBytes += synStreamFrame.encodedLength;
+    stream.streamId = streamId;
+    stream.headers = synStreamFrame.headers;
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
@@ -786,6 +810,15 @@ NSString *const SPDYSessionDidCloseNotification = @"SPDYSessionDidCloseNotificat
 
     if (!stream || stream.remoteSideClosed) {
         [self _sendRstStream:SPDY_STREAM_INVALID_STREAM streamId:streamId];
+        return;
+    }
+    
+    // If the server sends a HEADER frame containing duplicate headers
+    // with a previous HEADERS frame for the same stream, the client must
+    // issue a stream error (Section 2.4.2) with error code PROTOCOL ERROR.
+    if (stream.local == NO) {
+        BOOL success = [stream didReceiveResponse:headersFrame.headers];
+        if (!success) [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
         return;
     }
 

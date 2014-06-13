@@ -37,6 +37,8 @@
 #define UNSCHEDULE_STREAM() [self _unscheduleNSInputStream]
 #endif
 
+NSString *const SPDYStreamDidReceivePushedResponseNotification = @"SPDYStreamDidReceivePushedResponseNotification";
+
 @interface SPDYStream () <NSStreamDelegate>
 - (void)_scheduleCFReadStream;
 - (void)_unscheduleCFReadStream;
@@ -47,7 +49,10 @@
 @implementation SPDYStream
 {
     SPDYMetadata *_metadata;
+    NSDictionary *_headers;
+    NSURLResponse *_pushResponse;
     NSData *_data;
+    NSMutableData *_pushData;
     NSString *_dataFile;
     NSInputStream *_dataStream;
     NSRunLoop *_runLoop;
@@ -63,6 +68,12 @@
     SPDYStopwatch *_blockedStopwatch;
     SPDYTimeInterval _blockedElapsed;
     bool _blocked;
+    bool _ignoreHeaders;
+}
+
+- (instancetype)init
+{
+    @throw [NSException exceptionWithName:NSInternalInconsistencyException reason:[NSString stringWithFormat:@"Failed to call designated initializer, call %@ instead.", NSStringFromSelector(@selector(initWithProtocol:))]userInfo:nil];
 }
 
 - (id)initWithProtocol:(SPDYProtocol *)protocol
@@ -81,6 +92,8 @@
         _receivedReply = NO;
         _metadata = [[SPDYMetadata alloc] init];
         _blockedStopwatch = [[SPDYStopwatch alloc] init];
+        _ignoreHeaders = NO;
+        _pushData = [[NSMutableData alloc] init];
     }
     return self;
 }
@@ -209,6 +222,20 @@
     if (_localSideClosed && _remoteSideClosed) {
         [self _close];
     }
+
+    if (!_local && _remoteSideClosed) {
+        if (!_pushResponse) {
+            if (!_headers[@":status"]) {
+                [self didReceiveResponse:@{@":status":@(200)}];
+            } else {
+                [self didReceiveResponse:_headers];
+            }
+        }
+        if (_pushResponse && _pushData) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:SPDYStreamDidReceivePushedResponseNotification object:self userInfo:@{ @"response": _pushResponse, @"data": [_pushData copy] }];
+        }
+        [_pushData setLength:0];
+    }
 }
 
 - (void)_close
@@ -295,9 +322,13 @@
     return nil;
 }
 
-- (void)didReceiveResponse:(NSDictionary *)headers
+- (BOOL)didReceiveResponse:(NSDictionary *)newHeaders
 {
     _receivedReply = YES;
+    _ignoreHeaders = NO;
+
+    BOOL successMergingHeaders = [self mergeHeaders:newHeaders];
+    NSDictionary *headers = _headers;
 
     NSInteger statusCode = [headers[@":status"] intValue];
     if (statusCode < 100 || statusCode > 599) {
@@ -306,7 +337,7 @@
                                              code:NSURLErrorBadServerResponse
                                          userInfo:info];
         [self closeWithError:error];
-        return;
+        return successMergingHeaders;
     }
 
     NSString *version = headers[@":version"];
@@ -316,7 +347,7 @@
                                              code:NSURLErrorBadServerResponse
                                          userInfo:info];
         [self closeWithError:error];
-        return;
+        return successMergingHeaders;
     }
 
     NSMutableDictionary *allHTTPHeaders = [[NSMutableDictionary alloc] init];
@@ -331,7 +362,7 @@
         }
     }
 
-    NSURL *requestURL = _protocol.request.URL;
+    NSURL *requestURL = _protocol ? _protocol.request.URL : [NSURL URLWithString:headers[@":path"]];
 
     if (_protocol.request.HTTPShouldHandleCookies) {
         NSString *httpSetCookie = allHTTPHeaders[@"set-cookie"];
@@ -375,7 +406,7 @@
                                                  code:NSURLErrorRedirectToNonExistentLocation
                                              userInfo:nil];
             [self closeWithError:error];
-            return;
+            return successMergingHeaders;
         }
 
         // Returning redirectURL acts odd. When it is sent to the WebView's
@@ -407,18 +438,24 @@
         }
 
         [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:response];
-        return;
+        return successMergingHeaders;
     }
 
     [_client URLProtocol:_protocol
       didReceiveResponse:response
       cacheStoragePolicy:NSURLCacheStorageAllowed];
+
+    _pushResponse = response;
+
+    return successMergingHeaders;
 }
 
 - (void)didLoadData:(NSData *)data
 {
     NSUInteger dataLength = data.length;
     if (dataLength == 0) return;
+
+    _ignoreHeaders = YES;
 
     if (_compressedResponse) {
         _zlibStream.avail_in = (uInt)dataLength;
@@ -429,8 +466,8 @@
             if (inflatedBytes == NULL) {
                 SPDY_ERROR(@"error decompressing response data: malloc failed");
                 NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                                     code:NSURLErrorCannotDecodeContentData
-                                                 userInfo:nil];
+                                                            code:NSURLErrorCannotDecodeContentData
+                                                        userInfo:nil];
                 [self closeWithError:error];
                 return;
             }
@@ -443,6 +480,9 @@
             NSUInteger inflatedLength = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
             inflatedData.length = inflatedLength;
             if (inflatedLength > 0) {
+                if (!_local) {
+                    [_pushData appendData:inflatedData];
+                }
                 [_client URLProtocol:_protocol didLoadData:inflatedData];
             }
 
@@ -458,15 +498,44 @@
         if (_zlibStreamStatus != Z_OK && _zlibStreamStatus != Z_STREAM_END) {
             SPDY_WARNING(@"error decompressing response data: bad z_stream state");
             NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                                 code:NSURLErrorCannotDecodeContentData
-                                             userInfo:nil];
+                                                        code:NSURLErrorCannotDecodeContentData
+                                                    userInfo:nil];
             [self closeWithError:error];
             return;
         }
     } else {
         NSData *dataCopy = [[NSData alloc] initWithBytes:data.bytes length:dataLength];
+        if (!_local) {
+            [_pushData appendData:dataCopy];
+        }
         [_client URLProtocol:_protocol didLoadData:dataCopy];
     }
+}
+
+- (BOOL)mergeHeaders:(NSDictionary *)headers
+{
+    if (!_headers) {
+        _headers = headers;
+    } else if (!_ignoreHeaders && [[NSSet setWithArray:[_headers allKeys]] intersectsSet:[NSSet setWithArray:[headers allKeys]]]) {
+        NSDictionary *info = @{ NSLocalizedDescriptionKey: @"received duplicated headers" };
+        NSError *error = [[NSError alloc] initWithDomain:SPDYStreamErrorDomain
+                                                    code:SPDYStreamProtocolError
+                                                userInfo:info];
+        [_client URLProtocol:_protocol didFailWithError:error];
+        return NO;
+    }
+    
+    // If the server sends a HEADERS frame after sending a data frame
+    // for the same stream, the client MAY ignore the HEADERS frame.
+    // Ignoring the HEADERS frame after a data frame prevents handling of HTTP's
+    // trailing headers (http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.40).
+    _ignoreHeaders = NO;
+    
+    NSMutableDictionary *merged = [NSMutableDictionary dictionaryWithDictionary:_headers];
+    [merged addEntriesFromDictionary:headers];
+    _headers = merged;
+    
+    return YES;
 }
 
 #pragma mark CFReadStreamClient

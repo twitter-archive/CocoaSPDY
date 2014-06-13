@@ -35,7 +35,7 @@ static dispatch_queue_t reachabilityQueue;
 
 static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
 
-extern NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessionManagerDidInitializeNotification";
+NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessionManagerDidInitializeNotification";
 
 @interface SPDYSessionPool : NSObject
 @property (nonatomic, assign, readonly) NSUInteger count;
@@ -305,14 +305,8 @@ extern NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessi
         NSError *pError;
         *activePool = [[SPDYSessionPool alloc] initWithOrigin:_origin manager:self cellular:cellular error:&pError];
         if (pError) {
-            for (SPDYStream *stream in _pendingStreams) {
-                stream.delegate = nil;
-                SPDYProtocol *protocol = stream.protocol;
-                [protocol.client URLProtocol:protocol didFailWithError:pError];
-            }
-            [_pendingStreams removeAllStreams];
+            [self _terminatePendingStreamsWithError:pError];
         }
-
         return;
     }
 
@@ -347,6 +341,17 @@ extern NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessi
             }
         }
     }
+}
+
+- (void)_terminatePendingStreamsWithError:(NSError *)error
+{
+    NSAssert(error != nil, @"pending streams must be terminated with an error");
+    for (SPDYStream *stream in _pendingStreams) {
+        stream.delegate = nil;
+        SPDYProtocol *protocol = stream.protocol;
+        [protocol.client URLProtocol:protocol didFailWithError:error];
+    }
+    [_pendingStreams removeAllStreams];
 }
 
 #pragma mark SPDYSessionDelegate
@@ -410,6 +415,7 @@ extern NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessi
     if ([self.delegate respondsToSelector:@selector(sessionManager:sessionWillClose:withError:)]) {
         [self.delegate sessionManager:self sessionWillClose:session withError:error];
     }
+    [self _terminatePendingStreamsWithError:error];
 }
 
 @end

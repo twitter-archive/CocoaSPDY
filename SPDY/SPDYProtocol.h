@@ -51,7 +51,7 @@ extern NSString *const SPDYMetadataStreamRxBytesKey;
 // SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
 extern NSString *const SPDYMetadataStreamTxBytesKey;
 
-@class SPDYConfiguration;
+@class SPDYConfiguration, SPDYSessionManager;
 
 @protocol SPDYTLSTrustEvaluator;
 
