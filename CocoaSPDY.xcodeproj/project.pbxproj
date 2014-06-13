@@ -39,6 +39,9 @@
 		25B6D3D41947E1E9009BBA9F /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3D11947E1C8009BBA9F /* CFNetwork.framework */; };
 		25B6D3D61947E1F0009BBA9F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3D51947E1F0009BBA9F /* libz.dylib */; };
 		4F2DD63CFEF2450FACE78943 /* libPods-CocoaSPDYTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 62B3491766B6432C9A34939E /* libPods-CocoaSPDYTests.a */; };
+		D04653B71948C27300E88108 /* SPDYFrameEncoderAccumulator.m in Sources */ = {isa = PBXBuildFile; fileRef = D04653B01948C21B00E88108 /* SPDYFrameEncoderAccumulator.m */; };
+		D04653B81948C27300E88108 /* SPDYSocket+SPDYSocketMock.m in Sources */ = {isa = PBXBuildFile; fileRef = D04653B21948C21B00E88108 /* SPDYSocket+SPDYSocketMock.m */; };
+		D04653B91948C27300E88108 /* SPDYServerPushTest.m in Sources */ = {isa = PBXBuildFile; fileRef = D04653B31948C21B00E88108 /* SPDYServerPushTest.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -121,6 +124,11 @@
 		25B6D3D51947E1F0009BBA9F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		62B3491766B6432C9A34939E /* libPods-CocoaSPDYTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CocoaSPDYTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7C6FC6C944E9417784C53C26 /* Pods-CocoaSPDYTests.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaSPDYTests.xcconfig"; path = "Pods/Pods-CocoaSPDYTests.xcconfig"; sourceTree = "<group>"; };
+		D04653AF1948C21B00E88108 /* SPDYFrameEncoderAccumulator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYFrameEncoderAccumulator.h; sourceTree = "<group>"; };
+		D04653B01948C21B00E88108 /* SPDYFrameEncoderAccumulator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYFrameEncoderAccumulator.m; sourceTree = "<group>"; };
+		D04653B11948C21B00E88108 /* SPDYSocket+SPDYSocketMock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SPDYSocket+SPDYSocketMock.h"; sourceTree = "<group>"; };
+		D04653B21948C21B00E88108 /* SPDYSocket+SPDYSocketMock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "SPDYSocket+SPDYSocketMock.m"; sourceTree = "<group>"; };
+		D04653B31948C21B00E88108 /* SPDYServerPushTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYServerPushTest.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -233,11 +241,13 @@
 		25B6D3991947DFDD009BBA9F /* SPDYUnitTests */ = {
 			isa = PBXGroup;
 			children = (
+				D04653AE1948C21B00E88108 /* SPDYMock */,
 				25B6D39A1947DFDD009BBA9F /* InfoPlist.strings */,
 				25B6D39C1947DFDD009BBA9F /* SPDYFrameCodecTest.m */,
 				25B6D39D1947DFDD009BBA9F /* SPDYMockFrameDecoderDelegate.h */,
 				25B6D39E1947DFDD009BBA9F /* SPDYMockFrameDecoderDelegate.m */,
 				25B6D39F1947DFDD009BBA9F /* SPDYOriginTest.m */,
+				D04653B31948C21B00E88108 /* SPDYServerPushTest.m */,
 				25B6D3A01947DFDD009BBA9F /* SPDYSessionManagerTest.m */,
 				25B6D3A11947DFDD009BBA9F /* SPDYStreamManagerTest.m */,
 				25B6D3A21947DFDD009BBA9F /* SPDYStreamTest.m */,
@@ -245,6 +255,17 @@
 				25B6D3A41947DFDD009BBA9F /* SPDYUnitTests-Prefix.pch */,
 			);
 			path = SPDYUnitTests;
+			sourceTree = "<group>";
+		};
+		D04653AE1948C21B00E88108 /* SPDYMock */ = {
+			isa = PBXGroup;
+			children = (
+				D04653AF1948C21B00E88108 /* SPDYFrameEncoderAccumulator.h */,
+				D04653B01948C21B00E88108 /* SPDYFrameEncoderAccumulator.m */,
+				D04653B11948C21B00E88108 /* SPDYSocket+SPDYSocketMock.h */,
+				D04653B21948C21B00E88108 /* SPDYSocket+SPDYSocketMock.m */,
+			);
+			path = SPDYMock;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -386,8 +407,11 @@
 			files = (
 				25B6D3C91947E04E009BBA9F /* SPDYFrameCodecTest.m in Sources */,
 				25B6D3CA1947E04E009BBA9F /* SPDYMockFrameDecoderDelegate.m in Sources */,
+				D04653B71948C27300E88108 /* SPDYFrameEncoderAccumulator.m in Sources */,
 				25B6D3CB1947E04E009BBA9F /* SPDYOriginTest.m in Sources */,
 				25B6D3CC1947E04E009BBA9F /* SPDYSessionManagerTest.m in Sources */,
+				D04653B91948C27300E88108 /* SPDYServerPushTest.m in Sources */,
+				D04653B81948C27300E88108 /* SPDYSocket+SPDYSocketMock.m in Sources */,
 				25B6D3CD1947E04E009BBA9F /* SPDYStreamManagerTest.m in Sources */,
 				25B6D3CE1947E04E009BBA9F /* SPDYStreamTest.m in Sources */,
 			);
