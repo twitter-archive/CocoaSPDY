@@ -43,6 +43,7 @@
 @implementation SPDYStream
 {
     NSData *_data;
+    NSDictionary *_headers;
     NSString *_dataFile;
     NSInputStream *_dataStream;
     NSRunLoop *_runLoop;
@@ -54,6 +55,7 @@
     bool _compressedResponse;
     bool _writeStreamOpened;
     int _zlibStreamStatus;
+    bool _ignoreHeaders;
 }
 
 - (id)init
@@ -63,6 +65,7 @@
         _localSideClosed = NO;
         _remoteSideClosed = NO;
         _compressedResponse = NO;
+        _ignoreHeaders = NO;
     }
     return self;
 }
@@ -345,6 +348,8 @@
     NSUInteger dataLength = data.length;
     if (dataLength == 0) return;
 
+    _ignoreHeaders = YES;
+    
     if (_compressedResponse) {
         _zlibStream.avail_in = (uInt)dataLength;
         _zlibStream.next_in = (uint8_t *)data.bytes;
@@ -391,6 +396,32 @@
         NSData *dataCopy = [[NSData alloc] initWithBytes:data.bytes length:dataLength];
         [_client URLProtocol:_protocol didLoadData:dataCopy];
     }
+}
+
+- (BOOL)didReceiveHeaders:(NSDictionary *)headers
+{
+    if (!_headers) _headers = headers;
+    
+    if (!_ignoreHeaders && [[NSSet setWithArray:[_headers allKeys]] intersectsSet:[NSSet setWithArray:[headers allKeys]]]) {
+        NSDictionary *info = @{ NSLocalizedDescriptionKey: @"received duplicated headers" };
+        NSError *error = [[NSError alloc] initWithDomain:SPDYStreamErrorDomain
+                                                    code:SPDYStreamProtocolError
+                                                userInfo:info];
+        [_client URLProtocol:_protocol didFailWithError:error];
+        return NO;
+    }
+    
+    // If the server sends a HEADERS frame after sending a data frame
+    // for the same stream, the client MAY ignore the HEADERS frame.
+    // Ignoring the HEADERS frame after a data frame prevents handling of HTTP's
+    // trailing headers (http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.40).
+    _ignoreHeaders = NO;
+    
+    NSMutableDictionary *merged = [NSMutableDictionary dictionaryWithDictionary:_headers];
+    [merged addEntriesFromDictionary:headers];
+    _headers = merged;
+    
+    return YES;
 }
 
 #pragma mark CFReadStreamClient

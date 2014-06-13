@@ -25,6 +25,7 @@
 @property (nonatomic, weak) id<SPDYStreamDataDelegate> dataDelegate;
 @property (nonatomic) NSData *data;
 @property (nonatomic) NSInputStream *dataStream;
+@property (nonatomic) NSDictionary *headers;
 @property (nonatomic, weak) NSURLRequest *request;
 @property (nonatomic, weak) SPDYProtocol *protocol;
 @property (nonatomic) SPDYStreamId streamId;
@@ -48,4 +49,5 @@
 - (void)closeWithStatus:(SPDYStreamStatus)status;
 - (void)didReceiveResponse:(NSDictionary *)headers;
 - (void)didLoadData:(NSData *)data;
+- (BOOL)didReceiveHeaders:(NSDictionary *)headers;
 @end

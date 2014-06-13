@@ -738,6 +738,15 @@
         [self _sendRstStream:SPDY_STREAM_INVALID_STREAM streamId:streamId];
         return;
     }
+    
+    // If the server sends a HEADER frame containing duplicate headers
+    // with a previous HEADERS frame for the same stream, the client must
+    // issue a stream error (Section 2.4.2) with error code PROTOCOL ERROR.
+    if (stream.local == NO) {
+        BOOL success = [stream didReceiveHeaders:headersFrame.headers];
+        if (!success) [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+        return;
+    }
 
     stream.remoteSideClosed = headersFrame.last;
     if (stream.closed) {
