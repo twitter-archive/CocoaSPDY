@@ -11,6 +11,8 @@
 
 @interface SPDYFrameEncoderAccumulator : NSObject <SPDYFrameEncoderDelegate>
 
-@property (nonatomic) NSData *lastEncodedData;
+@property (nonatomic) NSMutableData *lastEncodedData;
+
+- (void)clear;
 
 @end

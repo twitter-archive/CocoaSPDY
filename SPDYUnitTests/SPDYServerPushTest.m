@@ -137,6 +137,9 @@
 
     // 2.) Simulate a server Tx stream SYN reply
     {
+        // Clear accumulator
+        [accu clear];
+        
         // At this point, our synStreamFrame is populated with the
         // newly assigned streamID. We can encode it now.
         [frameEncoder encodeSynReplyFrame:synReplyFrame];
@@ -155,80 +158,7 @@
     // 3.) Simulate a server Tx stream SYN request (opening a push stream)
     //     that's associated with the stream that the client created.
     {
-        [frameEncoder encodeSynStreamFrame:synStreamFrame];
-        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
-        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
-    };
-    
-    [partialSessionMock verify];
-}
-
-- (void)testSYNStreamWithStreamIDNonZeroSucceeds
-{
-    // Swizzle the
-    [SPDYSocket performSwizzling];
-    
-    // Initialize encoder (we're going to use it later)
-    NSError *error;
-    SPDYFrameEncoderAccumulator *accu = [[SPDYFrameEncoderAccumulator alloc] init];
-    SPDYFrameEncoder *frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:accu headerCompressionLevel:0];
-    
-    // Prepare the SPDYSynStreamFrame
-    __block SPDYSynStreamFrame *synStreamFrame = [[SPDYSynStreamFrame alloc] init];
-    synStreamFrame.streamId = 100;
-    synStreamFrame.unidirectional = YES;
-    synStreamFrame.headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"init"};
-    
-    // Prepare the synReplyFrame
-    SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
-    synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
-    
-    // Make a fake URL request
-    NSURLRequest *URLRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
-    SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:URLRequest cachedResponse:nil client:nil];
-    
-    // Initialize a SPDYSession
-    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
-    SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin configuration:nil cellular:NO error:&error];
-    
-    __autoreleasing id partialSessionMock = [OCMockObject partialMockForObject:session];
-    
-    // Catch the syn stream frame the client's about to send,
-    // and grab the stream ID from it.
-    [[[[[partialSessionMock expect] ignoringNonObjectArgs] andForwardToRealObject] andDo:^(NSInvocation *inv) {
-        [inv retainArguments];
-        __unsafe_unretained SPDYSynStreamFrame *clientSentSynStreamFrame;
-        [inv getArgument:&clientSentSynStreamFrame atIndex:2];
-        
-        // Set the associated stream id in the syn stream frame
-        // we want to send from the server.
-        synStreamFrame.associatedToStreamId = clientSentSynStreamFrame.streamId;
-        synReplyFrame.streamId = clientSentSynStreamFrame.streamId;
-    }] _sendSynStream:[OCMArg any] streamId:0xf00ba4 closeLocal:[OCMArg anyPointer]];
-    
-    // 1.) Issue a HTTP request towards the server, this will
-    //     send the SYN_STREAM request and wait for the SYN_REPLY.
-    [partialSessionMock issueRequest:protocolRequest];
-    
-    // 2.) Simulate a server Tx stream SYN reply
-    {
-        // At this point, our synStreamFrame is populated with the
-        // newly assigned streamID. We can encode it now.
-        [frameEncoder encodeSynReplyFrame:synReplyFrame];
-        
-        // Simulate server Tx by preparing the encoded synStreamFrame
-        // data inside session's inputBuffer, and trigger a fake
-        // delegate call, that notifies the session about the newly received data.
-        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
-        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:100];
-    };
-    
-    // 2.1) We should not expect any protocol errors to be issued from the client.
-    [[[[partialSessionMock reject] ignoringNonObjectArgs] andForwardToRealObject] _sendRstStream:0xf00ba4 streamId:0xf00ba4];
-    
-    // 3.) Simulate a server Tx stream SYN request (opening a push stream)
-    //     that's associated with the stream that the client created.
-    {
+        [accu clear];
         [frameEncoder encodeSynStreamFrame:synStreamFrame];
         [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
         [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
@@ -286,6 +216,9 @@
     
     // 2.) Simulate a server Tx stream SYN reply
     {
+        // Clear accumulator
+        [accu clear];
+
         // At this point, our synStreamFrame is populated with the
         // newly assigned streamID. We can encode it now.
         [frameEncoder encodeSynReplyFrame:synReplyFrame];
@@ -304,9 +237,268 @@
     // 3.) Simulate a server Tx stream SYN request (opening a push stream)
     //     that's associated with the stream that the client created.
     {
+        [accu clear];
         [frameEncoder encodeSynStreamFrame:synStreamFrame];
         [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
         [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
+    };
+    
+    [partialSessionMock verify];
+}
+
+- (void)testSYNStreamAndAHeadersFrameFails
+{
+    // Swizzle the
+    [SPDYSocket performSwizzling];
+    
+    // Initialize encoder (we're going to use it later)
+    NSError *error;
+    SPDYFrameEncoderAccumulator *accu = [[SPDYFrameEncoderAccumulator alloc] init];
+    SPDYFrameEncoder *frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:accu headerCompressionLevel:0];
+    
+    // Prepare the SPDYSynStreamFrame
+    __block SPDYSynStreamFrame *synStreamFrame = [[SPDYSynStreamFrame alloc] init];
+    synStreamFrame.streamId = 100;
+    synStreamFrame.unidirectional = YES;
+    synStreamFrame.headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"init"};
+    
+    // Prepare the synReplyFrame
+    SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
+    synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
+
+    // Prepare the synReplyFrame
+    SPDYHeadersFrame *headersFrame = [[SPDYHeadersFrame alloc] init];
+    headersFrame.streamId = synStreamFrame.streamId;
+    headersFrame.headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"hello"};
+
+    // Make a fake URL request
+    NSURLRequest *URLRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
+    SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:URLRequest cachedResponse:nil client:nil];
+    
+    // Initialize a SPDYSession
+    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
+    SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin configuration:nil cellular:NO error:&error];
+    
+    __autoreleasing id partialSessionMock = [OCMockObject partialMockForObject:session];
+    
+    // Catch the syn stream frame the client's about to send,
+    // and grab the stream ID from it.
+    [[[[[partialSessionMock expect] ignoringNonObjectArgs] andForwardToRealObject] andDo:^(NSInvocation *inv) {
+        [inv retainArguments];
+        __unsafe_unretained SPDYSynStreamFrame *clientSentSynStreamFrame;
+        [inv getArgument:&clientSentSynStreamFrame atIndex:2];
+        
+        // Set the associated stream id in the syn stream frame
+        // we want to send from the server.
+        synStreamFrame.associatedToStreamId = clientSentSynStreamFrame.streamId;
+        synReplyFrame.streamId = clientSentSynStreamFrame.streamId;
+    }] _sendSynStream:[OCMArg any] streamId:0xf00ba4 closeLocal:[OCMArg anyPointer]];
+    
+    // 1.) Issue a HTTP request towards the server, this will
+    //     send the SYN_STREAM request and wait for the SYN_REPLY.
+    [partialSessionMock issueRequest:protocolRequest];
+    
+    // 2.) Simulate a server Tx stream SYN reply
+    {
+        [accu clear];
+        // At this point, our synStreamFrame is populated with the
+        // newly assigned streamID. We can encode it now.
+        [frameEncoder encodeSynReplyFrame:synReplyFrame];
+        
+        // Simulate server Tx by preparing the encoded synStreamFrame
+        // data inside session's inputBuffer, and trigger a fake
+        // delegate call, that notifies the session about the newly received data.
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:100];
+    };
+    
+    // 3.) Simulate a server Tx stream SYN request (opening a push stream)
+    //     that's associated with the stream that the client created.
+    {
+        [accu clear];
+        [frameEncoder encodeSynStreamFrame:synStreamFrame];
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
+    };
+
+    // 4.) We are expecting a protocol error, since the
+    //      SYN_STREAM includes an unset unidirectional flag.
+    [[[[partialSessionMock expect] ignoringNonObjectArgs] andForwardToRealObject] _sendRstStream:0xf00ba4 streamId:0xf00ba4];
+    
+    // 4.1) Simulate a server Tx stream SYN request (sending a headers frame).
+    {
+        [accu clear];
+        [frameEncoder encodeHeadersFrame:headersFrame];
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
+    };
+    
+    
+    [partialSessionMock verify];
+}
+
+- (void)testSYNStreamWithStreamIDNonZeroSucceeds
+{
+    // Swizzle the
+    [SPDYSocket performSwizzling];
+    
+    // Initialize encoder (we're going to use it later)
+    NSError *error;
+    SPDYFrameEncoderAccumulator *accu = [[SPDYFrameEncoderAccumulator alloc] init];
+    SPDYFrameEncoder *frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:accu headerCompressionLevel:0];
+    
+    // Prepare the SPDYSynStreamFrame
+    __block SPDYSynStreamFrame *synStreamFrame = [[SPDYSynStreamFrame alloc] init];
+    synStreamFrame.streamId = 100;
+    synStreamFrame.unidirectional = YES;
+    synStreamFrame.headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"init"};
+    
+    // Prepare the synReplyFrame
+    SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
+    synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
+    
+    // Make a fake URL request
+    NSURLRequest *URLRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
+    SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:URLRequest cachedResponse:nil client:nil];
+    
+    // Initialize a SPDYSession
+    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
+    SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin configuration:nil cellular:NO error:&error];
+    
+    __autoreleasing id partialSessionMock = [OCMockObject partialMockForObject:session];
+    
+    // Catch the syn stream frame the client's about to send,
+    // and grab the stream ID from it.
+    [[[[[partialSessionMock expect] ignoringNonObjectArgs] andForwardToRealObject] andDo:^(NSInvocation *inv) {
+        [inv retainArguments];
+        __unsafe_unretained SPDYSynStreamFrame *clientSentSynStreamFrame;
+        [inv getArgument:&clientSentSynStreamFrame atIndex:2];
+        
+        // Set the associated stream id in the syn stream frame
+        // we want to send from the server.
+        synStreamFrame.associatedToStreamId = clientSentSynStreamFrame.streamId;
+        synReplyFrame.streamId = clientSentSynStreamFrame.streamId;
+    }] _sendSynStream:[OCMArg any] streamId:0xf00ba4 closeLocal:[OCMArg anyPointer]];
+    
+    // 1.) Issue a HTTP request towards the server, this will
+    //     send the SYN_STREAM request and wait for the SYN_REPLY.
+    [partialSessionMock issueRequest:protocolRequest];
+    
+    // 2.) Simulate a server Tx stream SYN reply
+    {
+        [accu clear];
+        // At this point, our synStreamFrame is populated with the
+        // newly assigned streamID. We can encode it now.
+        [frameEncoder encodeSynReplyFrame:synReplyFrame];
+        
+        // Simulate server Tx by preparing the encoded synStreamFrame
+        // data inside session's inputBuffer, and trigger a fake
+        // delegate call, that notifies the session about the newly received data.
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:100];
+    };
+    
+    // 2.1) We should not expect any protocol errors to be issued from the client.
+    [[[[partialSessionMock reject] ignoringNonObjectArgs] andForwardToRealObject] _sendRstStream:0xf00ba4 streamId:0xf00ba4];
+    
+    // 3.) Simulate a server Tx stream SYN request (opening a push stream)
+    //     that's associated with the stream that the client created.
+    {
+        [accu clear];
+        [frameEncoder encodeSynStreamFrame:synStreamFrame];
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
+    };
+    
+    [partialSessionMock verify];
+}
+
+- (void)testReceiveingPushPayload
+{
+    // Swizzle the
+    [SPDYSocket performSwizzling];
+    
+    // Initialize encoder (we're going to use it later)
+    NSError *error;
+    SPDYFrameEncoderAccumulator *accu = [[SPDYFrameEncoderAccumulator alloc] init];
+    SPDYFrameEncoder *frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:accu headerCompressionLevel:0];
+    
+    // Prepare the SPDYSynStreamFrame
+    __block SPDYSynStreamFrame *synStreamFrame = [[SPDYSynStreamFrame alloc] init];
+    synStreamFrame.streamId = 100;
+    synStreamFrame.unidirectional = YES;
+    synStreamFrame.headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"init"};
+    
+    // Prepare the synReplyFrame
+    SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
+    synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
+    
+    SPDYDataFrame *dataFrame = [[SPDYDataFrame alloc] init];
+    dataFrame.streamId = synStreamFrame.streamId;
+    dataFrame.data = [@"You cheeky monkey!" dataUsingEncoding:NSUTF8StringEncoding];
+    dataFrame.last = YES;
+    
+    // Make a fake URL request
+    NSURLRequest *URLRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
+    SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:URLRequest cachedResponse:nil client:nil];
+    
+    // Initialize a SPDYSession
+    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
+    SPDYConfiguration *configuration = [SPDYConfiguration defaultConfiguration];
+    SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin configuration:configuration cellular:NO error:&error];
+    
+    __autoreleasing id partialSessionMock = [OCMockObject partialMockForObject:session];
+    
+    // Catch the syn stream frame the client's about to send,
+    // and grab the stream ID from it.
+    [[[[[partialSessionMock expect] ignoringNonObjectArgs] andForwardToRealObject] andDo:^(NSInvocation *inv) {
+        [inv retainArguments];
+        __unsafe_unretained SPDYSynStreamFrame *clientSentSynStreamFrame;
+        [inv getArgument:&clientSentSynStreamFrame atIndex:2];
+        
+        // Set the associated stream id in the syn stream frame
+        // we want to send from the server.
+        synStreamFrame.associatedToStreamId = clientSentSynStreamFrame.streamId;
+        synReplyFrame.streamId = clientSentSynStreamFrame.streamId;
+    }] _sendSynStream:[OCMArg any] streamId:0xf00ba4 closeLocal:[OCMArg anyPointer]];
+    
+    // 1.) Issue a HTTP request towards the server, this will
+    //     send the SYN_STREAM request and wait for the SYN_REPLY.
+    [partialSessionMock issueRequest:protocolRequest];
+    
+    // 2.) Simulate a server Tx stream SYN reply
+    {
+        [accu clear];
+        // At this point, our synStreamFrame is populated with the
+        // newly assigned streamID. We can encode it now.
+        [frameEncoder encodeSynReplyFrame:synReplyFrame];
+        
+        // Simulate server Tx by preparing the encoded synStreamFrame
+        // data inside session's inputBuffer, and trigger a fake
+        // delegate call, that notifies the session about the newly received data.
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:100];
+    };
+    
+    // 2.1) We should not expect any protocol errors to be issued from the client.
+    [[[[partialSessionMock reject] ignoringNonObjectArgs] andForwardToRealObject] _sendRstStream:0xf00ba4 streamId:0xf00ba4];
+    
+    // 3.) Simulate a server Tx stream SYN request (opening a push stream)
+    //     that's associated with the stream that the client created.
+    {
+        [accu clear];
+        [frameEncoder encodeSynStreamFrame:synStreamFrame];
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
+    };
+    
+    // 4.) Simulate a server Tx stream SYN request (sending a payload
+    //     through the push stream)
+    {
+        [accu clear];
+        [frameEncoder encodeDataFrame:dataFrame];
+        [[partialSessionMock inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:102];
     };
     
     [partialSessionMock verify];
