@@ -131,6 +131,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 + (void)setConfiguration:(SPDYConfiguration *)configuration
 {
+    // TODO: Turn this into a property
     currentConfiguration = [configuration copy];
 }
 

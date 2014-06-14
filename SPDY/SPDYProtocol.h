@@ -15,6 +15,7 @@ extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
 
 @class SPDYConfiguration;
+@class SPDYSessionManager;
 
 @protocol SPDYLogger;
 @protocol SPDYTLSTrustEvaluator;
@@ -49,6 +50,8 @@ extern NSString *const SPDYOriginUnregisteredNotification;
   Accessor for current TLS trust evaluation object.
 */
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
+
++ (SPDYSessionManager *)sessionManager;
 
 @end
 
