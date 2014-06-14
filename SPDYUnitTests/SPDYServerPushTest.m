@@ -8,6 +8,7 @@
 
 #import <XCTest/XCTest.h>
 #import <OCMock.h>
+#define EXP_SHORTHAND
 #import <Expecta.h>
 #import "SPDYOrigin.h"
 #import "SPDYSession.h"
@@ -19,7 +20,7 @@
 #import "SPDYProtocol.h"
 #import "SPDYStream.h"
 
-@interface SPDYSession (Private)
+@interface SPDYSession ()
 
 @property (nonatomic, readonly) SPDYSocket *socket;
 
@@ -30,7 +31,7 @@
 
 @end
 
-@implementation SPDYSession (Private)
+@implementation SPDYSession (private)
 
 - (SPDYSocket *)socket
 {
@@ -435,7 +436,7 @@
     
     SPDYDataFrame *dataFrame = [[SPDYDataFrame alloc] init];
     dataFrame.streamId = synStreamFrame.streamId;
-    dataFrame.data = [@"You cheeky monkey!" dataUsingEncoding:NSUTF8StringEncoding];
+    dataFrame.data = [@"You cheeky bastard!" dataUsingEncoding:NSUTF8StringEncoding];
     dataFrame.last = YES;
     
     // Make a fake URL request
@@ -502,6 +503,38 @@
     };
     
     [partialSessionMock verify];
+}
+
+- (void)testGetSessionFromURLProtocol
+{
+    // Swizzle the
+    [SPDYSocket performSwizzling];
+
+    // Configure NSURLSession
+    NSURLSessionConfiguration *URLSessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+    URLSessionConfig.protocolClasses = @[[SPDYProtocol class]];
+    NSURLSession *URLSession = [NSURLSession sessionWithConfiguration:URLSessionConfig];
+    
+    // Configure the HTTP Request
+    NSMutableURLRequest *URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
+    URLRequest.HTTPMethod = @"GET";
+    
+    // Initialize encoder (we're going to use it later)
+    NSError *error;
+    SPDYFrameEncoderAccumulator *accu = [[SPDYFrameEncoderAccumulator alloc] init];
+    SPDYFrameEncoder *frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:accu headerCompressionLevel:0];
+
+    __block BOOL finished = NO;
+    [[URLSession dataTaskWithRequest:URLRequest completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        finished = YES;
+    }] resume];
+    
+    // Prepare the SPDYSynStreamFrame
+    SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
+    synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
+
+    [Expecta setAsynchronousTestTimeout:10];
+    expect(finished).will.beTruthy();
 }
 
 @end
