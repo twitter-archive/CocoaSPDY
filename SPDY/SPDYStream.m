@@ -247,6 +247,7 @@
 - (void)didReceiveResponse:(NSDictionary *)headers
 {
     _receivedReply = YES;
+    _ignoreHeaders = NO;
 
     NSInteger statusCode = [headers[@":status"] intValue];
     if (statusCode < 100 || statusCode > 599) {
