@@ -563,7 +563,7 @@
     if (!synStreamFrame.headers[@":scheme"] ||
         !synStreamFrame.headers[@":host"] ||
         !synStreamFrame.headers[@":path"]) {
-        [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+        [self _sendRstStream:SPDY_STREAM_REFUSED_STREAM streamId:streamId];
         return;
     }
     
