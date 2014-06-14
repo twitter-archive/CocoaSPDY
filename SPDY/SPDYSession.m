@@ -504,6 +504,11 @@
     }
 
     [stream didLoadData:dataFrame.data];
+    
+    // If it's a remote stream, do not close it.
+    if (!stream.local) {
+        return;
+    }
 
     stream.remoteSideClosed = dataFrame.last;
     if (stream.closed) {
