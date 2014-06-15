@@ -20,10 +20,16 @@
 - (void)streamFinished:(SPDYStream *)stream;
 @end
 
+@protocol SPDYStreamPushClient <NSObject>
+- (void)stream:(SPDYStream *)stream didReceivePushResponse:(NSURLResponse *)response data:(NSData *)data;
+@end
+
 @interface SPDYStream : NSObject
 @property (nonatomic, weak) id<NSURLProtocolClient> client;
+@property (nonatomic, weak) id<SPDYStreamPushClient> pushClient;
 @property (nonatomic, weak) id<SPDYStreamDataDelegate> dataDelegate;
 @property (nonatomic) NSData *data;
+@property (nonatomic) NSData *pushData;
 @property (nonatomic) NSInputStream *dataStream;
 @property (nonatomic) NSDictionary *headers;
 @property (nonatomic, weak) NSURLRequest *request;
@@ -47,7 +53,6 @@
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;
 - (void)closeWithError:(NSError *)error;
 - (void)closeWithStatus:(SPDYStreamStatus)status;
-- (void)didReceiveResponse:(NSDictionary *)headers;
+- (BOOL)didReceiveResponse:(NSDictionary *)headers;
 - (void)didLoadData:(NSData *)data;
-- (BOOL)didReceiveHeaders:(NSDictionary *)headers;
 @end

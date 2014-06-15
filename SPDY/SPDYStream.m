@@ -43,7 +43,9 @@
 @implementation SPDYStream
 {
     NSData *_data;
+    NSMutableData *_pushData;
     NSDictionary *_headers;
+    NSURLResponse *_pushResponse;
     NSString *_dataFile;
     NSInputStream *_dataStream;
     NSRunLoop *_runLoop;
@@ -66,6 +68,7 @@
         _remoteSideClosed = NO;
         _compressedResponse = NO;
         _ignoreHeaders = NO;
+        _pushData = [[NSMutableData alloc] init];
     }
     return self;
 }
@@ -171,6 +174,10 @@
     if (_localSideClosed && _remoteSideClosed && _client) {
         [_client URLProtocolDidFinishLoading:_protocol];
     }
+    if (_pushClient && [_pushClient respondsToSelector:@selector(stream:didReceivePushResponse:data:)]) {
+            [_pushClient stream:self didReceivePushResponse:_pushResponse data:[_pushData copy]];
+            [_pushData setLength:0];
+    }
 }
 
 - (bool)closed
@@ -244,10 +251,14 @@
     return nil;
 }
 
-- (void)didReceiveResponse:(NSDictionary *)headers
+- (BOOL)didReceiveResponse:(NSDictionary *)newHeaders
 {
     _receivedReply = YES;
     _ignoreHeaders = NO;
+    
+    BOOL successMergingHeaders = [self mergeHeaders:newHeaders];
+    
+    NSDictionary *headers = _headers;
 
     NSInteger statusCode = [headers[@":status"] intValue];
     if (statusCode < 100 || statusCode > 599) {
@@ -256,7 +267,7 @@
                                                     code:NSURLErrorBadServerResponse
                                                 userInfo:info];
         [_client URLProtocol:_protocol didFailWithError:error];
-        return;
+        return successMergingHeaders;
     }
 
     NSString *version = headers[@":version"];
@@ -266,7 +277,7 @@
                                                     code:NSURLErrorBadServerResponse
                                                 userInfo:info];
         [_client URLProtocol:_protocol didFailWithError:error];
-        return;
+        return successMergingHeaders;
     }
 
     NSMutableDictionary *allHTTPHeaders = [[NSMutableDictionary alloc] init];
@@ -323,7 +334,7 @@
                                                         code:NSURLErrorRedirectToNonExistentLocation
                                                     userInfo:nil];
             [_client URLProtocol:_protocol didFailWithError:error];
-            return;
+            return successMergingHeaders;
         }
 
         NSMutableURLRequest *redirect = [_protocol.request mutableCopy];
@@ -336,12 +347,16 @@
         }
 
         [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:response];
-        return;
+        return successMergingHeaders;
     }
 
     [_client URLProtocol:_protocol
           didReceiveResponse:response
           cacheStoragePolicy:NSURLCacheStorageAllowed];
+    
+    _pushResponse = response;
+    
+    return successMergingHeaders;
 }
 
 - (void)didLoadData:(NSData *)data
@@ -374,6 +389,7 @@
             NSUInteger inflatedLength = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
             inflatedData.length = inflatedLength;
             if (inflatedLength > 0) {
+                if (!_local) [_pushData appendData:inflatedData];
                 [_client URLProtocol:_protocol didLoadData:inflatedData];
             }
 
@@ -395,15 +411,16 @@
         }
     } else {
         NSData *dataCopy = [[NSData alloc] initWithBytes:data.bytes length:dataLength];
+        if (!_local) [_pushData appendData:dataCopy];
         [_client URLProtocol:_protocol didLoadData:dataCopy];
     }
 }
 
-- (BOOL)didReceiveHeaders:(NSDictionary *)headers
+- (BOOL)mergeHeaders:(NSDictionary *)headers
 {
-    if (!_headers) _headers = headers;
-    
-    if (!_ignoreHeaders && [[NSSet setWithArray:[_headers allKeys]] intersectsSet:[NSSet setWithArray:[headers allKeys]]]) {
+    if (!_headers) {
+        _headers = headers;
+    } else if (!_ignoreHeaders && [[NSSet setWithArray:[_headers allKeys]] intersectsSet:[NSSet setWithArray:[headers allKeys]]]) {
         NSDictionary *info = @{ NSLocalizedDescriptionKey: @"received duplicated headers" };
         NSError *error = [[NSError alloc] initWithDomain:SPDYStreamErrorDomain
                                                     code:SPDYStreamProtocolError

@@ -354,7 +354,7 @@
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_INFO(@"session connection closed");
-    [SPDYSessionManager removeSession:self];
+    [[SPDYProtocol sessionManager] removeSession:self];
 }
 
 #pragma mark SPDYStreamDataDelegate
@@ -506,10 +506,6 @@
     [stream didLoadData:dataFrame.data];
     
     // If it's a remote stream, do not close it.
-    if (!stream.local) {
-        return;
-    }
-
     stream.remoteSideClosed = dataFrame.last;
     if (stream.closed) {
         [_activeStreams removeStreamWithStreamId:streamId];
@@ -574,6 +570,7 @@
     stream.receiveWindowSize = _initialReceiveWindowSize;
     stream.local = NO;
     stream.streamId = streamId;
+    stream.pushClient = self;
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
@@ -618,7 +615,7 @@
 #endif
 
     [stream didReceiveResponse:headers];
-
+    
     stream.remoteSideClosed = synReplyFrame.last;
 
     if (stream.closed) {
@@ -748,7 +745,7 @@
     // with a previous HEADERS frame for the same stream, the client must
     // issue a stream error (Section 2.4.2) with error code PROTOCOL ERROR.
     if (stream.local == NO) {
-        BOOL success = [stream didReceiveHeaders:headersFrame.headers];
+        BOOL success = [stream didReceiveResponse:headersFrame.headers];
         if (!success) [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
         return;
     }
@@ -805,6 +802,15 @@
 
     stream.sendWindowSize += windowUpdateFrame.deltaWindowSize;
     [self _sendData:stream];
+}
+
+#pragma mark SPDYStreamPushClient
+
+- (void)stream:(SPDYStream *)stream didReceivePushResponse:(NSURLResponse *)response data:(NSData *)data
+{
+    if ([[self delegate] respondsToSelector:@selector(session:didReceivePushResponse:data:)]) {
+        [[self delegate] session:self didReceivePushResponse:response data:data];
+    }
 }
 
 #pragma mark private methods

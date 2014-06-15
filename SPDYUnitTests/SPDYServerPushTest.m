@@ -19,6 +19,7 @@
 #import "SPDYFrameEncoderAccumulator.h"
 #import "SPDYProtocol.h"
 #import "SPDYStream.h"
+#import "SPDYSessionManager.h"
 
 @interface SPDYSession ()
 
@@ -509,7 +510,39 @@
 {
     // Swizzle the
     [SPDYSocket performSwizzling];
+    [Expecta setAsynchronousTestTimeout:5];
 
+    // Init
+    __block SPDYSession *session;
+    id sessionManagerDelegateMock = [OCMockObject mockForProtocol:@protocol(SPDYSessionManagerDelegate)];
+    id sessionDelegateMock = [OCMockObject mockForProtocol:@protocol(SPDYSessionDelegate)];
+    
+    // Configure SPDYSessionManager's delegate
+    [[SPDYProtocol sessionManager] setDelegate:sessionManagerDelegateMock];
+    
+    __block BOOL sessionStarted;
+    __block BOOL receivedPush;
+    
+    // Expect willStartSession:
+    [[[sessionManagerDelegateMock expect] andDo:^(NSInvocation *inv) {
+        __unsafe_unretained SPDYSession *invSession;
+        [inv retainArguments];
+        [inv getArgument:&invSession atIndex:3];
+        session = invSession;
+        session.delegate = sessionDelegateMock;
+        sessionStarted = YES;
+    }] sessionManager:[SPDYProtocol sessionManager] willStartSession:[OCMArg any] forURL:[OCMArg any]];
+    
+    // Expect didReceivePushResponse:
+    [[[sessionDelegateMock expect] andDo:^(NSInvocation *inv) {
+        __unsafe_unretained NSURLResponse *response;
+        __unsafe_unretained NSData *payload;
+        [inv retainArguments];
+        [inv getArgument:&response atIndex:3];
+        [inv getArgument:&payload atIndex:4];
+        receivedPush = YES;
+    }] session:[OCMArg any] didReceivePushResponse:[OCMArg any] data:[OCMArg any]];
+    
     // Configure NSURLSession
     NSURLSessionConfiguration *URLSessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
     URLSessionConfig.protocolClasses = @[[SPDYProtocol class]];
@@ -520,7 +553,6 @@
     URLRequest.HTTPMethod = @"GET";
     
     // Initialize encoder (we're going to use it later)
-    NSError *error;
     SPDYFrameEncoderAccumulator *accu = [[SPDYFrameEncoderAccumulator alloc] init];
     SPDYFrameEncoder *frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:accu headerCompressionLevel:0];
 
@@ -529,12 +561,75 @@
         finished = YES;
     }] resume];
     
+    expect(sessionStarted).will.beTruthy();
+
     // Prepare the SPDYSynStreamFrame
     SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
+    synReplyFrame.streamId = 1;
     synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
+    synReplyFrame.last = NO;
+    
+    {
+        [accu clear];
+        [frameEncoder encodeSynReplyFrame:synReplyFrame];
+        [[session inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)session socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:102];
+    };
+    
+    // Prepare the SPDYSynStreamFrame for the new stream
+    __block SPDYSynStreamFrame *synStreamFrame = [[SPDYSynStreamFrame alloc] init];
+    synStreamFrame.streamId = 100;
+    synStreamFrame.associatedToStreamId = 1;
+    synStreamFrame.unidirectional = YES;
+    synStreamFrame.headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"init"};
 
-    [Expecta setAsynchronousTestTimeout:10];
+    {
+        [accu clear];
+        [frameEncoder encodeSynStreamFrame:synStreamFrame];
+        [[session inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)session socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:102];
+    };
+    
+    SPDYHeadersFrame *headerFramePush = [[SPDYHeadersFrame alloc] init];
+    headerFramePush.streamId = 100;
+    headerFramePush.headers = @{@":version":@"3.1", @":status":@"200"};
+    headerFramePush.last = NO;
+    
+    {
+        [accu clear];
+        [frameEncoder encodeHeadersFrame:headerFramePush];
+        [[session inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)session socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:102];
+    };
+    
+    // Prepare the payload for the push payload
+    SPDYDataFrame *dataFramePush = [[SPDYDataFrame alloc] init];
+    dataFramePush.streamId = 100;
+    dataFramePush.data = [@"You cheeky bastard!" dataUsingEncoding:NSUTF8StringEncoding];
+    dataFramePush.last = YES;
+    
+    {
+        [accu clear];
+        [frameEncoder encodeDataFrame:dataFramePush];
+        [[session inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)session socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:102];
+    };
+    
+    // Prepare the payload for the initial request
+    SPDYDataFrame *dataFrame = [[SPDYDataFrame alloc] init];
+    dataFrame.streamId = 1;
+    dataFrame.data = [@"Holly shiznitz!" dataUsingEncoding:NSUTF8StringEncoding];
+    dataFrame.last = YES;
+    
+    {
+        [accu clear];
+        [frameEncoder encodeDataFrame:dataFrame];
+        [[session inputBuffer] setData:accu.lastEncodedData];
+        [[(SPDYSession *)session socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:102];
+    };
+    
     expect(finished).will.beTruthy();
+    expect(receivedPush).to.beTruthy();
 }
 
 @end
