@@ -175,8 +175,15 @@
         [_client URLProtocolDidFinishLoading:_protocol];
     }
     if (_pushClient && [_pushClient respondsToSelector:@selector(stream:didReceivePushResponse:data:)]) {
-            [_pushClient stream:self didReceivePushResponse:_pushResponse data:[_pushData copy]];
-            [_pushData setLength:0];
+        if (!_pushResponse) {
+            if (!_headers[@":status"]) {
+                [self didReceiveResponse:@{@":status":@(200)}];
+            } else {
+                [self didReceiveResponse:_headers];
+            }
+        }
+        [_pushClient stream:self didReceivePushResponse:_pushResponse data:[_pushData copy]];
+        [_pushData setLength:0];
     }
 }
 
@@ -292,7 +299,7 @@
         }
     }
 
-    NSURL *requestURL = _protocol.request.URL;
+    NSURL *requestURL = _protocol ? _protocol.request.URL : [NSURL URLWithString:headers[@":path"]];
 
     if (_protocol.request.HTTPShouldHandleCookies) {
         NSString *httpSetCookie = allHTTPHeaders[@"set-cookie"];
