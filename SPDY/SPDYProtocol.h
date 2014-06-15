@@ -26,11 +26,6 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 @interface SPDYProtocol : NSURLProtocol
 
 /**
-  Set configuration options to be used for all future SPDY sessions.
-*/
-+ (void)setConfiguration:(SPDYConfiguration *)configuration;
-
-/**
   Register an object that implements @proto(SPDYLogger) to receive log
   output.
 

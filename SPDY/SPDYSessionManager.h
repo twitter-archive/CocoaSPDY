@@ -17,11 +17,11 @@
 
 @interface SPDYSessionManager : NSObject
 
+@property (nonatomic, weak) id<SPDYSessionManagerDelegate> delegate;
+@property (nonatomic, strong) SPDYConfiguration *configuration;
+
 - (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError;
 - (void)removeSession:(SPDYSession *)session;
-- (void)setConfiguration:(SPDYConfiguration *)configuration; // TODO: becomes property
-
-@property (nonatomic, weak) id<SPDYSessionManagerDelegate> delegate;
 
 @end
 

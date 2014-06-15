@@ -51,12 +51,6 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 #endif
 }
 
-// TODO: Eliminate this...
-+ (void)setConfiguration:(SPDYConfiguration *)configuration
-{
-    [SPDYSessionManager setConfiguration:configuration];
-}
-
 + (void)setLogger:(id<SPDYLogger>)logger
 {
     [SPDYCommonLogger setLogger:logger];

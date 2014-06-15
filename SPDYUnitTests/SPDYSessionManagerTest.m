@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
+#import "SPDYProtocol.h"
 
 @interface SPDYSessionManagerTest : XCTestCase
 
@@ -21,10 +22,10 @@
     // Get a session into the pool
     // Close it
     // Try to dequeue again
-    SPDYSession *session = [SPDYSessionManager sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
+    SPDYSession *session = [[SPDYProtocol sessionManager] sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
     XCTAssertNotNil(session, @"session should not be `nil`");
     [session close];
-    SPDYSession *session2 = [SPDYSessionManager sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
+    SPDYSession *session2 = [[SPDYProtocol sessionManager] sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
     XCTAssertFalse([session isEqual:session2], @"Should not dequeue closed session");
 }
 
