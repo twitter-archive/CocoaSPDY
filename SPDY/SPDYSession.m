@@ -571,6 +571,7 @@
     stream.local = NO;
     stream.streamId = streamId;
     stream.pushClient = self;
+    stream.headers = synStreamFrame.headers;
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;

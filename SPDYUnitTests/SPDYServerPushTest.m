@@ -335,7 +335,6 @@
         [[(SPDYSession *)partialSessionMock socket] performDelegateCall_socketDidReadData:accu.lastEncodedData withTag:101];
     };
     
-    
     [partialSessionMock verify];
 }
 
@@ -506,7 +505,7 @@
     [partialSessionMock verify];
 }
 
-- (void)testGetSessionFromURLProtocol
+- (void)testGetPushPayloadThroughDelegate
 {
     // Swizzle the
     [SPDYSocket performSwizzling];
