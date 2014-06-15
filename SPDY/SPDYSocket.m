@@ -1612,6 +1612,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             [self _closeWithError:[self streamError]];
             return;
         } else {
+            if (!_currentWriteOp) return; // The socket has been closed during processing
             _currentWriteOp->_bytesWritten += bytesWritten;
             newBytesWritten += bytesWritten;
             writeComplete = (_currentWriteOp->_buffer.length == _currentWriteOp->_bytesWritten);
