@@ -70,7 +70,6 @@ typedef enum : uint16_t {
 // Connecting
 - (void)_startConnectTimeout:(NSTimeInterval)timeout;
 - (void)_endConnectTimeout;
-- (void)_timeoutConnect:(NSTimer *)timer;
 
 // Stream Implementation
 - (bool)_createStreamsToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError;
@@ -306,16 +305,16 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
     CFSocketContext _context;
     NSArray *_runLoopModes;
 
-    NSTimer *_connectTimer;
+    dispatch_source_t _connectTimer;
 
     NSMutableArray *_readQueue;
     SPDYSocketReadOp *_currentReadOp;
-    NSTimer *_readTimer;
+    dispatch_source_t _readTimer;
     NSMutableData *_unreadData;
 
     NSMutableArray *_writeQueue;
     SPDYSocketWriteOp *_currentWriteOp;
-    NSTimer *_writeTimer;
+    dispatch_source_t _writeTimer;
 
     __weak id<SPDYSocketDelegate> _delegate;
     uint16_t _flags;
@@ -522,13 +521,13 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         if (_source4) [self _removeSource:_source4];
         if (_source6) [self _removeSource:_source6];
 
-        if (_readTimer) [self _removeTimer:_readTimer];
-        if (_writeTimer) [self _removeTimer:_writeTimer];
+//        if (_readTimer) [self _removeTimer:_readTimer];
+//        if (_writeTimer) [self _removeTimer:_writeTimer];
 
         _runLoop = [runLoop getCFRunLoop];
 
-        if (_readTimer) [self _addTimer:_readTimer];
-        if (_writeTimer) [self _addTimer:_writeTimer];
+//        if (_readTimer) [self _addTimer:_readTimer];
+//        if (_writeTimer) [self _addTimer:_writeTimer];
 
         if (_source4) [self _addSource:_source4];
         if (_source6) [self _addSource:_source6];
@@ -583,13 +582,13 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         if (_source4) [self _removeSource:_source4];
         if (_source6) [self _removeSource:_source6];
 
-        if (_readTimer) [self _removeTimer:_readTimer];
-        if (_writeTimer) [self _removeTimer:_writeTimer];
+//        if (_readTimer) [self _removeTimer:_readTimer];
+//        if (_writeTimer) [self _removeTimer:_writeTimer];
 
         _runLoopModes = [runLoopModes copy];
 
-        if (_readTimer) [self _addTimer:_readTimer];
-        if (_writeTimer) [self _addTimer:_writeTimer];
+//        if (_readTimer) [self _addTimer:_readTimer];
+//        if (_writeTimer) [self _addTimer:_writeTimer];
 
         if (_source4) [self _addSource:_source4];
         if (_source6) [self _addSource:_source6];
@@ -638,8 +637,8 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         NSArray *newRunLoopModes = [_runLoopModes arrayByAddingObject:runLoopMode];
         _runLoopModes = newRunLoopModes;
 
-        if (_readTimer) [self _addTimer:_readTimer mode:runLoopMode];
-        if (_writeTimer) [self _addTimer:_writeTimer mode:runLoopMode];
+//        if (_readTimer) [self _addTimer:_readTimer mode:runLoopMode];
+//        if (_writeTimer) [self _addTimer:_writeTimer mode:runLoopMode];
 
         if (_source4) [self _addSource:_source4 mode:runLoopMode];
         if (_source6) [self _addSource:_source6 mode:runLoopMode];
@@ -693,8 +692,8 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         
         _runLoopModes = [newRunLoopModes copy];
         
-        if (_readTimer) [self _removeTimer:_readTimer mode:runLoopMode];
-        if (_writeTimer) [self _removeTimer:_writeTimer mode:runLoopMode];
+//        if (_readTimer) [self _removeTimer:_readTimer mode:runLoopMode];
+//        if (_writeTimer) [self _removeTimer:_writeTimer mode:runLoopMode];
         
         if (_source4) [self _removeSource:_source4 mode:runLoopMode];
         if (_source6) [self _removeSource:_source6 mode:runLoopMode];
@@ -783,29 +782,27 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 - (void)_startConnectTimeout:(NSTimeInterval)timeout
 {
     if (timeout >= 0.0) {
-        _connectTimer = [NSTimer timerWithTimeInterval:timeout
-                                                target:self
-                                              selector:@selector(_timeoutConnect:)
-                                              userInfo:nil
-                                               repeats:NO];
-        [self _addTimer:_connectTimer];
+        _connectTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _socketQueue);
+        __weak SPDYSocket *weakSelf = self;
+        dispatch_source_set_event_handler(_connectTimer, ^{
+            @autoreleasepool {
+                __strong SPDYSocket *strongSelf = weakSelf;
+                if (strongSelf) {
+                    [strongSelf _closeWithError:[self connectTimeoutError]];
+                }
+            }
+        });
+        dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC));
+		dispatch_source_set_timer(_connectTimer, tt, DISPATCH_TIME_FOREVER, 0);
+		dispatch_resume(_connectTimer);
     }
 }
 
 - (void)_endConnectTimeout
 {
-    [_connectTimer invalidate];
-    _connectTimer = nil;
+    dispatch_source_cancel(_connectTimer);
+    _connectTimer = NULL;
 }
-
-- (void)_timeoutConnect:(NSTimer *)timer
-{
-#pragma unused(timer)
-
-    [self _endConnectTimeout];
-    [self _closeWithError:[self connectTimeoutError]];
-}
-
 
 #pragma mark CFStream management
 
@@ -1485,12 +1482,27 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
                 [self _tryTLSHandshake];
             } else {
                 if (_currentReadOp->_timeout >= 0.0) {
-                    _readTimer = [NSTimer timerWithTimeInterval:_currentReadOp->_timeout
-                                                         target:self
-                                                       selector:@selector(_timeoutRead:)
-                                                       userInfo:nil
-                                                        repeats:NO];
-                    [self _addTimer:_readTimer];
+//                    _readTimer = [NSTimer timerWithTimeInterval:_currentReadOp->_timeout
+//                                                         target:self
+//                                                       selector:@selector(_timeoutRead:)
+//                                                       userInfo:nil
+//                                                        repeats:NO];
+//                    [self _addTimer:_readTimer];
+                    
+                    _readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _socketQueue);
+		
+                    __weak SPDYSocket *weakSelf = self;
+                    
+                    dispatch_source_set_event_handler(_readTimer, ^{ @autoreleasepool {
+                        __strong SPDYSocket *strongSelf = weakSelf;
+                        if (strongSelf) {
+                            [strongSelf _timeoutRead:nil];
+                        }
+                    }});
+                    
+                    dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_currentReadOp->_timeout * NSEC_PER_SEC));
+                    dispatch_source_set_timer(_readTimer, tt, DISPATCH_TIME_FOREVER, 0);
+                    dispatch_resume(_readTimer);
                 }
 
                 [self _read];
@@ -1609,8 +1621,8 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
     NSAssert(_currentReadOp, @"Trying to end current read when there is no current read.");
 
-    [_readTimer invalidate];
-    _readTimer = nil;
+    dispatch_source_cancel(_readTimer);
+    _readTimer = NULL;
 
     _currentReadOp = nil;
 }
@@ -1629,13 +1641,10 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
     if (timeoutExtension > 0.0) {
         _currentReadOp->_timeout += timeoutExtension;
-
-        _readTimer = [NSTimer timerWithTimeInterval:timeoutExtension
-                                               target:self
-                                             selector:@selector(_timeoutRead:)
-                                             userInfo:nil
-                                              repeats:NO];
-        [self _addTimer:_readTimer];
+        
+        // Reschedule the timer
+        dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeoutExtension * NSEC_PER_SEC));
+        dispatch_source_set_timer(_readTimer, tt, DISPATCH_TIME_FOREVER, 0);
     } else {
         // Do not call _endRead here.
         // We must allow the delegate access to any partial read in the unreadData method.
@@ -1662,13 +1671,12 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (void)_scheduleWrite
 {
-    if ((_flags & kDequeueWriteScheduled) == 0) {
-        _flags |= kDequeueWriteScheduled;
-//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-        [self asynchronouslyPerformBlockOnSocketQueue:^{
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        if ((_flags & kDequeueWriteScheduled) == 0) {
+            _flags |= kDequeueWriteScheduled;
             [self _dequeueWrite];
-        }];
-    }
+        }
+    }];
 }
 
 - (void)_dequeueWrite
@@ -1686,12 +1694,23 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
                 [self _tryTLSHandshake];
             } else {
                 if (_currentWriteOp->_timeout >= 0.0) {
-                    _writeTimer = [NSTimer timerWithTimeInterval:_currentWriteOp->_timeout
-                                                            target:self
-                                                          selector:@selector(_timeoutWrite:)
-                                                          userInfo:nil
-                                                           repeats:NO];
-                    [self _addTimer:_writeTimer];
+                    _writeTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _socketQueue);
+		
+                    __weak SPDYSocket *weakSelf = self;
+                    
+                    dispatch_source_set_event_handler(_writeTimer, ^{
+                        @autoreleasepool {
+                            __strong SPDYSocket *strongSelf = weakSelf;
+                            if (strongSelf) {
+                                [strongSelf _timeoutWrite:nil];
+                            }
+                        }
+                    });
+                    
+                    dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_currentWriteOp->_timeout * NSEC_PER_SEC));
+                    
+                    dispatch_source_set_timer(_writeTimer, tt, DISPATCH_TIME_FOREVER, 0);
+                    dispatch_resume(_writeTimer);
                 }
 
                 [self _write];
@@ -1768,8 +1787,8 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
     NSAssert(_currentWriteOp, @"Trying to complete current write when there is no current write.");
 
-    [_writeTimer invalidate];
-    _writeTimer = nil;
+    dispatch_source_cancel(_writeTimer);
+    _writeTimer = NULL;
 
     _currentWriteOp = nil;
 }
@@ -1788,13 +1807,10 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
     if (timeoutExtension > 0.0) {
         _currentWriteOp->_timeout += timeoutExtension;
-
-        _writeTimer = [NSTimer timerWithTimeInterval:timeoutExtension
-                                              target:self
-                                            selector:@selector(_timeoutWrite:)
-                                            userInfo:nil
-                                             repeats:NO];
-        [self _addTimer:_writeTimer];
+        
+        // Reschedule the timer
+        dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeoutExtension * NSEC_PER_SEC));
+        dispatch_source_set_timer(_writeTimer, tt, DISPATCH_TIME_FOREVER, 0);
     } else {
         [self _closeWithError:[self writeTimeoutError]];
     }
