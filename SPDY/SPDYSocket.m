@@ -285,6 +285,68 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 @end
 
+@interface SPDYRunLoopThread : NSThread
+
+@property (nonatomic, readonly) NSRunLoop *runLoop;
+
+@end
+
+@implementation SPDYRunLoopThread {
+    dispatch_group_t _waitGroup;
+}
+
+@synthesize runLoop = _runLoop;
+
+- (id)init
+{
+    self = [super init];
+    if (self) {
+        _waitGroup = dispatch_group_create();
+        dispatch_group_enter(_waitGroup);
+    }
+    return self;
+}
+
+- (void)main;
+{
+    @autoreleasepool {
+        _runLoop = [NSRunLoop currentRunLoop];
+        dispatch_group_leave(_waitGroup);
+        
+        NSTimer *timer = [[NSTimer alloc] initWithFireDate:[NSDate distantFuture] interval:0.0 target:nil selector:nil userInfo:nil repeats:NO];
+        [_runLoop addTimer:timer forMode:NSDefaultRunLoopMode];
+        
+        while ([_runLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
+            
+        }
+        assert(NO);
+    }
+}
+
+- (NSRunLoop *)runLoop;
+{
+    dispatch_group_wait(_waitGroup, DISPATCH_TIME_FOREVER);
+    return _runLoop;
+}
+
+@end
+
+static SPDYRunLoopThread *networkThread = nil;
+static NSRunLoop *networkRunLoop = nil;
+
+static NSRunLoop *SPDYSocketRunLoop(void)
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        networkThread = [SPDYRunLoopThread new];
+        networkThread.name = @"com.twitter.CocoaSPDY.SocketThread";
+        [networkThread start];
+        networkRunLoop = networkThread.runLoop;
+    });
+    
+    return networkRunLoop;
+}
+
 static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 @implementation SPDYSocket
@@ -521,13 +583,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         if (_source4) [self _removeSource:_source4];
         if (_source6) [self _removeSource:_source6];
 
-//        if (_readTimer) [self _removeTimer:_readTimer];
-//        if (_writeTimer) [self _removeTimer:_writeTimer];
-
         _runLoop = [runLoop getCFRunLoop];
-
-//        if (_readTimer) [self _addTimer:_readTimer];
-//        if (_writeTimer) [self _addTimer:_writeTimer];
 
         if (_source4) [self _addSource:_source4];
         if (_source6) [self _addSource:_source6];
@@ -539,9 +595,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
             }
         }
 
-//        [runLoop performSelector:@selector(_dequeueRead) target:self argument:nil order:0 modes:_runLoopModes];
-//        [runLoop performSelector:@selector(_dequeueWrite) target:self argument:nil order:0 modes:_runLoopModes];
-//        [runLoop performSelector:@selector(_scheduleDisconnect) target:self argument:nil order:0 modes:_runLoopModes];
         [self asynchronouslyPerformBlockOnSocketQueue:^{
             [self _dequeueRead];
             [self _dequeueWrite];
@@ -582,13 +635,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         if (_source4) [self _removeSource:_source4];
         if (_source6) [self _removeSource:_source6];
 
-//        if (_readTimer) [self _removeTimer:_readTimer];
-//        if (_writeTimer) [self _removeTimer:_writeTimer];
-
         _runLoopModes = [runLoopModes copy];
-
-//        if (_readTimer) [self _addTimer:_readTimer];
-//        if (_writeTimer) [self _addTimer:_writeTimer];
 
         if (_source4) [self _addSource:_source4];
         if (_source6) [self _addSource:_source6];
@@ -600,9 +647,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
             }
         }
 
-//        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-//        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
         [self asynchronouslyPerformBlockOnSocketQueue:^{
             [self _dequeueRead];
             [self _dequeueWrite];
@@ -637,9 +681,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         NSArray *newRunLoopModes = [_runLoopModes arrayByAddingObject:runLoopMode];
         _runLoopModes = newRunLoopModes;
 
-//        if (_readTimer) [self _addTimer:_readTimer mode:runLoopMode];
-//        if (_writeTimer) [self _addTimer:_writeTimer mode:runLoopMode];
-
         if (_source4) [self _addSource:_source4 mode:runLoopMode];
         if (_source6) [self _addSource:_source6 mode:runLoopMode];
 
@@ -648,9 +689,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
             CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
         }
 
-//        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-//        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
         [self asynchronouslyPerformBlockOnSocketQueue:^{
             [self _dequeueRead];
             [self _dequeueWrite];
@@ -692,9 +730,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         
         _runLoopModes = [newRunLoopModes copy];
         
-//        if (_readTimer) [self _removeTimer:_readTimer mode:runLoopMode];
-//        if (_writeTimer) [self _removeTimer:_writeTimer mode:runLoopMode];
-        
         if (_source4) [self _removeSource:_source4 mode:runLoopMode];
         if (_source6) [self _removeSource:_source6 mode:runLoopMode];
         
@@ -703,9 +738,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
             CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
         }
         
-//        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-//        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
         [self asynchronouslyPerformBlockOnSocketQueue:^{
             [self _dequeueRead];
             [self _dequeueWrite];
@@ -747,7 +779,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
                 error:(NSError **)pError
 {
     __block BOOL success;
-    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
+    NSRunLoop *runLoop = SPDYSocketRunLoop();
     [self synchronouslyPerformBlockOnSocketQueue:^{
         if (_delegate == nil) {
             [NSException raise:SPDYSocketException
@@ -1173,7 +1205,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
     }
 
     if (shouldDisconnect) {
-//        [self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
         [self asynchronouslyPerformBlockOnSocketQueue:^{
             [self disconnect];
         }];
@@ -1460,7 +1491,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
     if ((_flags & kDequeueReadScheduled) == 0) {
         _flags |= kDequeueReadScheduled;
-    //        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
         [self asynchronouslyPerformBlockOnSocketQueue:^{
             [self _dequeueRead];
         }];
@@ -1482,13 +1512,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
                 [self _tryTLSHandshake];
             } else {
                 if (_currentReadOp->_timeout >= 0.0) {
-//                    _readTimer = [NSTimer timerWithTimeInterval:_currentReadOp->_timeout
-//                                                         target:self
-//                                                       selector:@selector(_timeoutRead:)
-//                                                       userInfo:nil
-//                                                        repeats:NO];
-//                    [self _addTimer:_readTimer];
-                    
                     _readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _socketQueue);
 		
                     __weak SPDYSocket *weakSelf = self;
@@ -1621,7 +1644,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
     NSAssert(_currentReadOp, @"Trying to end current read when there is no current read.");
 
-    dispatch_source_cancel(_readTimer);
+    if (_readTimer) dispatch_source_cancel(_readTimer);
     _readTimer = NULL;
 
     _currentReadOp = nil;
@@ -1787,7 +1810,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
     NSAssert(_currentWriteOp, @"Trying to complete current write when there is no current write.");
 
-    dispatch_source_cancel(_writeTimer);
+    if (_writeTimer) dispatch_source_cancel(_writeTimer);
     _writeTimer = NULL;
 
     _currentWriteOp = nil;
@@ -1902,7 +1925,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         case kCFStreamEventHasBytesAvailable:
             if (_flags & kStartingReadTLS) {
                 [self _onTLSHandshakeSuccess];
-            } else {
+            } else if (CFReadStreamHasBytesAvailable(_readStream)) {
                 _flags |= kSocketHasBytesAvailable;
                 [self _read];
             }
@@ -1933,7 +1956,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         case kCFStreamEventCanAcceptBytes:
             if (_flags & kStartingWriteTLS) {
                 [self _onTLSHandshakeSuccess];
-            } else {
+            } else if (CFWriteStreamCanAcceptBytes(_writeStream)) {
                 _flags |= kSocketCanAcceptBytes;
                 [self _write];
             }
