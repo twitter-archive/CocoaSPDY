@@ -33,9 +33,9 @@
 #if DEBUG_THREAD_SAFETY
 #define CHECK_THREAD_SAFETY() \
 do { \
-    if (_runLoop && _runLoop != CFRunLoopGetCurrent()) { \
+    if (_socketQueue && !dispatch_get_specific(SPDYSocketIsOnSocketQueue)) { \
         [NSException raise:SPDYSocketException \
-                    format:@"Detected SPDYSocket access from wrong RunLoop"]; \
+                    format:@"Detected SPDYSocket access from wrong dispatch queue."]; \
     } \
 } while (0)
 #else
@@ -883,6 +883,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 */
 - (bool)_configureStreams:(NSError **)pError
 {
+    CHECK_THREAD_SAFETY();
     if ([_delegate respondsToSelector:@selector(socketWillConnect:)]) {
         if (![_delegate socketWillConnect:self]) {
             if (pError) *pError = [self abortError];
@@ -894,6 +895,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (bool)_openStreams:(NSError **)pError
 {
+    CHECK_THREAD_SAFETY();
     bool success = YES;
 
     if (success && !CFReadStreamOpen(_readStream)) {
@@ -918,6 +920,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 */
 - (void)_onStreamOpened
 {
+    CHECK_THREAD_SAFETY();
     if ((_flags & kDidCompleteOpenForRead) && (_flags & kDidCompleteOpenForWrite)) {
         NSError *error = nil;
 
@@ -941,6 +944,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (bool)_setSocketViaStreams:(NSError **)pError
 {
+    CHECK_THREAD_SAFETY();
     CFSocketNativeHandle native;
     CFDataRef nativeProp = CFReadStreamCopyProperty(_readStream, kCFStreamPropertySocketNativeHandle);
     if (nativeProp == NULL) {
@@ -987,21 +991,24 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (void)_closeWithError:(NSError *)error
 {
-    _flags |= kClosingWithError;
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        _flags |= kClosingWithError;
 
-    if (_flags & kDidStartDelegate) {
-        [self _captureUnreadData];
+        if (_flags & kDidStartDelegate) {
+            [self _captureUnreadData];
 
-        // Give the delegate the opportunity to recover unread data
-        if ([_delegate respondsToSelector:@selector(socket:willDisconnectWithError:)]) {
-            [_delegate socket:self willDisconnectWithError:error];
+            // Give the delegate the opportunity to recover unread data
+            if ([_delegate respondsToSelector:@selector(socket:willDisconnectWithError:)]) {
+                [_delegate socket:self willDisconnectWithError:error];
+            }
         }
-    }
-    [self _close];
+        [self _close];
+    }];
 }
 
 - (void)_captureUnreadData
 {
+    CHECK_THREAD_SAFETY();
     if (_currentReadOp &&
         [_currentReadOp isKindOfClass:[SPDYSocketReadOp class]] &&
         _currentReadOp->_bytesRead > 0)
@@ -1016,6 +1023,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (void)_emptyQueues
 {
+    CHECK_THREAD_SAFETY();
     if (_currentReadOp) [self _endRead];
     if (_currentWriteOp) [self _endWrite];
 
@@ -1034,6 +1042,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 */
 - (void)_close
 {
+    CHECK_THREAD_SAFETY();
     [self _emptyQueues];
 
     _unreadData = nil;
@@ -1505,6 +1514,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (void)_read
 {
+    CHECK_THREAD_SAFETY();
     if (_currentReadOp == nil || _readStream == NULL) {
         return;
     }
@@ -1705,6 +1715,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (void)_write
 {
+    CHECK_THREAD_SAFETY();
     if (_currentWriteOp == nil || _writeStream == NULL) {
         return;
     }
