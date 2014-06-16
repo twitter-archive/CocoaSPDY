@@ -28,14 +28,14 @@
 #define READ_CHUNK_SIZE      65536 // Limit on size of each read pass
 #define WRITE_CHUNK_SIZE     2852  // Limit on size of each write pass
 
-#define DEBUG_THREAD_SAFETY 0
+#define DEBUG_THREAD_SAFETY 1
 
 #if DEBUG_THREAD_SAFETY
 #define CHECK_THREAD_SAFETY() \
 do { \
-    if (_runLoop && _runLoop != CFRunLoopGetCurrent()) { \
+    if (_socketQueue && !dispatch_get_specific(SPDYSocketIsOnSocketQueue)) { \
         [NSException raise:SPDYSocketException \
-                    format:@"Detected SPDYSocket access from wrong RunLoop"]; \
+                    format:@"Detected SPDYSocket access from wrong dispatch queue."]; \
     } \
 } while (0)
 #else
@@ -43,6 +43,7 @@ do { \
 #endif
 
 NSString *const SPDYSocketException = @"SPDYSocketException";
+NSString *const SPDYSocketQueueName = @"SPDYSocket";
 
 typedef enum : uint16_t {
     kDidStartDelegate        = 1 <<  0,  // If set, disconnection results in delegate call
@@ -69,7 +70,6 @@ typedef enum : uint16_t {
 // Connecting
 - (void)_startConnectTimeout:(NSTimeInterval)timeout;
 - (void)_endConnectTimeout;
-- (void)_timeoutConnect:(NSTimer *)timer;
 
 // Stream Implementation
 - (bool)_createStreamsToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError;
@@ -285,6 +285,69 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 @end
 
+@interface SPDYRunLoopThread : NSThread
+
+@property (nonatomic, readonly) NSRunLoop *runLoop;
+
+@end
+
+@implementation SPDYRunLoopThread {
+    dispatch_group_t _waitGroup;
+}
+
+@synthesize runLoop = _runLoop;
+
+- (id)init
+{
+    self = [super init];
+    if (self) {
+        _waitGroup = dispatch_group_create();
+        dispatch_group_enter(_waitGroup);
+    }
+    return self;
+}
+
+- (void)main;
+{
+    @autoreleasepool {
+        _runLoop = [NSRunLoop currentRunLoop];
+        dispatch_group_leave(_waitGroup);
+        
+        NSTimer *timer = [[NSTimer alloc] initWithFireDate:[NSDate distantFuture] interval:0.0 target:nil selector:nil userInfo:nil repeats:NO];
+        [_runLoop addTimer:timer forMode:NSDefaultRunLoopMode];
+        
+        while ([_runLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
+            
+        }
+        assert(NO);
+    }
+}
+
+- (NSRunLoop *)runLoop;
+{
+    dispatch_group_wait(_waitGroup, DISPATCH_TIME_FOREVER);
+    return _runLoop;
+}
+
+@end
+
+static SPDYRunLoopThread *networkThread = nil;
+static NSRunLoop *networkRunLoop = nil;
+
+static NSRunLoop *SPDYSocketRunLoop(void)
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        networkThread = [SPDYRunLoopThread new];
+        networkThread.name = @"com.twitter.CocoaSPDY.SocketThread";
+        [networkThread start];
+        networkRunLoop = networkThread.runLoop;
+    });
+    
+    return networkRunLoop;
+}
+
+static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 @implementation SPDYSocket
 {
@@ -297,22 +360,23 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     CFReadStreamRef _readStream;
     CFWriteStreamRef _writeStream;
 
+    dispatch_queue_t _socketQueue;
     CFRunLoopSourceRef _source4; // For _socket4
     CFRunLoopSourceRef _source6; // For _socket6
     CFRunLoopRef _runLoop;
     CFSocketContext _context;
     NSArray *_runLoopModes;
 
-    NSTimer *_connectTimer;
+    dispatch_source_t _connectTimer;
 
     NSMutableArray *_readQueue;
     SPDYSocketReadOp *_currentReadOp;
-    NSTimer *_readTimer;
+    dispatch_source_t _readTimer;
     NSMutableData *_unreadData;
 
     NSMutableArray *_writeQueue;
     SPDYSocketWriteOp *_currentWriteOp;
-    NSTimer *_writeTimer;
+    dispatch_source_t _writeTimer;
 
     __weak id<SPDYSocketDelegate> _delegate;
     uint16_t _flags;
@@ -334,6 +398,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         _readQueue = [[NSMutableArray alloc] initWithCapacity:READ_QUEUE_CAPACITY];
         _writeQueue = [[NSMutableArray alloc] initWithCapacity:WRITE_QUEUE_CAPACITY];
         _runLoopModes = @[NSDefaultRunLoopMode];
+        
+        _socketQueue = dispatch_queue_create([SPDYSocketQueueName UTF8String], DISPATCH_QUEUE_SERIAL);
+        void *nonNullUnusedPointer = (__bridge void *)self;
+        dispatch_queue_set_specific(_socketQueue, SPDYSocketIsOnSocketQueue, nonNullUnusedPointer, NULL);
 
         NSAssert(sizeof(CFSocketContext) == sizeof(CFStreamClientContext), @"CFSocketContext != CFStreamClientContext");
         _context.version = 0;
@@ -345,9 +413,29 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     return self;
 }
 
+- (void)synchronouslyPerformBlockOnSocketQueue:(void (^)())block
+{
+    if (dispatch_get_specific(SPDYSocketIsOnSocketQueue)) {
+        block();
+    } else {
+        dispatch_sync(_socketQueue, block);
+    }
+}
+
+- (void)asynchronouslyPerformBlockOnSocketQueue:(void (^)())block
+{
+    if (dispatch_get_specific(SPDYSocketIsOnSocketQueue)) {
+        block();
+    } else {
+        dispatch_async(_socketQueue, block);
+    }
+}
+
 - (void)dealloc
 {
-    [self _close];
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        [self _close];
+    }];
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
 }
 
@@ -356,37 +444,45 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (id<SPDYSocketDelegate>)delegate
 {
-    CHECK_THREAD_SAFETY();
-
-    return _delegate;
+    __block id delegate;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        delegate = _delegate;
+    }];
+    return delegate;
 }
 
 - (void)setDelegate:(id<SPDYSocketDelegate>)delegate
 {
-    CHECK_THREAD_SAFETY();
-
-    _delegate = delegate;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        _delegate = delegate;
+    }];
 }
 
 - (CFSocketRef)cfSocket
 {
-    CHECK_THREAD_SAFETY();
-
-    return _socket4 ?: _socket6;
+    __block CFSocketRef socket;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        socket = _socket4 ?: _socket6;
+    }];
+    return socket;
 }
 
 - (CFReadStreamRef)cfReadStream
 {
-    CHECK_THREAD_SAFETY();
-
-    return _readStream;
+    __block CFReadStreamRef stream;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        stream = _readStream;
+    }];
+    return stream;
 }
 
 - (CFWriteStreamRef)cfWriteStream
 {
-    CHECK_THREAD_SAFETY();
-
-    return _writeStream;
+    __block CFWriteStreamRef stream;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        stream = _writeStream;
+    }];
+    return stream;
 }
 
 
@@ -461,185 +557,205 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)setRunLoop:(NSRunLoop *)runLoop
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-    @"moveToRunLoop must be called from within the current RunLoop!");
+    __block BOOL success;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+        @"moveToRunLoop must be called from within the current RunLoop!");
 
-    if (runLoop == nil) {
-        return NO;
-    }
-    if (_runLoop == [runLoop getCFRunLoop]) {
-        return YES;
-    }
-
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-    _flags &= ~kDequeueReadScheduled;
-    _flags &= ~kDequeueWriteScheduled;
-
-    if (_readStream && _writeStream) {
-        [self _unscheduleReadStream];
-        [self _unscheduleWriteStream];
-    }
-
-    if (_source4) [self _removeSource:_source4];
-    if (_source6) [self _removeSource:_source6];
-
-    if (_readTimer) [self _removeTimer:_readTimer];
-    if (_writeTimer) [self _removeTimer:_writeTimer];
-
-    _runLoop = [runLoop getCFRunLoop];
-
-    if (_readTimer) [self _addTimer:_readTimer];
-    if (_writeTimer) [self _addTimer:_writeTimer];
-
-    if (_source4) [self _addSource:_source4];
-    if (_source6) [self _addSource:_source6];
-
-    if (_readStream && _writeStream) {
-        if (![self _scheduleStreamsOnRunLoop:runLoop error:nil]) {
-            return NO;
+        if (runLoop == nil) {
+            success = NO;
+            return;
         }
-    }
+        if (_runLoop == [runLoop getCFRunLoop]) {
+            success = YES;
+            return;
+        }
 
-    [runLoop performSelector:@selector(_dequeueRead) target:self argument:nil order:0 modes:_runLoopModes];
-    [runLoop performSelector:@selector(_dequeueWrite) target:self argument:nil order:0 modes:_runLoopModes];
-    [runLoop performSelector:@selector(_scheduleDisconnect) target:self argument:nil order:0 modes:_runLoopModes];
+        [NSObject cancelPreviousPerformRequestsWithTarget:self];
+        _flags &= ~kDequeueReadScheduled;
+        _flags &= ~kDequeueWriteScheduled;
 
-    return YES;
+        if (_readStream && _writeStream) {
+            [self _unscheduleReadStream];
+            [self _unscheduleWriteStream];
+        }
+
+        if (_source4) [self _removeSource:_source4];
+        if (_source6) [self _removeSource:_source6];
+
+        _runLoop = [runLoop getCFRunLoop];
+
+        if (_source4) [self _addSource:_source4];
+        if (_source6) [self _addSource:_source6];
+
+        if (_readStream && _writeStream) {
+            if (![self _scheduleStreamsOnRunLoop:runLoop error:nil]) {
+                success = NO;
+                return;
+            }
+        }
+
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
+
+        success = YES;
+    }];
+    return success;
 }
 
 - (bool)setRunLoopModes:(NSArray *)runLoopModes
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-    @"setRunLoopModes must be called from within the current RunLoop!");
+    __block BOOL success;
+    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+        @"setRunLoopModes must be called from within the current RunLoop!");
 
-    if (runLoopModes.count == 0) {
-        return NO;
-    }
-    if ([_runLoopModes isEqualToArray:runLoopModes]) {
-        return YES;
-    }
-
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-    _flags &= ~kDequeueReadScheduled;
-    _flags &= ~kDequeueWriteScheduled;
-
-    if (_readStream && _writeStream) {
-        [self _unscheduleReadStream];
-        [self _unscheduleWriteStream];
-    }
-
-    if (_source4) [self _removeSource:_source4];
-    if (_source6) [self _removeSource:_source6];
-
-    if (_readTimer) [self _removeTimer:_readTimer];
-    if (_writeTimer) [self _removeTimer:_writeTimer];
-
-    _runLoopModes = [runLoopModes copy];
-
-    if (_readTimer) [self _addTimer:_readTimer];
-    if (_writeTimer) [self _addTimer:_writeTimer];
-
-    if (_source4) [self _addSource:_source4];
-    if (_source6) [self _addSource:_source6];
-
-    if (_readStream && _writeStream) {
-        if (![self _scheduleStreamsOnRunLoop:nil error:nil]) {
-            return NO;
+        if (runLoopModes.count == 0) {
+            success = NO;
+            return;
         }
-    }
+        if ([_runLoopModes isEqualToArray:runLoopModes]) {
+            success = YES;
+            return;
+        }
 
-    [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-    [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-    [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [NSObject cancelPreviousPerformRequestsWithTarget:self];
+        _flags &= ~kDequeueReadScheduled;
+        _flags &= ~kDequeueWriteScheduled;
 
-    return YES;
+        if (_readStream && _writeStream) {
+            [self _unscheduleReadStream];
+            [self _unscheduleWriteStream];
+        }
+
+        if (_source4) [self _removeSource:_source4];
+        if (_source6) [self _removeSource:_source6];
+
+        _runLoopModes = [runLoopModes copy];
+
+        if (_source4) [self _addSource:_source4];
+        if (_source6) [self _addSource:_source6];
+
+        if (_readStream && _writeStream) {
+            if (![self _scheduleStreamsOnRunLoop:runLoop error:nil]) {
+                success = NO;
+                return;
+            }
+        }
+
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
+
+        success = YES;
+    }];
+    return success;
 }
 
 - (bool)addRunLoopMode:(NSString *)runLoopMode
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-    @"addRunLoopMode must be called from within the current RunLoop!");
+    __block BOOL success;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+        @"addRunLoopMode must be called from within the current RunLoop!");
 
-    if (runLoopMode == nil) {
-        return NO;
-    }
-    if ([_runLoopModes containsObject:runLoopMode]) {
-        return YES;
-    }
+        if (runLoopMode == nil) {
+            success = NO;
+            return;
+        }
+        if ([_runLoopModes containsObject:runLoopMode]) {
+            success = YES;
+            return;
+        }
 
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-    _flags &= ~kDequeueReadScheduled;
-    _flags &= ~kDequeueWriteScheduled;
+        [NSObject cancelPreviousPerformRequestsWithTarget:self];
+        _flags &= ~kDequeueReadScheduled;
+        _flags &= ~kDequeueWriteScheduled;
 
-    NSArray *newRunLoopModes = [_runLoopModes arrayByAddingObject:runLoopMode];
-    _runLoopModes = newRunLoopModes;
+        NSArray *newRunLoopModes = [_runLoopModes arrayByAddingObject:runLoopMode];
+        _runLoopModes = newRunLoopModes;
 
-    if (_readTimer) [self _addTimer:_readTimer mode:runLoopMode];
-    if (_writeTimer) [self _addTimer:_writeTimer mode:runLoopMode];
+        if (_source4) [self _addSource:_source4 mode:runLoopMode];
+        if (_source6) [self _addSource:_source6 mode:runLoopMode];
 
-    if (_source4) [self _addSource:_source4 mode:runLoopMode];
-    if (_source6) [self _addSource:_source6 mode:runLoopMode];
+        if (_readStream && _writeStream) {
+            CFReadStreamScheduleWithRunLoop(_readStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
+            CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
+        }
 
-    if (_readStream && _writeStream) {
-        CFReadStreamScheduleWithRunLoop(_readStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-        CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-    }
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
 
-    [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-    [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-    [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
-
-    return YES;
+        success = YES;
+    }];
+    return success;
 }
 
 - (bool)removeRunLoopMode:(NSString *)runLoopMode
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-    @"addRunLoopMode must be called from within the current RunLoop!");
-
-    if (runLoopMode == nil) {
-        return NO;
-    }
-    if (![_runLoopModes containsObject:runLoopMode]) {
-        return YES;
-    }
-
-    NSMutableArray *newRunLoopModes = [_runLoopModes mutableCopy];
-    [newRunLoopModes removeObject:runLoopMode];
-
-    if (newRunLoopModes.count == 0) {
-        return NO;
-    }
-
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-    _flags &= ~kDequeueReadScheduled;
-    _flags &= ~kDequeueWriteScheduled;
-
-    _runLoopModes = [newRunLoopModes copy];
-
-    if (_readTimer) [self _removeTimer:_readTimer mode:runLoopMode];
-    if (_writeTimer) [self _removeTimer:_writeTimer mode:runLoopMode];
-
-    if (_source4) [self _removeSource:_source4 mode:runLoopMode];
-    if (_source6) [self _removeSource:_source6 mode:runLoopMode];
-
-    if (_readStream && _writeStream) {
-        CFReadStreamScheduleWithRunLoop(_readStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-        CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-    }
-
-    [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-    [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-    [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
-
-    return YES;
+    __block BOOL success;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+                 @"addRunLoopMode must be called from within the current RunLoop!");
+        
+        if (runLoopMode == nil) {
+            success = NO;
+            return;
+        }
+        if (![_runLoopModes containsObject:runLoopMode]) {
+            success = YES;
+            return;
+        }
+        
+        NSMutableArray *newRunLoopModes = [_runLoopModes mutableCopy];
+        [newRunLoopModes removeObject:runLoopMode];
+        
+        if (newRunLoopModes.count == 0) {
+            success = NO;
+            return;
+        }
+        
+        [NSObject cancelPreviousPerformRequestsWithTarget:self];
+        _flags &= ~kDequeueReadScheduled;
+        _flags &= ~kDequeueWriteScheduled;
+        
+        _runLoopModes = [newRunLoopModes copy];
+        
+        if (_source4) [self _removeSource:_source4 mode:runLoopMode];
+        if (_source6) [self _removeSource:_source6 mode:runLoopMode];
+        
+        if (_readStream && _writeStream) {
+            CFReadStreamScheduleWithRunLoop(_readStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
+            CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
+        }
+        
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
+        
+        success = YES;
+    }];
+    return success;
 }
 
 - (NSArray *)runLoopModes
 {
-    CHECK_THREAD_SAFETY();
-
-    return _runLoopModes;
+    __block NSArray *runLoopModes;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        runLoopModes = _runLoopModes;
+    }];
+    return runLoopModes;
 }
 
 
@@ -662,59 +778,63 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)pError
 {
-    if (_delegate == nil) {
-        [NSException raise:SPDYSocketException
-                    format:@"Attempting to connect without a delegate. Set a delegate first."];
-    }
+    __block BOOL success;
+    NSRunLoop *runLoop = SPDYSocketRunLoop();
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        if (_delegate == nil) {
+            [NSException raise:SPDYSocketException
+                        format:@"Attempting to connect without a delegate. Set a delegate first."];
+        }
 
-    if (![self _fullyDisconnected]) {
-        [NSException raise:SPDYSocketException
-                    format:@"Attempting to connect while connected or accepting connections. Disconnect first."];
-    }
+        if (![self _fullyDisconnected]) {
+            [NSException raise:SPDYSocketException
+                        format:@"Attempting to connect while connected or accepting connections. Disconnect first."];
+        }
 
-    [self _emptyQueues];
+        [self _emptyQueues];
 
-    if (![self _createStreamsToHost:hostname onPort:port error:pError]) goto Failed;
-    if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
-    if (![self _configureStreams:pError])                               goto Failed;
-    if (![self _openStreams:pError])                                    goto Failed;
+        if (![self _createStreamsToHost:hostname onPort:port error:pError]) goto Failed;
+        if (![self _scheduleStreamsOnRunLoop:runLoop error:pError])             goto Failed;
+        if (![self _configureStreams:pError])                               goto Failed;
+        if (![self _openStreams:pError])                                    goto Failed;
 
-    [self _startConnectTimeout:timeout];
-    _flags |= kDidStartDelegate;
+        [self _startConnectTimeout:timeout];
+        _flags |= kDidStartDelegate;
 
-    return YES;
+        success = YES;
+        return;
 
-    Failed:
-    [self _close];
-    return NO;
+        Failed:
+        [self _close];
+        success = NO;
+    }];
+    return success;
 }
 
 - (void)_startConnectTimeout:(NSTimeInterval)timeout
 {
     if (timeout >= 0.0) {
-        _connectTimer = [NSTimer timerWithTimeInterval:timeout
-                                                target:self
-                                              selector:@selector(_timeoutConnect:)
-                                              userInfo:nil
-                                               repeats:NO];
-        [self _addTimer:_connectTimer];
+        _connectTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _socketQueue);
+        __weak SPDYSocket *weakSelf = self;
+        dispatch_source_set_event_handler(_connectTimer, ^{
+            @autoreleasepool {
+                __strong SPDYSocket *strongSelf = weakSelf;
+                if (strongSelf) {
+                    [strongSelf _closeWithError:[self connectTimeoutError]];
+                }
+            }
+        });
+        dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC));
+		dispatch_source_set_timer(_connectTimer, tt, DISPATCH_TIME_FOREVER, 0);
+		dispatch_resume(_connectTimer);
     }
 }
 
 - (void)_endConnectTimeout
 {
-    [_connectTimer invalidate];
-    _connectTimer = nil;
+    dispatch_source_cancel(_connectTimer);
+    _connectTimer = NULL;
 }
-
-- (void)_timeoutConnect:(NSTimer *)timer
-{
-#pragma unused(timer)
-
-    [self _endConnectTimeout];
-    [self _closeWithError:[self connectTimeoutError]];
-}
-
 
 #pragma mark CFStream management
 
@@ -792,6 +912,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (bool)_configureStreams:(NSError **)pError
 {
+    CHECK_THREAD_SAFETY();
     if ([_delegate respondsToSelector:@selector(socketWillConnect:)]) {
         if (![_delegate socketWillConnect:self]) {
             if (pError) *pError = [self abortError];
@@ -803,6 +924,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)_openStreams:(NSError **)pError
 {
+    CHECK_THREAD_SAFETY();
     bool success = YES;
 
     if (success && !CFReadStreamOpen(_readStream)) {
@@ -827,6 +949,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)_onStreamOpened
 {
+    CHECK_THREAD_SAFETY();
     if ((_flags & kDidCompleteOpenForRead) && (_flags & kDidCompleteOpenForWrite)) {
         NSError *error = nil;
 
@@ -850,6 +973,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)_setSocketViaStreams:(NSError **)pError
 {
+    CHECK_THREAD_SAFETY();
     CFSocketNativeHandle native;
     CFDataRef nativeProp = CFReadStreamCopyProperty(_readStream, kCFStreamPropertySocketNativeHandle);
     if (nativeProp == NULL) {
@@ -896,21 +1020,24 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)_closeWithError:(NSError *)error
 {
-    _flags |= kClosingWithError;
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        _flags |= kClosingWithError;
 
-    if (_flags & kDidStartDelegate) {
-        [self _captureUnreadData];
+        if (_flags & kDidStartDelegate) {
+            [self _captureUnreadData];
 
-        // Give the delegate the opportunity to recover unread data
-        if ([_delegate respondsToSelector:@selector(socket:willDisconnectWithError:)]) {
-            [_delegate socket:self willDisconnectWithError:error];
+            // Give the delegate the opportunity to recover unread data
+            if ([_delegate respondsToSelector:@selector(socket:willDisconnectWithError:)]) {
+                [_delegate socket:self willDisconnectWithError:error];
+            }
         }
-    }
-    [self _close];
+        [self _close];
+    }];
 }
 
 - (void)_captureUnreadData
 {
+    CHECK_THREAD_SAFETY();
     if (_currentReadOp &&
         [_currentReadOp isKindOfClass:[SPDYSocketReadOp class]] &&
         _currentReadOp->_bytesRead > 0)
@@ -925,6 +1052,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)_emptyQueues
 {
+    CHECK_THREAD_SAFETY();
     if (_currentReadOp) [self _endRead];
     if (_currentWriteOp) [self _endWrite];
 
@@ -943,6 +1071,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)_close
 {
+    CHECK_THREAD_SAFETY();
     [self _emptyQueues];
 
     _unreadData = nil;
@@ -1017,9 +1146,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)disconnect
 {
-    CHECK_THREAD_SAFETY();
-
-    [self _close];
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        [self _close];
+    }];
 }
 
 /**
@@ -1027,10 +1156,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)disconnectAfterReads
 {
-    CHECK_THREAD_SAFETY();
-
-    _flags |= (kForbidReadsWrites | kDisconnectAfterReads);
-    [self _scheduleDisconnect];
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        _flags |= (kForbidReadsWrites | kDisconnectAfterReads);
+        [self _scheduleDisconnect];
+    }];
 }
 
 /**
@@ -1038,10 +1167,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)disconnectAfterWrites
 {
-    CHECK_THREAD_SAFETY();
-
-    _flags |= (kForbidReadsWrites | kDisconnectAfterWrites);
-    [self _scheduleDisconnect];
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        _flags |= (kForbidReadsWrites | kDisconnectAfterWrites);
+        [self _scheduleDisconnect];
+    }];
 }
 
 /**
@@ -1049,10 +1178,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)disconnectAfterReadsAndWrites
 {
-    CHECK_THREAD_SAFETY();
-
-    _flags |= (kForbidReadsWrites | kDisconnectAfterReads | kDisconnectAfterWrites);
-    [self _scheduleDisconnect];
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        _flags |= (kForbidReadsWrites | kDisconnectAfterReads | kDisconnectAfterWrites);
+        [self _scheduleDisconnect];
+    }];
 }
 
 - (void)_scheduleDisconnect
@@ -1076,7 +1205,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     }
 
     if (shouldDisconnect) {
-        [self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self disconnect];
+        }];
     }
 }
 
@@ -1086,35 +1217,37 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (NSData *)unreadData
 {
-    CHECK_THREAD_SAFETY();
-
-    if (!(_flags & kClosingWithError)) return nil;
-
-    if (_readStream == NULL) return nil;
-
-    NSUInteger totalBytesRead = _unreadData.length;
-
-    bool error = NO;
-    while (!error && CFReadStreamHasBytesAvailable(_readStream)) {
-        if (totalBytesRead == _unreadData.length) {
-            [_unreadData increaseLengthBy:READ_CHUNK_SIZE];
+    __block NSData *unreadData = nil;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        if (!(_flags & kClosingWithError)) return;
+        
+        if (_readStream == NULL) return;
+        
+        NSUInteger totalBytesRead = _unreadData.length;
+        
+        bool error = NO;
+        while (!error && CFReadStreamHasBytesAvailable(_readStream)) {
+            if (totalBytesRead == _unreadData.length) {
+                [_unreadData increaseLengthBy:READ_CHUNK_SIZE];
+            }
+            
+            NSUInteger bytesToRead = _unreadData.length - totalBytesRead;
+            uint8_t *readBuffer = (uint8_t *)(_unreadData.mutableBytes + totalBytesRead);
+            
+            CFIndex bytesRead = CFReadStreamRead(_readStream, readBuffer, bytesToRead);
+            
+            if (bytesRead < 0) {
+                error = YES;
+            } else {
+                totalBytesRead += bytesRead;
+            }
         }
+        
+        [_unreadData setLength:totalBytesRead];
+        unreadData = _unreadData;
+    }];
 
-        NSUInteger bytesToRead = _unreadData.length - totalBytesRead;
-        uint8_t *readBuffer = (uint8_t *)(_unreadData.mutableBytes + totalBytesRead);
-
-        CFIndex bytesRead = CFReadStreamRead(_readStream, readBuffer, bytesToRead);
-
-        if (bytesRead < 0) {
-            error = YES;
-        } else {
-            totalBytesRead += bytesRead;
-        }
-    }
-
-    [_unreadData setLength:totalBytesRead];
-
-    return _unreadData;
+    return unreadData;
 }
 
 
@@ -1171,111 +1304,123 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)connected
 {
-    CHECK_THREAD_SAFETY();
-
-    CFStreamStatus status;
-
-    if (_readStream) {
-        status = CFReadStreamGetStatus(_readStream);
-        if (status != kCFStreamStatusOpen    &&
-            status != kCFStreamStatusReading &&
-            status != kCFStreamStatusError)
-            return NO;
-    } else {
-        return NO;
-    }
-
-    if (_writeStream) {
-        status = CFWriteStreamGetStatus(_writeStream);
-        if (status != kCFStreamStatusOpen    &&
-            status != kCFStreamStatusWriting &&
-            status != kCFStreamStatusError)
-            return NO;
-    } else {
-        return NO;
-    }
-
-    return YES;
+    __block BOOL connected;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        CFStreamStatus status;
+        
+        if (_readStream) {
+            status = CFReadStreamGetStatus(_readStream);
+            if (status != kCFStreamStatusOpen    &&
+                status != kCFStreamStatusReading &&
+                status != kCFStreamStatusError)
+                connected = NO;
+        } else {
+            connected = NO;
+        }
+        
+        if (_writeStream) {
+            status = CFWriteStreamGetStatus(_writeStream);
+            if (status != kCFStreamStatusOpen    &&
+                status != kCFStreamStatusWriting &&
+                status != kCFStreamStatusError)
+                connected = NO;
+        } else {
+            connected = NO;
+        }
+        
+        connected = YES;
+    }];
+    return connected;
 }
 
 - (bool)_fullyDisconnected
 {
-    CHECK_THREAD_SAFETY();
-
-    return _socket4FD   == 0    &&
-           _socket6FD   == 0    &&
-           _socket4     == NULL &&
-           _socket6     == NULL &&
-           _readStream  == NULL &&
-           _writeStream == NULL;
+    __block BOOL fullyDisconnected;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        fullyDisconnected = _socket4FD   == 0    &&
+                            _socket6FD   == 0    &&
+                            _socket4     == NULL &&
+                            _socket6     == NULL &&
+                            _readStream  == NULL &&
+                            _writeStream == NULL;
+    }];
+    return fullyDisconnected;
 }
 
 - (void)_setConnectionProperties
 {
-    CHECK_THREAD_SAFETY();
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        char addrBuf[INET6_ADDRSTRLEN];
 
-    char addrBuf[INET6_ADDRSTRLEN];
+        if (_socket4FD > 0) {
 
-    if (_socket4FD > 0) {
+            struct sockaddr_in sockaddr4;
+            struct sockaddr_in *pSockaddr4 = &sockaddr4;
+            socklen_t sockaddr4len = sizeof(sockaddr4);
 
-        struct sockaddr_in sockaddr4;
-        struct sockaddr_in *pSockaddr4 = &sockaddr4;
-        socklen_t sockaddr4len = sizeof(sockaddr4);
+            if (getpeername(_socket4FD, (struct sockaddr *)&sockaddr4, &sockaddr4len) >= 0 &&
+                inet_ntop(AF_INET, &pSockaddr4->sin_addr, addrBuf, (socklen_t)sizeof(addrBuf)))
+            {
+                _connectedPort = ntohs(sockaddr4.sin_port);
+                _connectedHost = [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
+                return;
+            }
 
-        if (getpeername(_socket4FD, (struct sockaddr *)&sockaddr4, &sockaddr4len) >= 0 &&
-            inet_ntop(AF_INET, &pSockaddr4->sin_addr, addrBuf, (socklen_t)sizeof(addrBuf)))
-        {
-            _connectedPort = ntohs(sockaddr4.sin_port);
-            _connectedHost = [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
-            return;
+        } else if (_socket6FD > 0) {
+
+            struct sockaddr_in6 sockaddr6;
+            struct sockaddr_in6 *pSockaddr6 = &sockaddr6;
+            socklen_t sockaddr6len = sizeof(sockaddr6);
+
+            if (getpeername(_socket6FD, (struct sockaddr *)&sockaddr6, &sockaddr6len) >= 0 &&
+                inet_ntop(AF_INET6, &pSockaddr6->sin6_addr, addrBuf, (socklen_t)sizeof(addrBuf)))
+            {
+                _connectedPort = ntohs(sockaddr6.sin6_port);
+                _connectedHost = [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
+                return;
+            }
+
         }
 
-    } else if (_socket6FD > 0) {
-
-        struct sockaddr_in6 sockaddr6;
-        struct sockaddr_in6 *pSockaddr6 = &sockaddr6;
-        socklen_t sockaddr6len = sizeof(sockaddr6);
-
-        if (getpeername(_socket6FD, (struct sockaddr *)&sockaddr6, &sockaddr6len) >= 0 &&
-            inet_ntop(AF_INET6, &pSockaddr6->sin6_addr, addrBuf, (socklen_t)sizeof(addrBuf)))
-        {
-            _connectedPort = ntohs(sockaddr6.sin6_port);
-            _connectedHost = [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
-            return;
-        }
-
-    }
-
-    _connectedPort = 0;
-    _connectedHost = nil;
+        _connectedPort = 0;
+        _connectedHost = nil;
+    }];
 }
 
 - (in_port_t)connectedPort
 {
-    CHECK_THREAD_SAFETY();
-
-    return _connectedPort;
+    __block in_port_t connectedPort;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        connectedPort = _connectedPort;
+    }];
+    return connectedPort;
 }
 
 - (NSString *)connectedHost
 {
-    CHECK_THREAD_SAFETY();
-
-    return _connectedHost;
+    __block NSString *connectedHost;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        connectedHost = _connectedHost;
+    }];
+    return connectedHost;
 }
 
 - (bool)isIPv4
 {
-    CHECK_THREAD_SAFETY();
-
-    return (_socket4FD > 0 || _socket4 != NULL);
+    __block BOOL isIPv4;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        isIPv4 = (_socket4FD > 0 || _socket4 != NULL);
+    }];
+    return isIPv4;
 }
 
 - (bool)isIPv6
 {
-    CHECK_THREAD_SAFETY();
-
-    return (_socket6FD > 0 || _socket6 != NULL);
+    __block BOOL isIPv6;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        isIPv6 = (_socket6FD > 0 || _socket6 != NULL);
+    }];
+    return isIPv6;
 }
 
 
@@ -1300,19 +1445,19 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
                   maxLength:(NSUInteger)length
                         tag:(long)tag
 {
-    CHECK_THREAD_SAFETY();
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        if (offset > buffer.length) return;
+        if (_flags & kForbidReadsWrites) return;
 
-    if (offset > buffer.length) return;
-    if (_flags & kForbidReadsWrites) return;
-
-    SPDYSocketReadOp *readOp = [[SPDYSocketReadOp alloc] initWithData:buffer
-                                                          startOffset:offset
-                                                            maxLength:length
-                                                              timeout:timeout
-                                                          fixedLength:0
-                                                                  tag:tag];
-    [_readQueue addObject:readOp];
-    [self _scheduleRead];
+        SPDYSocketReadOp *readOp = [[SPDYSocketReadOp alloc] initWithData:buffer
+                                                              startOffset:offset
+                                                                maxLength:length
+                                                                  timeout:timeout
+                                                              fixedLength:0
+                                                                      tag:tag];
+        [_readQueue addObject:readOp];
+        [self _scheduleRead];
+    }];
 }
 
 - (void)readDataToLength:(NSUInteger)length withTimeout:(NSTimeInterval)timeout tag:(long)tag
@@ -1326,27 +1471,29 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             bufferOffset:(NSUInteger)offset
                      tag:(long)tag
 {
-    CHECK_THREAD_SAFETY();
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        if (length == 0) return;
+        if (offset > buffer.length) return;
+        if (_flags & kForbidReadsWrites) return;
 
-    if (length == 0) return;
-    if (offset > buffer.length) return;
-    if (_flags & kForbidReadsWrites) return;
-
-    SPDYSocketReadOp *readOp = [[SPDYSocketReadOp alloc] initWithData:buffer
-                                                          startOffset:offset
-                                                            maxLength:0
-                                                              timeout:timeout
-                                                          fixedLength:length
-                                                                  tag:tag];
-    [_readQueue addObject:readOp];
-    [self _scheduleRead];
+        SPDYSocketReadOp *readOp = [[SPDYSocketReadOp alloc] initWithData:buffer
+                                                              startOffset:offset
+                                                                maxLength:0
+                                                                  timeout:timeout
+                                                              fixedLength:length
+                                                                      tag:tag];
+        [_readQueue addObject:readOp];
+        [self _scheduleRead];
+    }];
 }
 
 - (void)_scheduleRead
 {
     if ((_flags & kDequeueReadScheduled) == 0) {
         _flags |= kDequeueReadScheduled;
-        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+        }];
     }
 }
 
@@ -1365,12 +1512,20 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
                 [self _tryTLSHandshake];
             } else {
                 if (_currentReadOp->_timeout >= 0.0) {
-                    _readTimer = [NSTimer timerWithTimeInterval:_currentReadOp->_timeout
-                                                         target:self
-                                                       selector:@selector(_timeoutRead:)
-                                                       userInfo:nil
-                                                        repeats:NO];
-                    [self _addTimer:_readTimer];
+                    _readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _socketQueue);
+		
+                    __weak SPDYSocket *weakSelf = self;
+                    
+                    dispatch_source_set_event_handler(_readTimer, ^{ @autoreleasepool {
+                        __strong SPDYSocket *strongSelf = weakSelf;
+                        if (strongSelf) {
+                            [strongSelf _timeoutRead:nil];
+                        }
+                    }});
+                    
+                    dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_currentReadOp->_timeout * NSEC_PER_SEC));
+                    dispatch_source_set_timer(_readTimer, tt, DISPATCH_TIME_FOREVER, 0);
+                    dispatch_resume(_readTimer);
                 }
 
                 [self _read];
@@ -1394,6 +1549,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)_read
 {
+    CHECK_THREAD_SAFETY();
     if (_currentReadOp == nil || _readStream == NULL) {
         return;
     }
@@ -1488,8 +1644,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
     NSAssert(_currentReadOp, @"Trying to end current read when there is no current read.");
 
-    [_readTimer invalidate];
-    _readTimer = nil;
+    if (_readTimer) dispatch_source_cancel(_readTimer);
+    _readTimer = NULL;
 
     _currentReadOp = nil;
 }
@@ -1508,13 +1664,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     if (timeoutExtension > 0.0) {
         _currentReadOp->_timeout += timeoutExtension;
-
-        _readTimer = [NSTimer timerWithTimeInterval:timeoutExtension
-                                               target:self
-                                             selector:@selector(_timeoutRead:)
-                                             userInfo:nil
-                                              repeats:NO];
-        [self _addTimer:_readTimer];
+        
+        // Reschedule the timer
+        dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeoutExtension * NSEC_PER_SEC));
+        dispatch_source_set_timer(_readTimer, tt, DISPATCH_TIME_FOREVER, 0);
     } else {
         // Do not call _endRead here.
         // We must allow the delegate access to any partial read in the unreadData method.
@@ -1528,24 +1681,25 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-    CHECK_THREAD_SAFETY();
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        if (data == nil || data.length == 0) return;
+        if (_flags & kForbidReadsWrites) return;
 
-    if (data == nil || data.length == 0) return;
-    if (_flags & kForbidReadsWrites) return;
+        SPDYSocketWriteOp *writeOp = [[SPDYSocketWriteOp alloc] initWithData:data timeout:timeout tag:tag];
 
-    SPDYSocketWriteOp *writeOp = [[SPDYSocketWriteOp alloc] initWithData:data timeout:timeout tag:tag];
-
-    [_writeQueue addObject:writeOp];
-    [self _scheduleWrite];
-
+        [_writeQueue addObject:writeOp];
+        [self _scheduleWrite];
+    }];
 }
 
 - (void)_scheduleWrite
 {
-    if ((_flags & kDequeueWriteScheduled) == 0) {
-        _flags |= kDequeueWriteScheduled;
-        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-    }
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        if ((_flags & kDequeueWriteScheduled) == 0) {
+            _flags |= kDequeueWriteScheduled;
+            [self _dequeueWrite];
+        }
+    }];
 }
 
 - (void)_dequeueWrite
@@ -1563,12 +1717,23 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
                 [self _tryTLSHandshake];
             } else {
                 if (_currentWriteOp->_timeout >= 0.0) {
-                    _writeTimer = [NSTimer timerWithTimeInterval:_currentWriteOp->_timeout
-                                                            target:self
-                                                          selector:@selector(_timeoutWrite:)
-                                                          userInfo:nil
-                                                           repeats:NO];
-                    [self _addTimer:_writeTimer];
+                    _writeTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _socketQueue);
+		
+                    __weak SPDYSocket *weakSelf = self;
+                    
+                    dispatch_source_set_event_handler(_writeTimer, ^{
+                        @autoreleasepool {
+                            __strong SPDYSocket *strongSelf = weakSelf;
+                            if (strongSelf) {
+                                [strongSelf _timeoutWrite:nil];
+                            }
+                        }
+                    });
+                    
+                    dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_currentWriteOp->_timeout * NSEC_PER_SEC));
+                    
+                    dispatch_source_set_timer(_writeTimer, tt, DISPATCH_TIME_FOREVER, 0);
+                    dispatch_resume(_writeTimer);
                 }
 
                 [self _write];
@@ -1592,6 +1757,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)_write
 {
+    CHECK_THREAD_SAFETY();
     if (_currentWriteOp == nil || _writeStream == NULL) {
         return;
     }
@@ -1644,8 +1810,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
     NSAssert(_currentWriteOp, @"Trying to complete current write when there is no current write.");
 
-    [_writeTimer invalidate];
-    _writeTimer = nil;
+    if (_writeTimer) dispatch_source_cancel(_writeTimer);
+    _writeTimer = NULL;
 
     _currentWriteOp = nil;
 }
@@ -1664,13 +1830,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     if (timeoutExtension > 0.0) {
         _currentWriteOp->_timeout += timeoutExtension;
-
-        _writeTimer = [NSTimer timerWithTimeInterval:timeoutExtension
-                                              target:self
-                                            selector:@selector(_timeoutWrite:)
-                                            userInfo:nil
-                                             repeats:NO];
-        [self _addTimer:_writeTimer];
+        
+        // Reschedule the timer
+        dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeoutExtension * NSEC_PER_SEC));
+        dispatch_source_set_timer(_writeTimer, tt, DISPATCH_TIME_FOREVER, 0);
     } else {
         [self _closeWithError:[self writeTimeoutError]];
     }
@@ -1681,18 +1844,17 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)secureWithTLS:(NSDictionary *)tlsSettings
 {
-    CHECK_THREAD_SAFETY();
+    [self asynchronouslyPerformBlockOnSocketQueue:^{
+        // apparently, using nil settings will prevent us from later being able to
+        // obtain the remote host's certificate via CFReadStreamCopyProperty(...)
+        SPDYSocketTLSOp *tlsOp = [[SPDYSocketTLSOp alloc] initWithTLSSettings:tlsSettings ?: @{}];
 
-    // apparently, using nil settings will prevent us from later being able to
-    // obtain the remote host's certificate via CFReadStreamCopyProperty(...)
-    SPDYSocketTLSOp *tlsOp = [[SPDYSocketTLSOp alloc] initWithTLSSettings:tlsSettings ?: @{}];
+        [_readQueue addObject:tlsOp];
+        [self _scheduleRead];
 
-    [_readQueue addObject:tlsOp];
-    [self _scheduleRead];
-
-    [_writeQueue addObject:tlsOp];
-    [self _scheduleWrite];
-
+        [_writeQueue addObject:tlsOp];
+        [self _scheduleWrite];
+    }];
 }
 
 /**
@@ -1709,7 +1871,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         bool didStartOnWriteStream = CFWriteStreamSetProperty(_writeStream, kCFStreamPropertySSLSettings,
             (__bridge CFDictionaryRef)tlsOp->_tlsSettings);
 
-        if (!didStartOnReadStream || !didStartOnWriteStream) {
+        // NOTE: Due to a bug in iOS the first call to set `kCFStreamPropertySSLSettings` will return true while the second
+        // returns false. See notes in CocoaAsyncSocket project for more details
+        if (!didStartOnReadStream && !didStartOnWriteStream) { // workaround for iOS bug
             [self _closeWithError:[self socketError]];
         }
     }
@@ -1750,6 +1914,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
 #pragma unused(stream)
 
+    if (!_readStream) return;
     NSParameterAssert(_readStream != NULL);
 
     switch (type) {
@@ -1760,7 +1925,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         case kCFStreamEventHasBytesAvailable:
             if (_flags & kStartingReadTLS) {
                 [self _onTLSHandshakeSuccess];
-            } else {
+            } else if (CFReadStreamHasBytesAvailable(_readStream)) {
                 _flags |= kSocketHasBytesAvailable;
                 [self _read];
             }
@@ -1779,7 +1944,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 - (void)handleCFWriteStreamEvent:(CFStreamEventType)type forStream:(CFWriteStreamRef)stream
 {
 #pragma unused(stream)
-
+    
+    if (!_writeStream) return;
     NSParameterAssert(_writeStream != NULL);
 
     switch (type) {
@@ -1790,7 +1956,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         case kCFStreamEventCanAcceptBytes:
             if (_flags & kStartingWriteTLS) {
                 [self _onTLSHandshakeSuccess];
-            } else {
+            } else if (CFWriteStreamCanAcceptBytes(_writeStream)) {
                 _flags |= kSocketCanAcceptBytes;
                 [self _write];
             }
@@ -1808,7 +1974,9 @@ static void SPDYSocketCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
 {
     @autoreleasepool {
         SPDYSocket * volatile spdySocket = (__bridge SPDYSocket *)pSocket;
-        [spdySocket handleCFReadStreamEvent:type forStream:stream];
+        [spdySocket asynchronouslyPerformBlockOnSocketQueue:^{
+            [spdySocket handleCFReadStreamEvent:type forStream:stream];
+        }];
     }
 }
 
@@ -1816,7 +1984,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
     @autoreleasepool {
         SPDYSocket * volatile spdySocket = (__bridge SPDYSocket *)pSocket;
-        [spdySocket handleCFWriteStreamEvent:type forStream:stream];
+        [spdySocket asynchronouslyPerformBlockOnSocketQueue:^{
+            [spdySocket handleCFWriteStreamEvent:type forStream:stream];
+        }];
     }
 }
 
