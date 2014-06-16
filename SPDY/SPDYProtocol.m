@@ -51,14 +51,19 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 #endif
 }
 
-+ (void)setConfiguration:(SPDYConfiguration *)configuration
-{
-    [SPDYSessionManager setConfiguration:configuration];
-}
-
 + (void)setLogger:(id<SPDYLogger>)logger
 {
     [SPDYCommonLogger setLogger:logger];
+}
+
++ (SPDYSessionManager *)sessionManager
+{
+    static SPDYSessionManager *sessionManager;
+    static dispatch_once_t predicate;
+    dispatch_once(&predicate, ^{
+        sessionManager = [SPDYSessionManager new];
+    });
+    return sessionManager;
 }
 
 + (void)setTLSTrustEvaluator:(id<SPDYTLSTrustEvaluator>)evaluator
@@ -101,7 +106,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     SPDY_INFO(@"start loading %@", request.URL.absoluteString);
 
     NSError *error;
-    _session = [SPDYSessionManager sessionForURL:request.URL error:&error];
+    _session = [[[self class] sessionManager] sessionForURL:request.URL error:&error];
     if (!_session) {
         [self.client URLProtocol:self didFailWithError:error];
     } else {

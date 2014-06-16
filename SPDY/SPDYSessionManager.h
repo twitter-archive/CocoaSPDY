@@ -13,11 +13,21 @@
 
 @class SPDYConfiguration;
 @class SPDYSession;
+@protocol SPDYSessionManagerDelegate;
 
 @interface SPDYSessionManager : NSObject
 
-+ (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError;
-+ (void)removeSession:(SPDYSession *)session;
-+ (void)setConfiguration:(SPDYConfiguration *)configuration;
+@property (nonatomic, weak) id<SPDYSessionManagerDelegate> delegate;
+@property (nonatomic, strong) SPDYConfiguration *configuration;
+
+- (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError;
+- (void)removeSession:(SPDYSession *)session;
+
+@end
+
+@protocol SPDYSessionManagerDelegate <NSObject>
+
+- (void)sessionManager:(SPDYSessionManager *)sessionManager willStartSession:(SPDYSession *)session forURL:(NSURL *)URL;
+- (void)sessionManager:(SPDYSessionManager *)sessionManager willRemoveSession:(SPDYSession *)session;
 
 @end

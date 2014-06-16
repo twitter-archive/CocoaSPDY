@@ -15,6 +15,7 @@ extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
 
 @class SPDYConfiguration;
+@class SPDYSessionManager;
 
 @protocol SPDYLogger;
 @protocol SPDYTLSTrustEvaluator;
@@ -23,11 +24,6 @@ extern NSString *const SPDYOriginUnregisteredNotification;
   Client implementation of the SPDY/3.1 draft protocol.
 */
 @interface SPDYProtocol : NSURLProtocol
-
-/**
-  Set configuration options to be used for all future SPDY sessions.
-*/
-+ (void)setConfiguration:(SPDYConfiguration *)configuration;
 
 /**
   Register an object that implements @proto(SPDYLogger) to receive log
@@ -49,6 +45,8 @@ extern NSString *const SPDYOriginUnregisteredNotification;
   Accessor for current TLS trust evaluation object.
 */
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
+
++ (SPDYSessionManager *)sessionManager;
 
 @end
 
