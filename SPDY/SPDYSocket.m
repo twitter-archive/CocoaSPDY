@@ -28,7 +28,7 @@
 #define READ_CHUNK_SIZE      65536 // Limit on size of each read pass
 #define WRITE_CHUNK_SIZE     2852  // Limit on size of each write pass
 
-#define DEBUG_THREAD_SAFETY 0
+#define DEBUG_THREAD_SAFETY 1
 
 #if DEBUG_THREAD_SAFETY
 #define CHECK_THREAD_SAFETY() \
@@ -540,9 +540,14 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
             }
         }
 
-        [runLoop performSelector:@selector(_dequeueRead) target:self argument:nil order:0 modes:_runLoopModes];
-        [runLoop performSelector:@selector(_dequeueWrite) target:self argument:nil order:0 modes:_runLoopModes];
-        [runLoop performSelector:@selector(_scheduleDisconnect) target:self argument:nil order:0 modes:_runLoopModes];
+//        [runLoop performSelector:@selector(_dequeueRead) target:self argument:nil order:0 modes:_runLoopModes];
+//        [runLoop performSelector:@selector(_dequeueWrite) target:self argument:nil order:0 modes:_runLoopModes];
+//        [runLoop performSelector:@selector(_scheduleDisconnect) target:self argument:nil order:0 modes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
 
         success = YES;
     }];
@@ -552,6 +557,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 - (bool)setRunLoopModes:(NSArray *)runLoopModes
 {
     __block BOOL success;
+    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
     [self synchronouslyPerformBlockOnSocketQueue:^{
         NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
         @"setRunLoopModes must be called from within the current RunLoop!");
@@ -589,15 +595,20 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         if (_source6) [self _addSource:_source6];
 
         if (_readStream && _writeStream) {
-            if (![self _scheduleStreamsOnRunLoop:nil error:nil]) {
+            if (![self _scheduleStreamsOnRunLoop:runLoop error:nil]) {
                 success = NO;
                 return;
             }
         }
 
-        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
 
         success = YES;
     }];
@@ -638,9 +649,14 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
             CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
         }
 
-        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
 
         success = YES;
     }];
@@ -688,9 +704,14 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
             CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
         }
         
-        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
-        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
-        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_scheduleDisconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+            [self _dequeueWrite];
+            [self _scheduleDisconnect];
+        }];
         
         success = YES;
     }];
@@ -727,6 +748,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
                 error:(NSError **)pError
 {
     __block BOOL success;
+    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
     [self synchronouslyPerformBlockOnSocketQueue:^{
         if (_delegate == nil) {
             [NSException raise:SPDYSocketException
@@ -741,7 +763,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         [self _emptyQueues];
 
         if (![self _createStreamsToHost:hostname onPort:port error:pError]) goto Failed;
-        if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
+        if (![self _scheduleStreamsOnRunLoop:runLoop error:pError])             goto Failed;
         if (![self _configureStreams:pError])                               goto Failed;
         if (![self _openStreams:pError])                                    goto Failed;
 
@@ -1145,7 +1167,10 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
     }
 
     if (shouldDisconnect) {
-        [self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self disconnect];
+        }];
     }
 }
 
@@ -1429,7 +1454,10 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
     if ((_flags & kDequeueReadScheduled) == 0) {
         _flags |= kDequeueReadScheduled;
-        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
+    //        [self performSelector:@selector(_dequeueRead) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueRead];
+        }];
     }
 }
 
@@ -1626,7 +1654,10 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
     if ((_flags & kDequeueWriteScheduled) == 0) {
         _flags |= kDequeueWriteScheduled;
-        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
+//        [self performSelector:@selector(_dequeueWrite) withObject:nil afterDelay:0 inModes:_runLoopModes];
+        [self asynchronouslyPerformBlockOnSocketQueue:^{
+            [self _dequeueWrite];
+        }];
     }
 }
 
@@ -1790,7 +1821,9 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         bool didStartOnWriteStream = CFWriteStreamSetProperty(_writeStream, kCFStreamPropertySSLSettings,
             (__bridge CFDictionaryRef)tlsOp->_tlsSettings);
 
-        if (!didStartOnReadStream || !didStartOnWriteStream) {
+        // NOTE: Due to a bug in iOS the first call to set `kCFStreamPropertySSLSettings` will return true while the second
+        // returns false. See notes in CocoaAsyncSocket project for more details
+        if (!didStartOnReadStream && !didStartOnWriteStream) { // workaround for iOS bug
             [self _closeWithError:[self socketError]];
         }
     }
@@ -1831,6 +1864,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 {
 #pragma unused(stream)
 
+    if (!_readStream) return;
     NSParameterAssert(_readStream != NULL);
 
     switch (type) {
@@ -1860,7 +1894,8 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 - (void)handleCFWriteStreamEvent:(CFStreamEventType)type forStream:(CFWriteStreamRef)stream
 {
 #pragma unused(stream)
-
+    
+    if (!_writeStream) return;
     NSParameterAssert(_writeStream != NULL);
 
     switch (type) {
