@@ -34,6 +34,7 @@ task :release do
   fail "Release can only be tagged from `master` or `layer`" unless %w{layer master}.include?(current_branch)
   version = Time.now.strftime('%Y%m%d%H%M%S%3N').to_i
   pod_release = PodRelease.new(name: 'CocoaSPDY-Layer', version: version, tag: version)
+  
   erb = ERB.new(File.read(File.join(File.dirname(__FILE__), '.podspec.erb')))
   File.open(pod_release.filename, 'w+') { |f| f << erb.result(pod_release.get_binding) }
   say "Wrote podspec version #{pod_release.version} to #{pod_release.filename}"
@@ -45,5 +46,11 @@ task :release do
   response = ask("Tag release?  (y/n)  ") { |q| q.in = %w{y n} }
   system "git tag #{version}" if response == 'y'
   response = ask("Push release?  (y/n)  ") { |q| q.in = %w{y n} }
-  system "git push origin #{current_branch} --tags" if response == 'y'
+  if response == 'y'
+    system "git push origin #{current_branch} --tags"
+    if $?.exitstatus.zero?
+      puts "Executing `pod repo push layer #{pod_release.filename}`"
+      Bundler.with_clean_env { system "pod repo push layer #{pod_release.filename}" }
+    end
+  end
 end
