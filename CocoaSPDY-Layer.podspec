@@ -5,7 +5,7 @@
 
 Pod::Spec.new do |s|
   s.name         = "CocoaSPDY-Layer"
-  s.version      = "20140617095515554"
+  s.version      = "20140617100414540"
   s.summary      = "SPDY for iOS and OS X"
   s.description  = <<-DESC
                   The SPDY framework is designed to work seamlessly with your existing apps and projects. 
@@ -18,12 +18,13 @@ Pod::Spec.new do |s|
   s.license      = 'Apache'
   s.author       = { "Twitter, Inc." => "opensource@twitter.com" }
   
-  s.source       = { :git => 'https://github.com/layerhq/CocoaSPDY.git', :tag => "20140617095515554"}
+  s.source       = { :git => 'https://github.com/layerhq/CocoaSPDY.git', :tag => "20140617100414540"}
   
 
   s.ios.deployment_target = '5.0'
   s.osx.deployment_target = '10.7'
 
+  s.header_dir = 'CocoaSPDY'
   s.source_files = "SPDY/**/*.{h,m}"
   s.requires_arc = true
   s.frameworks = 'CFNetwork'
