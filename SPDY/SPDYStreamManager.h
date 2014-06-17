@@ -30,6 +30,7 @@
 - (void)setObject:(id)obj atIndexedSubscript:(NSUInteger)idx;
 - (void)removeStreamWithStreamId:(SPDYStreamId)streamId;
 - (void)removeStreamForProtocol:(SPDYProtocol *)protocol;
+- (NSArray *)allStreams;
 - (void)removeAllStreams;
 
 @end

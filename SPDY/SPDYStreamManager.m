@@ -244,6 +244,17 @@ CFStringRef SPDYStreamIdCopyDescription(const void *key) {
     return i;
 }
 
+- (NSArray *)allStreams
+{
+    NSMutableArray *streams = [NSMutableArray array];
+    SPDYStreamNode *node = (id)CFDictionaryGetValue(_nodesByStreamId, (void *)0);
+    while (node) {
+        [streams addObject:node->stream];
+        node = node->next;
+    }
+    return streams;
+}
+
 - (void)removeAllStreams
 {
     // Update linked list

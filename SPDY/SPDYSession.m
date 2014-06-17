@@ -256,7 +256,7 @@
     if (!_sentGoAwayFrame) {
         [self _sendGoAway:status];
     }
-    for (SPDYStream *stream in _activeStreams) {
+    for (SPDYStream *stream in [_activeStreams allStreams]) {
         [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
         [stream closeWithStatus:stream.local ? SPDY_STREAM_CANCEL : SPDY_STREAM_INTERNAL_ERROR];
     }
