@@ -27,6 +27,7 @@ GEM
     colored (1.2)
     escape (0.0.4)
     fuzzy_match (2.0.4)
+    highline (1.6.21)
     i18n (0.6.9)
     json_pure (1.8.1)
     multi_json (1.10.1)
@@ -45,6 +46,7 @@ PLATFORMS
 DEPENDENCIES
   bundler (~> 1.6.1)
   cocoapods (~> 0.32.1)
+  highline (~> 1.6.21)
   rake (~> 10.3.2)
   xcpretty (~> 0.1.5)
   xctasks (~> 0.2.2)
