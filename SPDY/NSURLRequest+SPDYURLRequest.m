@@ -28,6 +28,11 @@
     return [[SPDYProtocol propertyForKey:@"SPDYDiscretionary" inRequest:self] boolValue];
 }
 
+- (BOOL)SPDYBypass
+{
+    return [[SPDYProtocol propertyForKey:@"SPDYBypass" inRequest:self] boolValue];
+}
+
 - (NSInputStream *)SPDYBodyStream
 {
     return [SPDYProtocol propertyForKey:@"SPDYBodyStream" inRequest:self];
@@ -55,7 +60,14 @@
         ];
     });
 
-    NSMutableString *path = [[NSMutableString alloc] initWithString:self.URL.path];
+    NSString *escapedPath = CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(
+            kCFAllocatorDefault,
+            (CFStringRef)self.URL.path,
+            NULL,
+            NULL,
+            kCFStringEncodingUTF8));
+
+    NSMutableString *path = [[NSMutableString alloc] initWithString:escapedPath];
     NSString *query = self.URL.query;
     if (query) {
         [path appendFormat:@"?%@", query];
@@ -92,11 +104,17 @@
         }
     }
 
+    // The current implementation here will always override cookies retrieved from shared storage
+    // by those set manually in headers, even when HTTPShouldHandleCookies is set to true.
+    // TODO: confirm behavior for Cocoa's API and send cookies from both sources, as appropriate
     if (self.HTTPShouldHandleCookies) {
-        NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:self.URL];
-        if (cookies.count > 0) {
-            NSDictionary *cookieHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
-            spdyHeaders[@"cookie"] = cookieHeaders[@"Cookie"];
+        NSString *requestCookies = spdyHeaders[@"cookie"];
+        if (!requestCookies || requestCookies.length == 0) {
+            NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:self.URL];
+            if (cookies.count > 0) {
+                NSDictionary *cookieHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
+                spdyHeaders[@"cookie"] = cookieHeaders[@"Cookie"];
+            }
         }
     }
 
@@ -134,6 +152,16 @@
 - (void)setSPDYDiscretionary:(BOOL)Discretionary
 {
     [SPDYProtocol setProperty:@(Discretionary) forKey:@"SPDYDiscretionary" inRequest:self];
+}
+
+- (BOOL)SPDYBypass
+{
+    return [[SPDYProtocol propertyForKey:@"SPDYBypass" inRequest:self] boolValue];
+}
+
+- (void)setSPDYBypass:(BOOL)bypass
+{
+    [SPDYProtocol setProperty:@(bypass) forKey:@"SPDYBypass" inRequest:self];
 }
 
 - (NSInputStream *)SPDYBodyStream

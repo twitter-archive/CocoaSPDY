@@ -19,6 +19,7 @@
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYTLSTrustEvaluator.h"
+#import "NSURLRequest+SPDYURLRequest.h"
 
 NSString *const SPDYStreamErrorDomain = @"SPDYStreamErrorDomain";
 NSString *const SPDYSessionErrorDomain = @"SPDYSessionErrorDomain";
@@ -27,7 +28,6 @@ NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
 
-static NSString *const kSPDYOverride = @"SPDYOverride";
 static char *const SPDYOriginQueue = "com.twitter.SPDYOriginQueue";
 static char *const SPDYTrustQueue = "com.twitter.SPDYTrustQueue";
 
@@ -87,8 +87,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         return NO;
     }
 
-    NSNumber *override = [SPDYProtocol propertyForKey:kSPDYOverride inRequest:request];
-    return override == nil || override.boolValue;
+    return !request.SPDYBypass && ![request valueForHTTPHeaderField:@"x-spdy-bypass"];
 }
 
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request
@@ -222,10 +221,13 @@ static SPDYConfiguration *defaultConfiguration;
 {
     defaultConfiguration = [[SPDYConfiguration alloc] init];
     defaultConfiguration.headerCompressionLevel = 9;
+    defaultConfiguration.sessionPoolSize = 1;
     defaultConfiguration.sessionReceiveWindow = 10485760;
     defaultConfiguration.streamReceiveWindow = 10485760;
     defaultConfiguration.enableSettingsMinorVersion = NO;
     defaultConfiguration.tlsSettings = @{ /* use Apple default TLS settings */ };
+    defaultConfiguration.connectTimeout = 60.0;
+    defaultConfiguration.enableTCPNoDelay = NO;
 }
 
 + (SPDYConfiguration *)defaultConfiguration
@@ -237,10 +239,13 @@ static SPDYConfiguration *defaultConfiguration;
 {
     SPDYConfiguration *copy = [[SPDYConfiguration allocWithZone:zone] init];
     copy.headerCompressionLevel = _headerCompressionLevel;
+    copy.sessionPoolSize = _sessionPoolSize;
     copy.sessionReceiveWindow = _sessionReceiveWindow;
     copy.streamReceiveWindow = _streamReceiveWindow;
     copy.enableSettingsMinorVersion = _enableSettingsMinorVersion;
     copy.tlsSettings = _tlsSettings;
+    copy.connectTimeout = _connectTimeout;
+    copy.enableTCPNoDelay = _enableTCPNoDelay;
     return copy;
 }
 

@@ -50,7 +50,7 @@
 @end
 
 @interface SPDYPingFrame : SPDYFrame
-@property (nonatomic) uint32_t id;
+@property (nonatomic) SPDYPingId pingId;
 @end
 
 @interface SPDYGoAwayFrame : SPDYFrame

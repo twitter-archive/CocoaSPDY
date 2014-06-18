@@ -73,8 +73,7 @@
 {
     [self _encodeHeaders:synStreamFrame.headers];
 
-    NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:18];
-    NSData *encodedHeaders = [[NSData alloc] initWithBytes:_compressed length:_compressedLength];
+    NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:18 + _compressedLength];
 
     uint8_t control = 0x80;
     uint8_t version = 3;
@@ -92,9 +91,9 @@
     [encodedData appendBytes:&streamId length:4];
     [encodedData appendBytes:&assocStreamId length:4];
     [encodedData appendBytes:&priority_slot length:2];
+    [encodedData appendBytes:_compressed length:_compressedLength];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    [_delegate didEncodeData:encodedHeaders frameEncoder:self];
     return YES;
 }
 
@@ -102,8 +101,7 @@
 {
     [self _encodeHeaders:synReplyFrame.headers];
 
-    NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12];
-    NSData *encodedHeaders = [[NSData alloc] initWithBytes:_compressed length:_compressedLength];
+    NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];
 
     uint8_t control = 0x80;
     uint8_t version = 3;
@@ -117,9 +115,9 @@
     [encodedData appendBytes:&type length:2];
     [encodedData appendBytes:&flags_length length:4];
     [encodedData appendBytes:&streamId length:4];
+    [encodedData appendBytes:_compressed length:_compressedLength];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    [_delegate didEncodeData:encodedHeaders frameEncoder:self];
     return YES;
 }
 
@@ -191,7 +189,7 @@
     uint8_t version = 3;
     uint16_t type = htons(SPDY_PING_FRAME);
     uint32_t flags_length = htonl(4); // no flags
-    uint32_t pingId = htonl(pingFrame.id);
+    uint32_t pingId = htonl(pingFrame.pingId);
 
     [encodedData appendBytes:&control length:1];
     [encodedData appendBytes:&version length:1];
@@ -199,7 +197,7 @@
     [encodedData appendBytes:&flags_length length:4];
     [encodedData appendBytes:&pingId length:4];
 
-    [_delegate didEncodeData:encodedData frameEncoder:self];
+    [_delegate didEncodeData:encodedData withTag:pingFrame.pingId frameEncoder:self];
     return YES;
 }
 
@@ -229,8 +227,7 @@
 {
     [self _encodeHeaders:headersFrame.headers];
 
-    NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12];
-    NSData *encodedHeaders = [[NSData alloc] initWithBytes:_compressed length:_compressedLength];
+    NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];
 
     uint8_t control = 0x80;
     uint8_t version = 3;
@@ -244,9 +241,9 @@
     [encodedData appendBytes:&type length:2];
     [encodedData appendBytes:&flags_length length:4];
     [encodedData appendBytes:&streamId length:4];
+    [encodedData appendBytes:_compressed length:_compressedLength];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    [_delegate didEncodeData:encodedHeaders frameEncoder:self];
     return YES;
 }
 

@@ -41,6 +41,12 @@
 @property (nonatomic, readonly) BOOL SPDYDiscretionary;
 
 /**
+  If set, SPDYProtocol will decline to handle the request and instead pass
+  it along to the next registered protocol (e.g. NSHTTPURLProtocol).
+*/
+@property (nonatomic, readonly) BOOL SPDYBypass;
+
+/**
   Request header fields canonicalized to SPDY format.
 */
 - (NSDictionary *)allSPDYHeaderFields;
@@ -51,4 +57,5 @@
 @property (nonatomic) NSString *SPDYBodyFile;
 @property (nonatomic) NSUInteger SPDYPriority;
 @property (nonatomic) BOOL SPDYDiscretionary;
+@property (nonatomic) BOOL SPDYBypass;
 @end

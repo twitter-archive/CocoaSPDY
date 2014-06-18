@@ -17,7 +17,7 @@
 @interface SPDYSessionManager : NSObject
 
 + (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError;
-+ (void)sessionClosed:(SPDYSession *)session;
++ (void)removeSession:(SPDYSession *)session;
 + (void)setConfiguration:(SPDYConfiguration *)configuration;
 
 @end

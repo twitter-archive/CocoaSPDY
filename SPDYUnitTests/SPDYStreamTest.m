@@ -50,49 +50,33 @@ typedef void (^SPDYAsyncTestCallback)();
 
 @implementation SPDYStreamTest
 
+static const NSUInteger kTestDataLength = 128;
 static NSMutableData *_uploadData;
+static NSThread *_streamThread;
 
 + (void)setUp
 {
-    _uploadData = [[NSMutableData alloc] initWithCapacity:26 * 16];
-    NSData *alpha = [@"abcdefghijklmnopqrstuvwyz" dataUsingEncoding:NSUTF8StringEncoding];
-    [_uploadData appendData:alpha];
-    for (int i = 0; i < 4; i++) {
-        [_uploadData appendData:_uploadData];
+    _uploadData = [[NSMutableData alloc] initWithCapacity:kTestDataLength];
+    for (int i = 0; i < kTestDataLength; i++) {
+        [_uploadData appendBytes:&(uint32_t){ arc4random() } length:4];
     }
+//    SecRandomCopyBytes(kSecRandomDefault, kTestDataLength, _uploadData.mutableBytes);
 }
 
-- (void)testBodyWithData
+- (void)testStreamingWithData
 {
-    NSMutableData *producedData = [[NSMutableData alloc] initWithCapacity:26 * 16];
+    NSMutableData *producedData = [[NSMutableData alloc] initWithCapacity:kTestDataLength];
     SPDYStream *spdyStream = [SPDYStream new];
     spdyStream.data = _uploadData;
 
-    __block bool finished = NO;
-
-    STAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        STAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
-
-        // Run off-thread runloop
-        while(spdyStream.hasDataAvailable) {
-            [producedData appendData:[spdyStream readData:10 error:nil]];
-        }
-
-        dispatch_async(dispatch_get_main_queue(), ^{
-            finished = YES;
-        });
-    });
-
-    // Run main thread runloop
-    while(!finished) {
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
+    while(spdyStream.hasDataAvailable) {
+        [producedData appendData:[spdyStream readData:10 error:nil]];
     }
 
     STAssertTrue([producedData isEqualToData:_uploadData], nil);
 }
 
-- (void)testBodyStreamViaData
+- (void)testStreamingWithStream
 {
     SPDYMockStreamDataDelegate *mockDataDelegate = [SPDYMockStreamDataDelegate new];
     SPDYStream *spdyStream = [SPDYStream new];
@@ -110,46 +94,7 @@ static NSMutableData *_uploadData;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         STAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
 
-        [spdyStream performSelector:@selector(_scheduleCFReadStream)];
-
-        // Run off-thread runloop
-        while(!finished) {
-            [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
-        }
-    });
-
-    // Run main thread runloop
-    while(!finished) {
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
-    }
-
-    STAssertTrue([mockDataDelegate.data isEqualToData:_uploadData], nil);
-}
-
-- (void)testBodyStreamViaFile
-{
-    SPDYMockStreamDataDelegate *mockDataDelegate = [SPDYMockStreamDataDelegate new];
-    SPDYStream *spdyStream = [SPDYStream new];
-    NSString *filePath = @"/var/tmp/com.twitter.spdy.StreamTestData";
-    NSError *error = nil;
-    NSDataWritingOptions fileOptions = NSDataWritingAtomic | NSDataWritingFileProtectionNone;
-    STAssertTrue([_uploadData writeToFile:filePath options:fileOptions error:&error],
-        error.localizedDescription);
-    spdyStream.dataDelegate = mockDataDelegate;
-    spdyStream.dataStream = [[NSInputStream alloc] initWithFileAtPath:filePath];
-
-    __block bool finished = NO;
-    mockDataDelegate.callback = ^{
-        dispatch_async(dispatch_get_main_queue(), ^{
-            finished = YES;
-        });
-    };
-
-    STAssertTrue([NSThread isMainThread], @"dispatch must occur from main thread");
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        STAssertFalse([NSThread isMainThread], @"stream must be scheduled off main thread");
-
-        [spdyStream performSelector:@selector(_scheduleCFReadStream)];
+        [spdyStream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
         // Run off-thread runloop
         while(!finished) {

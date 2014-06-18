@@ -22,7 +22,7 @@
 #import "SPDYSessionManager.h"
 
 @interface SPDYSessionManager ()
-+ (NSMutableDictionary *)_sessionPool:(bool)network;
++ (NSMutableDictionary *)_sessionPoolTable:(bool)network;
 @end
 
 static NSString *const SPDYSessionManagerKey = @"com.twitter.SPDYSessionManager";
@@ -37,6 +37,66 @@ static dispatch_queue_t reachabilityQueue;
 
 static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
 #endif
+
+@interface SPDYSessionPool : NSObject
+- (id)initWithOrigin:(SPDYOrigin *)origin size:(NSUInteger)size error:(NSError **)pError;
+- (NSUInteger)remove:(SPDYSession *)session;
+- (SPDYSession *)next;
+@end
+
+@implementation SPDYSessionPool
+{
+    NSMutableArray *_sessions;
+}
+
+- (id)initWithOrigin:(SPDYOrigin *)origin size:(NSUInteger)size error:(NSError **)pError
+{
+    self = [super init];
+    if (self) {
+        _sessions = [[NSMutableArray alloc] initWithCapacity:size];
+        for (NSUInteger i = 0; i < size; i++) {
+            SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin
+                                                         configuration:currentConfiguration
+                                                              cellular:reachabilityIsWWAN
+                                                                 error:pError];
+            if (!session) {
+                return nil;
+            }
+            [_sessions addObject:session];
+        }
+    }
+    return self;
+}
+
+- (NSUInteger)remove:(SPDYSession *)session
+{
+    [_sessions removeObject:session];
+    return _sessions.count;
+}
+
+- (SPDYSession *)next
+{
+    SPDYSession *session;
+
+    // TODO: this nil check shouldn't be necessary, is there a threading issue?
+    if (_sessions.count == 0) {
+        return nil;
+    }
+
+    do {
+        session = _sessions[0];
+    } while (session && !session.isOpen && [self remove:session] > 0);
+
+    // Rotate
+    if (_sessions.count > 1) {
+        [_sessions removeObjectAtIndex:0];
+        [_sessions addObject:session];
+    }
+
+    return session;
+}
+
+@end
 
 @implementation SPDYSessionManager
 
@@ -76,43 +136,47 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 + (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError
 {
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:url error:pError];
-    NSMutableDictionary *activeSessions = [SPDYSessionManager _sessionPool:reachabilityIsWWAN];
-    SPDYSession *session = activeSessions[origin];
-    if (!session || !session.isOpen) {
-        session = [[SPDYSession alloc] initWithOrigin:origin
-                                        configuration:currentConfiguration
-                                             cellular:reachabilityIsWWAN
-                                                error:pError];
-        if (session) {
-            activeSessions[origin] = session;
+    NSMutableDictionary *poolTable = [SPDYSessionManager _sessionPoolTable:reachabilityIsWWAN];
+    SPDYSessionPool *pool = poolTable[origin];
+    SPDYSession *session = [pool next];
+    if (!session) {
+        pool = [[SPDYSessionPool alloc] initWithOrigin:origin
+                                                  size:currentConfiguration.sessionPoolSize
+                                                 error:pError];
+        if (pool) {
+            poolTable[origin] = pool;
+            session = [pool next];
         }
     }
+    SPDY_DEBUG(@"Retrieving session: %@", session);
     return session;
 }
 
-+ (void)sessionClosed:(SPDYSession *)session
++ (void)removeSession:(SPDYSession *)session
 {
+    SPDY_DEBUG(@"Removing session: %@", session);
     SPDYOrigin *origin = session.origin;
-    NSMutableDictionary *activeSessions = [SPDYSessionManager _sessionPool:session.isCellular];
-    if (activeSessions[origin] == session) {
-        [activeSessions removeObjectForKey:origin];
+    NSMutableDictionary *poolTable = [SPDYSessionManager _sessionPoolTable:session.isCellular];
+    SPDYSessionPool *pool = poolTable[origin];
+    if (pool && [pool remove:session] == 0) {
+        [poolTable removeObjectForKey:origin];
     }
 }
 
-+ (NSMutableDictionary *)_sessionPool:(bool)cellular
++ (NSMutableDictionary *)_sessionPoolTable:(bool)cellular
 {
     NSMutableDictionary *threadDictionary = [NSThread currentThread].threadDictionary;
-    NSArray *sessionPools = threadDictionary[SPDYSessionManagerKey];
-    if (!sessionPools) {
-        sessionPools = @[
+    NSArray *poolTables = threadDictionary[SPDYSessionManagerKey];
+    if (!poolTables) {
+        poolTables = @[
             [NSMutableDictionary new],
             [NSMutableDictionary new]  // WWAN
         ];
-        threadDictionary[SPDYSessionManagerKey] = sessionPools;
+        threadDictionary[SPDYSessionManagerKey] = poolTables;
     }
 
     SPDY_DEBUG(@"using %@ session pool", cellular ? @"cellular" : @"standard");
-    return sessionPools[cellular ? 1 : 0];
+    return poolTables[cellular ? 1 : 0];
 }
 
 @end

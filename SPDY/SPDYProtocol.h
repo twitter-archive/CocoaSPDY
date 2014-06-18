@@ -107,6 +107,15 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 + (SPDYConfiguration *)defaultConfiguration;
 
 /**
+  The number of parallel TCP connections to open to a single origin.
+
+  Default is 1. It is STRONGLY recommended that you do not set this
+  higher than 2. Configuration of this option is experimental and
+  may be removed in a future version.
+*/
+@property NSUInteger sessionPoolSize;
+
+/**
   Initial session window size for client flow control.
 
   Default is 10MB. If your application is receiving large responses and
@@ -143,5 +152,20 @@ extern NSString *const SPDYOriginUnregisteredNotification;
   Default is no settings.
 */
 @property NSDictionary *tlsSettings;
+
+/**
+  Set timeout for creating a socket (TCP handshake).
+
+  Default value is 60.0s. A negative value disables the timeout.
+ */
+@property NSTimeInterval connectTimeout;
+
+/**
+  Enable or disable TCP_NODELAY.
+
+  Default value is NO. Configuration of this option is experimental and
+  may be removed in a future version.
+ */
+@property BOOL enableTCPNoDelay;
 
 @end

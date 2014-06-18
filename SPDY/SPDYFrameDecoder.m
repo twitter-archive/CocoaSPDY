@@ -292,7 +292,7 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
             minLength = 4;
             if (minLength <= len) {
                 SPDYPingFrame *frame = [[SPDYPingFrame alloc] init];
-                frame.id = getUnsignedInt32(buffer);
+                frame.pingId = getUnsignedInt32(buffer);
                 bytesRead = minLength;
                 [_delegate didReadPingFrame:frame frameDecoder:self];
                 _state = READ_COMMON_HEADER;
