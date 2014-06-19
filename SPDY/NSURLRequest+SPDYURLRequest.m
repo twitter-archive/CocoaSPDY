@@ -64,7 +64,7 @@
             kCFAllocatorDefault,
             (CFStringRef)self.URL.path,
             NULL,
-            NULL,
+            CFSTR("?"),
             kCFStringEncodingUTF8));
 
     NSMutableString *path = [[NSMutableString alloc] initWithString:escapedPath];
