@@ -86,7 +86,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     do {
         session = _sessions[0];
     } while (session && !session.isOpen && [self remove:session] > 0);
-
+    if (!session.isOpen) return nil; // No open sessions in the pool
+    
     // Rotate
     if (_sessions.count > 1) {
         [_sessions removeObjectAtIndex:0];
