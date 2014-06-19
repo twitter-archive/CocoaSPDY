@@ -60,7 +60,14 @@
         ];
     });
 
-    NSMutableString *path = [[NSMutableString alloc] initWithString:self.URL.path];
+    NSString *escapedPath = CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(
+            kCFAllocatorDefault,
+            (CFStringRef)self.URL.path,
+            NULL,
+            NULL,
+            kCFStringEncodingUTF8));
+
+    NSMutableString *path = [[NSMutableString alloc] initWithString:escapedPath];
     NSString *query = self.URL.query;
     if (query) {
         [path appendFormat:@"?%@", query];
