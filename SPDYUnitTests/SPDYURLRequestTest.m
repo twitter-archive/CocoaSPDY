@@ -129,6 +129,30 @@ NSDictionary* GetHeadersFromRequest(NSString *urlString)
     STAssertEqualObjects(headers[@":path"], @"/test/path/%E9%9F%B3%E6%A5%BD.json", nil);
 }
 
+- (void)testPathHeaderWithURLEncodedPathReservedChars
+{
+    // Besides non-ASCII characters, paths may contain any valid URL character except "?#[]".
+    // Test path: /gen?#[]/sub!$&'()*+,;=/unres-._~
+    // Note that NSURL chokes on non-encoded ";" in path, so we'll test it separately.
+    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1");
+    STAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1", nil);
+
+    // Test semicolon separately
+    headers = GetHeadersFromRequest(@"http://example.com/semi%3B");
+    STAssertEqualObjects(headers[@":path"], @"/semi;", nil);
+}
+
+- (void)testPathHeaderWithDoubleURLEncodedPath
+{
+    // Ensure double encoding "#!", "%23%21", are preserved
+    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/double%2523%2521/tail");
+    STAssertEqualObjects(headers[@":path"], @"/double%2523%2521/tail", nil);
+
+    // Ensure double encoding non-ASCII characters are preserved
+    headers = GetHeadersFromRequest(@"http://example.com/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD");
+    STAssertEqualObjects(headers[@":path"], @"/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD", nil);
+}
+
 - (void)testPathHeaderWithURLEncodedQueryStringAndFragment
 {
     NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule");
