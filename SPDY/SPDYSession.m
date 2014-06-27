@@ -575,19 +575,14 @@
 
 #if INCLUDE_SPDY_RESPONSE_HEADERS
     NSMutableDictionary *headers = [synReplyFrame.headers mutableCopy];
-    NSString *version = @"3.1";
-    if (_configuration.sessionPoolSize > 1) {
-        headers[@"x-spdy-version"] = [[NSString alloc] initWithFormat:@"%@-TCPx%lu", version, (unsigned long)_configuration.sessionPoolSize];
-    } else {
-        headers[@"x-spdy-version"] = version;
-    }
+    headers[@"x-spdy-version"] = @"3.1";
+    headers[@"x-spdy-parallelism"] = [[NSString alloc] initWithFormat:@"%lu", (unsigned long)_configuration.sessionPoolSize];
+    headers[@"x-spdy-stream-id"] = [[NSString alloc] initWithFormat:@"%u", streamId];
 
     if (_sessionLatency > -1) {
         NSString *sessionLatencyMs = [@((int)(_sessionLatency * 1000)) stringValue];
         headers[@"x-spdy-session-latency"] = sessionLatencyMs;
     }
-
-    headers[@"x-spdy-stream-id"] = [@(streamId) stringValue];
 #else
     NSDictionary *headers = synReplyFrame.headers;
 #endif
