@@ -163,7 +163,9 @@
 
             uint32_t deltaWindowSize = _sessionReceiveWindowSize - DEFAULT_WINDOW_SIZE;
             [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
-            [self _sendPing:1];
+            if (_enableTCPNoDelay) {
+                [self _sendPing:1];
+            }
         } else {
             self = nil;
         }
@@ -579,6 +581,12 @@
     } else {
         headers[@"x-spdy-version"] = version;
     }
+
+    if (_sessionLatency > -1) {
+        NSString *sessionLatencyMs = [@((int)(_sessionLatency * 1000)) stringValue];
+        headers[@"x-spdy-session-latency"] = sessionLatencyMs;
+    }
+
     headers[@"x-spdy-stream-id"] = [@(streamId) stringValue];
 #else
     NSDictionary *headers = synReplyFrame.headers;
