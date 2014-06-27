@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=master)](https://travis-ci.org/twitter/CocoaSPDY)
 
-### [Download v1.0.1](https://github.com/twitter/CocoaSPDY/releases/download/v1.0.1/SPDY.framework.tar.gz)
+### [Download v1.0.2](https://github.com/twitter/CocoaSPDY/releases/download/v1.0.2/SPDY.framework.tar.gz)
 
 ## The SPDY protocol
 The short version is that [SPDY](http://en.wikipedia.org/wiki/SPDY) can make your HTTP requests faster. Sometimes a lot faster. For more details, see the following:
