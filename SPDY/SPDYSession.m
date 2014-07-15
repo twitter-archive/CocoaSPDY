@@ -617,10 +617,13 @@
 
     [stream didReceiveResponse:headers];
     
-    stream.remoteSideClosed = synReplyFrame.last;
+    bool remoteSideClosed = synReplyFrame.last;
+    if (stream.localSideClosed && remoteSideClosed) {
+        [_activeStreams removeStreamWithStreamId:streamId];
+    }
+    stream.remoteSideClosed = remoteSideClosed;
 
     if (stream.closed) {
-        [_activeStreams removeStreamWithStreamId:streamId];
         [self _issuePendingRequests];
     }
 }
