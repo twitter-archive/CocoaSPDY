@@ -25,7 +25,8 @@ typedef enum {
     SPDYStreamStreamInUse,
     SPDYStreamStreamAlreadyClosed,
     SPDYStreamInvalidCredentials,
-    SPDYStreamFrameTooLarge
+    SPDYStreamFrameTooLarge,
+    SPDYStreamHeadersTooLarge
 } SPDYStreamError;
 
 typedef enum {

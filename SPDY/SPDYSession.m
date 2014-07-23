@@ -46,6 +46,7 @@
 - (void)_sendPingResponse:(SPDYPingFrame *)pingFrame;
 - (void)_sendRstStream:(SPDYStreamStatus)status streamId:(SPDYStreamId)streamId;
 - (void)_sendGoAway:(SPDYSessionStatus)status;
+- (void)_closeStream:(SPDYStream *)stream withError:(NSError*)error;
 @end
 
 @implementation SPDYSession
@@ -817,8 +818,13 @@
     synStreamFrame.last = close;
     synStreamFrame.headers = stream.protocol.request.allSPDYHeaderFields;
 
-    [_frameEncoder encodeSynStreamFrame:synStreamFrame];
-    SPDY_DEBUG(@"sent SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
+    NSError *error;
+    if (![_frameEncoder encodeSynStreamFrame:synStreamFrame error:&error]) {
+        [self _closeStream:stream withError:error];
+        SPDY_ERROR(@"error encoding SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
+    } else {
+        SPDY_DEBUG(@"sent SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
+    }
 }
 
 - (void)_sendData:(SPDYStream *)stream
@@ -846,9 +852,7 @@
         } else {
             if (error) {
                 [self _sendRstStream:SPDY_STREAM_CANCEL streamId:streamId];
-                [stream closeWithError:error];
-                [_activeStreams removeStreamWithStreamId:streamId];
-                [self _issuePendingRequests];
+                [self _closeStream:stream withError:error];
             }
 
             // -[SPDYStream hasDataAvailable] may return true if we need to perform
@@ -915,6 +919,14 @@
     [_frameEncoder encodeGoAwayFrame:goAwayFrame];
     SPDY_DEBUG(@"sent GO_AWAY");
     _sentGoAwayFrame = YES;
+}
+
+- (void)_closeStream:(SPDYStream *)stream withError:(NSError*)error
+{
+    SPDY_ERROR(@"closing stream %u with error %@", stream.streamId, error);
+    [stream closeWithError:error];
+    [_activeStreams removeStreamWithStreamId:stream.streamId];
+    [self _issuePendingRequests];
 }
 
 @end
