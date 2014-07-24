@@ -30,6 +30,11 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 + (void)setConfiguration:(SPDYConfiguration *)configuration;
 
 /**
+  Copy of the current configuration in use by the protocol.
+*/
++ (SPDYConfiguration *)currentConfiguration;
+
+/**
   Register an object that implements @proto(SPDYLogger) to receive log
   output.
 

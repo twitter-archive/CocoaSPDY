@@ -18,6 +18,5 @@
 
 + (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError;
 + (void)removeSession:(SPDYSession *)session;
-+ (void)setConfiguration:(SPDYConfiguration *)configuration;
 
 @end

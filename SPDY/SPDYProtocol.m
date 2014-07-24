@@ -28,22 +28,23 @@ NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
 
-static char *const SPDYOriginQueue = "com.twitter.SPDYOriginQueue";
-static char *const SPDYTrustQueue = "com.twitter.SPDYTrustQueue";
+static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
+static dispatch_once_t initConfig;
+static dispatch_queue_t configQueue;
 
 @implementation SPDYProtocol
 {
     SPDYSession *_session;
 }
 
-static dispatch_once_t initTrust;
-static dispatch_queue_t trustQueue;
+static SPDYConfiguration *currentConfiguration;
 static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 + (void)initialize
 {
-    dispatch_once(&initTrust, ^{
-        trustQueue = dispatch_queue_create(SPDYTrustQueue, DISPATCH_QUEUE_CONCURRENT);
+    dispatch_once(&initConfig, ^{
+        configQueue = dispatch_queue_create(SPDYConfigQueue, DISPATCH_QUEUE_CONCURRENT);
+        currentConfiguration = [SPDYConfiguration defaultConfiguration];
     });
 
 #ifdef DEBUG
@@ -51,9 +52,20 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 #endif
 }
 
++ (SPDYConfiguration *)currentConfiguration
+{
+    __block SPDYConfiguration *configuration;
+    dispatch_sync(configQueue, ^{
+        configuration = [currentConfiguration copy];
+    });
+    return configuration;
+}
+
 + (void)setConfiguration:(SPDYConfiguration *)configuration
 {
-    [SPDYSessionManager setConfiguration:configuration];
+    dispatch_barrier_async(configQueue, ^{
+        currentConfiguration = [configuration copy];
+    });
 }
 
 + (void)setLogger:(id<SPDYLogger>)logger
@@ -64,7 +76,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 + (void)setTLSTrustEvaluator:(id<SPDYTLSTrustEvaluator>)evaluator
 {
     SPDY_INFO(@"register trust evaluator: %@", evaluator);
-    dispatch_barrier_async(trustQueue, ^{
+    dispatch_barrier_async(configQueue, ^{
         trustEvaluator = evaluator;
     });
 }
@@ -72,7 +84,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator
 {
     __block id<SPDYTLSTrustEvaluator> evaluator;
-    dispatch_sync(trustQueue, ^{
+    dispatch_sync(configQueue, ^{
         evaluator = trustEvaluator;
     });
     return evaluator;
@@ -136,8 +148,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 #pragma mark NSURLConnection implementation
 
 @implementation SPDYURLConnectionProtocol
-static dispatch_once_t initialized;
-static dispatch_queue_t originQueue;
+static dispatch_once_t initOrigins;
 static NSMutableSet *origins;
 
 + (void)load
@@ -151,9 +162,8 @@ static NSMutableSet *origins;
 
 + (void)initialize
 {
-    dispatch_once(&initialized, ^{
+    dispatch_once(&initOrigins, ^{
         origins = [[NSMutableSet alloc] init];
-        originQueue = dispatch_queue_create(SPDYOriginQueue, DISPATCH_QUEUE_CONCURRENT);
     });
 }
 
@@ -161,7 +171,7 @@ static NSMutableSet *origins;
 {
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:originString error:nil];
     SPDY_INFO(@"register origin: %@", origin);
-    dispatch_barrier_async(originQueue, ^{
+    dispatch_barrier_async(configQueue, ^{
         [origins addObject:origin];
         [[NSNotificationCenter defaultCenter] postNotificationName:SPDYOriginRegisteredNotification object:nil userInfo:@{ @"origin": originString }];
         SPDY_DEBUG(@"origin registered: %@", origin);
@@ -171,7 +181,7 @@ static NSMutableSet *origins;
 + (void)unregisterOrigin:(NSString *)originString
 {
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:originString error:nil];
-    dispatch_barrier_async(originQueue, ^{
+    dispatch_barrier_async(configQueue, ^{
         if ([origins containsObject:origin]) {
             [origins removeObject:origin];
             [[NSNotificationCenter defaultCenter] postNotificationName:SPDYOriginUnregisteredNotification object:nil userInfo:@{ @"origin": originString }];
@@ -182,7 +192,7 @@ static NSMutableSet *origins;
 
 + (void)unregisterAll
 {
-    dispatch_barrier_async(originQueue, ^{
+    dispatch_barrier_async(configQueue, ^{
         [origins removeAllObjects];
         [[NSNotificationCenter defaultCenter] postNotificationName:SPDYOriginUnregisteredNotification object:nil userInfo:@{ @"origin": @"*" }];
         SPDY_DEBUG(@"unregistered all origins");
@@ -203,7 +213,7 @@ static NSMutableSet *origins;
     }
 
     __block bool originRegistered;
-    dispatch_sync(originQueue, ^{
+    dispatch_sync(configQueue, ^{
         originRegistered = [origins containsObject:origin];
     });
     return originRegistered;
