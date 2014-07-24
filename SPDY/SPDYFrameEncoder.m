@@ -314,7 +314,7 @@
         if (pError) {
             NSString *message = [NSString stringWithFormat:@"encoded headers exceeds %d bytes",
                                                            MAX_HEADER_BLOCK_LENGTH];
-            *pError = SPDY_STREAM_ERROR(SPDYStreamHeadersTooLarge, message);
+            *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockEncodingError, message);
         }
         return NO;
     }
@@ -342,7 +342,7 @@
         if (pError) {
             NSString *message = [NSString stringWithFormat:@"encoded headers exceeds %d bytes",
                                                            MAX_HEADER_BLOCK_LENGTH];
-            *pError = SPDY_STREAM_ERROR(SPDYStreamHeadersTooLarge, message);
+            *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockEncodingError, message);
         }
         return NO;
     }

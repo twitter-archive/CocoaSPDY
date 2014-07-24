@@ -183,8 +183,8 @@ NSDictionary *testHeaders()
     STAssertFalse([_encoder encodeSynStreamFrame:inFrame error:&error], nil);
     AssertFramesReceivedCount(0);
     STAssertNotNil(error, nil);
-    STAssertEquals(error.domain, SPDYStreamErrorDomain, nil);
-    STAssertEquals(error.code, SPDYStreamHeadersTooLarge, nil);
+    STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);
+    STAssertEquals(error.code, SDPYHeaderBlockEncodingError, nil);
 }
 
 - (void)testSynStreamFrameWithTooLargeHeadersOnSizeField
@@ -210,8 +210,8 @@ NSDictionary *testHeaders()
     STAssertFalse([_encoder encodeSynStreamFrame:inFrame error:&error], nil);
     AssertFramesReceivedCount(0);
     STAssertNotNil(error, nil);
-    STAssertEquals(error.domain, SPDYStreamErrorDomain, nil);
-    STAssertEquals(error.code, SPDYStreamHeadersTooLarge, nil);
+    STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);
+    STAssertEquals(error.code, SDPYHeaderBlockEncodingError, nil);
 }
 
 - (void)testSynReplyFrame
