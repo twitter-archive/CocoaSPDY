@@ -830,6 +830,17 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     if ((_flags & kDidCompleteOpenForRead) && (_flags & kDidCompleteOpenForWrite)) {
         NSError *error = nil;
 
+        if (_connectTimer &&
+            CFAbsoluteTimeGetCurrent() >
+                CFRunLoopTimerGetNextFireDate((__bridge CFRunLoopTimerRef)_connectTimer)) {
+
+            // If the app was suspended, the connect timeout may have failed to fire
+            // due to the tolerance limitations in NSTimer.
+
+            [self _timeoutConnect:_connectTimer];
+            return;
+        }
+
         if (![self _setSocketViaStreams:&error]) {
             SPDY_ERROR(@"%@ couldn't get socket from streams, %@. Disconnecting.", self, error);
             [self _closeWithError:error];
