@@ -14,6 +14,7 @@ extern NSString *const SPDYSessionErrorDomain;
 extern NSString *const SPDYCodecErrorDomain;
 extern NSString *const SPDYSocketErrorDomain;
 
+// These errors map one-to-one with the status code in a RST_STREAM message.
 typedef enum {
     SPDYStreamProtocolError = 1,
     SPDYStreamInvalidStream,
@@ -28,6 +29,7 @@ typedef enum {
     SPDYStreamFrameTooLarge
 } SPDYStreamError;
 
+// These errors map one-to-one with the status code in a GOAWAY message.
 typedef enum {
     SPDYSessionProtocolError = 1,
     SPDYSessionInternalError

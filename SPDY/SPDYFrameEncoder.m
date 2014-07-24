@@ -13,14 +13,14 @@
 #error "This file requires ARC support."
 #endif
 
+#import "SPDYError.h"
 #import "SPDYFrameEncoder.h"
 #import "SPDYHeaderBlockCompressor.h"
 
-#define MAX_HEADER_BLOCK_LENGTH 16384
-#define MAX_COMPRESSED_HEADER_BLOCK_LENGTH 16384
-
 @interface SPDYFrameEncoder ()
-- (void)_encodeHeaders:(NSDictionary *)dictionary;
+- (bool)_encodeHeaders:(NSDictionary *)dictionary error:(NSError **)pError;
+- (bool)_writeUInt32:(uint32_t)value error:(NSError **)pError;
+- (bool)_writeString:(NSString*)value error:(NSError **)pError;
 @end
 
 @implementation SPDYFrameEncoder
@@ -39,7 +39,7 @@
         _delegate = delegate;
 
         _compressor = [[SPDYHeaderBlockCompressor alloc] initWithCompressionLevel:headerCompressionLevel];
-        _encodedHeaders = malloc(sizeof(uint8_t) * MAX_COMPRESSED_HEADER_BLOCK_LENGTH);
+        _encodedHeaders = malloc(sizeof(uint8_t) * MAX_HEADER_BLOCK_LENGTH);
         _compressed = malloc(sizeof(uint8_t) * MAX_COMPRESSED_HEADER_BLOCK_LENGTH);
         _encodedHeadersLength = 0;
         _compressedLength = 0;
@@ -69,9 +69,11 @@
     return YES;
 }
 
-- (bool)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame
+- (bool)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError**)pError
 {
-    [self _encodeHeaders:synStreamFrame.headers];
+    if (![self _encodeHeaders:synStreamFrame.headers error:pError]) {
+        return NO;
+    }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:18 + _compressedLength];
 
@@ -97,9 +99,11 @@
     return YES;
 }
 
-- (bool)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame
+- (bool)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError**)pError
 {
-    [self _encodeHeaders:synReplyFrame.headers];
+    if (![self _encodeHeaders:synReplyFrame.headers error:pError]) {
+        return NO;
+    }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];
 
@@ -223,9 +227,11 @@
     return YES;
 }
 
-- (bool)encodeHeadersFrame:(SPDYHeadersFrame *)headersFrame
+- (bool)encodeHeadersFrame:(SPDYHeadersFrame *)headersFrame error:(NSError **)pError
 {
-    [self _encodeHeaders:headersFrame.headers];
+    if (![self _encodeHeaders:headersFrame.headers error:pError]) {
+        return NO;
+    }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];
 
@@ -271,26 +277,16 @@
 
 #pragma mark private methods
 
-- (void)_encodeHeaders:(NSDictionary *)headers
+- (bool)_encodeHeaders:(NSDictionary *)headers error:(NSError **)pError
 {
-    *((uint32_t *)_encodedHeaders) = htonl((uint32_t)headers.count);
-    _encodedHeadersLength = 4;
+    _encodedHeadersLength = 0;
     _compressedLength = 0;
 
+    if (![self _writeUInt32:(uint32_t)headers.count error:pError]) return NO;
+
     for (NSString *headerName in headers) {
-        NSUInteger headerNameLength = headerName.length;
-
-        *((uint32_t *)(_encodedHeaders + _encodedHeadersLength)) = htonl((uint32_t)headerNameLength);
-        _encodedHeadersLength += 4;
-
-        [headerName getBytes:(_encodedHeaders + _encodedHeadersLength)
-                   maxLength:(MAX_HEADER_BLOCK_LENGTH - _encodedHeadersLength)
-                  usedLength:NULL
-                    encoding:NSUTF8StringEncoding
-                     options:NSStringEncodingConversionAllowLossy
-                       range:NSMakeRange(0, headerNameLength)
-              remainingRange:NULL];
-        _encodedHeadersLength += headerNameLength;
+        if (![self _writeUInt32:(uint32_t)headerName.length error:pError]) return NO;
+        if (![self _writeString:headerName error:pError]) return NO;
 
         NSString *headerValue;
 
@@ -300,27 +296,58 @@
             headerValue = [headers[headerName] componentsJoinedByString:@"\0"];
         }
 
-        NSUInteger headerValueLength = headerValue.length;
-        *((uint32_t *)(_encodedHeaders + _encodedHeadersLength)) = htonl((uint32_t)headerValueLength);
-        _encodedHeadersLength += 4;
-
-        [headerValue getBytes:(_encodedHeaders + _encodedHeadersLength)
-                    maxLength:(MAX_HEADER_BLOCK_LENGTH - _encodedHeadersLength)
-                   usedLength:NULL
-                     encoding:NSUTF8StringEncoding
-                      options:NSStringEncodingConversionAllowLossy
-                        range:NSMakeRange(0, headerValueLength)
-               remainingRange:NULL];
-        _encodedHeadersLength += headerValueLength;
+        if (![self _writeUInt32:(uint32_t)headerValue.length error:pError]) return NO;
+        if (![self _writeString:headerValue error:pError]) return NO;
     }
-
-    NSError *error = nil;
 
     _compressedLength = [_compressor deflate:_encodedHeaders
                                      availIn:_encodedHeadersLength
                                 outputBuffer:_compressed
                                     availOut:MAX_COMPRESSED_HEADER_BLOCK_LENGTH
-                                       error:&error];
+                                       error:pError];
+    return (pError == nil || *pError == nil);
+}
+
+- (bool)_writeUInt32:(uint32_t)value error:(NSError **)pError
+{
+    if (_encodedHeadersLength + sizeof(uint32_t) > MAX_HEADER_BLOCK_LENGTH) {
+        if (pError) {
+            NSString *message = [NSString stringWithFormat:@"encoded headers exceeds %d bytes",
+                                                           MAX_HEADER_BLOCK_LENGTH];
+            *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockEncodingError, message);
+        }
+        return NO;
+    }
+    *((uint32_t *)(_encodedHeaders + _encodedHeadersLength)) = htonl(value);
+    _encodedHeadersLength += sizeof(uint32_t);
+    return YES;
+}
+
+- (bool)_writeString:(NSString*)value error:(NSError **)pError
+{
+    NSRange leftover;
+    NSUInteger used;
+
+    [value getBytes:(_encodedHeaders + _encodedHeadersLength)
+          maxLength:(MAX_HEADER_BLOCK_LENGTH - _encodedHeadersLength)
+         usedLength:&used
+           encoding:NSUTF8StringEncoding
+            options:NSStringEncodingConversionAllowLossy
+              range:NSMakeRange(0, value.length)
+     remainingRange:&leftover];
+
+    _encodedHeadersLength += used;
+
+    if (leftover.length > 0) {
+        if (pError) {
+            NSString *message = [NSString stringWithFormat:@"encoded headers exceeds %d bytes",
+                                                           MAX_HEADER_BLOCK_LENGTH];
+            *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockEncodingError, message);
+        }
+        return NO;
+    }
+
+    return YES;
 }
 
 @end

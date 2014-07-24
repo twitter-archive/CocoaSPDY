@@ -10,6 +10,7 @@
 //
 
 #import <SenTestingKit/SenTestingKit.h>
+#import "SPDYError.h"
 #import "SPDYFrameEncoder.h"
 #import "SPDYFrameDecoder.h"
 #import "SPDYMockFrameDecoderDelegate.h"
@@ -111,7 +112,7 @@ NSDictionary *testHeaders()
     inFrame.priority = (uint8_t)(arc4random() & 7);
     inFrame.slot = 0;
 
-    [_encoder encodeSynStreamFrame:inFrame];
+    STAssertTrue([_encoder encodeSynStreamFrame:inFrame error:nil], nil);
 
     AssertLastFrameClass(@"SPDYSynStreamFrame");
     AssertFramesReceivedCount(1);
@@ -137,7 +138,7 @@ NSDictionary *testHeaders()
     inFrame.slot = 0;
     inFrame.headers = testHeaders();
 
-    [_encoder encodeSynStreamFrame:inFrame];
+    STAssertTrue([_encoder encodeSynStreamFrame:inFrame error:nil], nil);
 
     AssertLastFrameClass(@"SPDYSynStreamFrame");
     AssertFramesReceivedCount(1);
@@ -155,13 +156,71 @@ NSDictionary *testHeaders()
     }
 }
 
+- (void)testSynStreamFrameWithTooLargeHeaders
+{
+    SPDYSynStreamFrame *inFrame = [[SPDYSynStreamFrame alloc] init];
+    inFrame.streamId = arc4random() & 0x7FFFFFFF;
+    inFrame.associatedToStreamId = arc4random() & 0x7FFFFFFF;
+    inFrame.unidirectional = (bool)(arc4random() & 1);
+    inFrame.last = (bool)(arc4random() & 1);
+    inFrame.priority = (uint8_t)(arc4random() & 7);
+    inFrame.slot = 0;
+
+    // This header value alone is the entire allowed size of the headers. The header value
+    // will be the item that triggers the overflow.
+    inFrame.headers = @{
+        @"bigheader" :  [@"" stringByPaddingToLength:MAX_HEADER_BLOCK_LENGTH
+                                          withString:@"1234567890"
+                                     startingAtIndex:0]
+    };
+
+    // Try with no error parameter
+    STAssertFalse([_encoder  encodeSynStreamFrame:inFrame error:nil], nil);
+    AssertFramesReceivedCount(0);
+
+    // Try with error parameter
+    NSError *error;
+    STAssertFalse([_encoder encodeSynStreamFrame:inFrame error:&error], nil);
+    AssertFramesReceivedCount(0);
+    STAssertNotNil(error, nil);
+    STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);
+    STAssertEquals(error.code, SDPYHeaderBlockEncodingError, nil);
+}
+
+- (void)testSynStreamFrameWithTooLargeHeadersOnSizeField
+{
+    SPDYSynStreamFrame *inFrame = [[SPDYSynStreamFrame alloc] init];
+    inFrame.streamId = arc4random() & 0x7FFFFFFF;
+    inFrame.associatedToStreamId = arc4random() & 0x7FFFFFFF;
+    inFrame.unidirectional = (bool)(arc4random() & 1);
+    inFrame.last = (bool)(arc4random() & 1);
+    inFrame.priority = (uint8_t)(arc4random() & 7);
+    inFrame.slot = 0;
+
+    // This will consume all the space except the last byte. Don't forget the header count (4)
+    // and size of key (4). Encoding the size of the header value will overflow.
+    NSString *headerKey = [@"" stringByPaddingToLength:(MAX_HEADER_BLOCK_LENGTH - 8 - 1)
+                                            withString:@"1234567890"
+                                       startingAtIndex:0];
+    inFrame.headers = @{
+            headerKey : @"headervalue"
+    };
+
+    NSError *error;
+    STAssertFalse([_encoder encodeSynStreamFrame:inFrame error:&error], nil);
+    AssertFramesReceivedCount(0);
+    STAssertNotNil(error, nil);
+    STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);
+    STAssertEquals(error.code, SDPYHeaderBlockEncodingError, nil);
+}
+
 - (void)testSynReplyFrame
 {
     SPDYSynReplyFrame *inFrame = [[SPDYSynReplyFrame alloc] init];
     inFrame.streamId = arc4random() & 0x7FFFFFFF;
     inFrame.last = (bool)(arc4random() & 1);
 
-    [_encoder encodeSynReplyFrame:inFrame];
+    STAssertTrue([_encoder encodeSynReplyFrame:inFrame error:nil], nil);
 
     AssertLastFrameClass(@"SPDYSynReplyFrame");
     AssertFramesReceivedCount(1);
@@ -179,7 +238,7 @@ NSDictionary *testHeaders()
     inFrame.last = (bool)(arc4random() & 1);
     inFrame.headers = testHeaders();
 
-    [_encoder encodeSynReplyFrame:inFrame];
+    STAssertTrue([_encoder encodeSynReplyFrame:inFrame error:nil], nil);
 
     AssertLastFrameClass(@"SPDYSynReplyFrame");
     AssertFramesReceivedCount(1);
@@ -289,7 +348,7 @@ NSDictionary *testHeaders()
     inFrame.streamId = arc4random() & 0x7FFFFFFF;
     inFrame.last = (bool)(arc4random() & 1);
 
-    [_encoder encodeHeadersFrame:inFrame];
+    STAssertTrue([_encoder encodeHeadersFrame:inFrame error:nil], nil);
 
     AssertLastFrameClass(@"SPDYHeadersFrame");
     AssertFramesReceivedCount(1);
@@ -307,7 +366,7 @@ NSDictionary *testHeaders()
     inFrame.last = (bool)(arc4random() & 1);
     inFrame.headers = testHeaders();
 
-    [_encoder encodeHeadersFrame:inFrame];
+    STAssertTrue([_encoder encodeHeadersFrame:inFrame error:nil], nil);
 
     AssertLastFrameClass(@"SPDYHeadersFrame");
     AssertFramesReceivedCount(1);
