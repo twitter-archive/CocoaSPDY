@@ -45,7 +45,7 @@ For NSURLSession, you can configure sessions to use SPDY via NSURLSessionConfigu
 
     #import <SPDY/SPDYProtocol.h>
     ...
-    NSURLSessionConfiguration configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     configuration.protocolClasses = @[[SPDYURLSessionProtocol class]];
 
 You can freely use either or both methods, and existing SPDY sessions will be shared across both networking stacks. If you do use the former approach, note that registered origins will also be handled by SPDY with the default NSURLSession.
