@@ -22,6 +22,7 @@
 
 - (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError;
 - (void)removeSession:(SPDYSession *)session;
+- (NSArray *)allSessions;
 
 @end
 

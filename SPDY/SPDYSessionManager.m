@@ -178,6 +178,14 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     });
 }
 
+- (NSArray *)allSessions
+{
+    NSMutableArray *sessions = [NSMutableArray new];
+    [sessions addObjectsFromArray:[[_poolTables[0] allValues] valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+    [sessions addObjectsFromArray:[[_poolTables[1] allValues] valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+    return sessions;
+}
+
 - (NSMutableDictionary *)_sessionPoolTable:(bool)cellular
 {
     if (!_poolTables) {
