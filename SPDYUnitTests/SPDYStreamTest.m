@@ -10,7 +10,10 @@
 //
 
 #import <XCTest/XCTest.h>
+#import <LYRCountDownLatch/LYRCountDownLatch.h>
 #import "SPDYStream.h"
+#import "SPDYProtocol.h"
+#import "SPDYSessionManager.h"
 
 @interface SPDYStreamTest : XCTestCase
 @end
@@ -108,6 +111,57 @@ static NSThread *_streamThread;
     }
 
     XCTAssertTrue([mockDataDelegate.data isEqualToData:_uploadData]);
+}
+
+void LYRTestCloseSPDYSessions()
+{
+    // Wait until all SPDY sessions are down
+    NSArray *allSessions = [[SPDYURLSessionProtocol sessionManager] allSessions];
+    NSLog(@"Closing sessions: %@", allSessions);
+    if ([allSessions count] == 0) {
+        NSLog(@"sadasdasdsdad");
+    }
+    while ([(NSNumber *)[allSessions valueForKeyPath:@"@sum.isOpen"] boolValue]) {
+        [allSessions makeObjectsPerformSelector:@selector(close)];
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+        allSessions = [[SPDYURLSessionProtocol sessionManager] allSessions];
+    }
+}
+
+- (void)testRapidRequests
+{
+    NSURL *URL = [NSURL URLWithString:@"http://127.0.0.1:7072/"];
+    SPDYConfiguration *configuration = [SPDYConfiguration defaultConfiguration];
+//    configuration.enableSettingsMinorVersion = NO; // NPN override
+    configuration.enableTCPNoDelay = YES;
+//    configuration.tlsSettings = @{ (NSString *)kCFStreamSSLValidatesCertificateChain: @(NO),
+//                                   (NSString *)kCFStreamSSLIsServer: @(NO),
+////                                   (NSString *)kCFStreamSSLLevel: (NSString *)kCFStreamSocketSecurityLevelSSLv2,
+//                                   (NSString *)kCFStreamSSLLevel: (NSString *)kCFStreamSocketSecurityLevelTLSv1,
+////                                   (NSString *)kCFStreamSSLCertificates: @[ (__bridge id) [LYRTestingContext sharedContext].cryptographer.identityRef ]
+//                                   };
+    [SPDYProtocol sessionManager].configuration = configuration;
+    
+    NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+    sessionConfiguration.protocolClasses = @[ [SPDYURLSessionProtocol class] ];
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
+    for (NSUInteger i=0; i <= 5000; i++) {
+        NSLog(@"\n\n\n\nExecuting iteration %lu", (unsigned long)i);
+        NSURLRequest *request = [NSURLRequest requestWithURL:URL];
+        LYRCountDownLatch *latch = [LYRCountDownLatch latchWithCount:1 timeoutInterval:60];
+        [[session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+            if (!response && error) {
+                NSLog(@"WTF");
+            }
+            [latch decrementCount];
+        }] resume];
+        [latch waitTilCount:0];
+        if (latch.count != 0) {
+            NSLog(@"Break!");
+        }
+        
+        LYRTestCloseSPDYSessions();
+    }
 }
 
 @end
