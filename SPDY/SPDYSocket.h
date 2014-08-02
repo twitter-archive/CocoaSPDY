@@ -323,23 +323,6 @@ extern NSString *const SPDYSocketException;
 - (void)secureWithTLS:(NSDictionary *)tlsSettings;
 
 /**
-  Reschedule the SPDYSocket on a different runloop.
-*/
-//- (bool)setRunLoop:(NSRunLoop *)runLoop;
-
-/**
-  Configures the runloop modes the SPDYSocket will operate on.
-
-  The default set is limited to NSDefaultRunLoopMode.
-
-  If you'd like your socket to continue operation during other modes, you may want to add modes such as
-  NSModalPanelRunLoopMode or NSEventTrackingRunLoopMode. Or you may simply want to use NSRunLoopCommonModes.
-*/
-//- (bool)setRunLoopModes:(NSArray *)runLoopModes;
-//- (bool)addRunLoopMode:(NSString *)runLoopMode;
-//- (bool)removeRunLoopMode:(NSString *)runLoopMode;
-
-/**
   @return the current runloop modes the SPDYSocket is scheduled on
 */
 //- (NSArray *)runLoopModes;

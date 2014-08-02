@@ -73,7 +73,7 @@ typedef enum : uint16_t {
 
 // Stream Implementation
 - (bool)_createStreamsToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError;
-- (bool)_scheduleStreamsOnRunLoop:(NSRunLoop *)runLoop error:(NSError **)pError;
+- (bool)_scheduleStreamsOnDispatchQueue:(NSError **)pError;
 - (bool)_configureStreams:(NSError **)pError;
 - (bool)_openStreams:(NSError **)pError;
 - (void)_onStreamOpened;
@@ -113,11 +113,7 @@ typedef enum : uint16_t {
 - (void)_dequeueWrite;
 - (void)_timeoutWrite:(NSTimer *)timer;
 
-// CFRunLoop scheduling
-- (void)_addSource:(CFRunLoopSourceRef)source;
-- (void)_addTimer:(NSTimer *)timer;
-- (void)_removeSource:(CFRunLoopSourceRef)source;
-- (void)_removeTimer:(NSTimer *)timer;
+// dispatch queue scheduling
 - (void)_scheduleDisconnect;
 - (void)_unscheduleReadStream;
 - (void)_unscheduleWriteStream;
@@ -285,68 +281,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 @end
 
-@interface SPDYRunLoopThread : NSThread
-
-@property (nonatomic, readonly) NSRunLoop *runLoop;
-
-@end
-
-@implementation SPDYRunLoopThread {
-    dispatch_group_t _waitGroup;
-}
-
-@synthesize runLoop = _runLoop;
-
-- (id)init
-{
-    self = [super init];
-    if (self) {
-        _waitGroup = dispatch_group_create();
-        dispatch_group_enter(_waitGroup);
-    }
-    return self;
-}
-
-- (void)main;
-{
-    @autoreleasepool {
-        _runLoop = [NSRunLoop currentRunLoop];
-        dispatch_group_leave(_waitGroup);
-        
-        NSTimer *timer = [[NSTimer alloc] initWithFireDate:[NSDate distantFuture] interval:0.0 target:nil selector:nil userInfo:nil repeats:NO];
-        [_runLoop addTimer:timer forMode:NSDefaultRunLoopMode];
-        
-        while ([_runLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
-            
-        }
-        assert(NO);
-    }
-}
-
-- (NSRunLoop *)runLoop;
-{
-    dispatch_group_wait(_waitGroup, DISPATCH_TIME_FOREVER);
-    return _runLoop;
-}
-
-@end
-
-static SPDYRunLoopThread *networkThread = nil;
-static NSRunLoop *networkRunLoop = nil;
-
-static NSRunLoop *SPDYSocketRunLoop(void)
-{
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        networkThread = [SPDYRunLoopThread new];
-        networkThread.name = @"com.twitter.CocoaSPDY.SocketThread";
-        [networkThread start];
-        networkRunLoop = networkThread.runLoop;
-    });
-    
-    return networkRunLoop;
-}
-
 static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 @implementation SPDYSocket
@@ -363,9 +297,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
     dispatch_queue_t _socketQueue;
     CFRunLoopSourceRef _source4; // For _socket4
     CFRunLoopSourceRef _source6; // For _socket6
-    CFRunLoopRef _runLoop;
     CFSocketContext _context;
-    NSArray *_runLoopModes;
 
     dispatch_source_t _connectTimer;
 
@@ -397,7 +329,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         _socket6FD = 0;
         _readQueue = [[NSMutableArray alloc] initWithCapacity:READ_QUEUE_CAPACITY];
         _writeQueue = [[NSMutableArray alloc] initWithCapacity:WRITE_QUEUE_CAPACITY];
-        _runLoopModes = @[NSDefaultRunLoopMode];
         
         _socketQueue = dispatch_queue_create([SPDYSocketQueueName UTF8String], DISPATCH_QUEUE_SERIAL);
         void *nonNullUnusedPointer = (__bridge void *)self;
@@ -488,276 +419,17 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 #pragma mark CFRunLoop scheduling
 
-- (void)_addSource:(CFRunLoopSourceRef)source
-{
-    for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopAddSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
-    }
-}
-
-- (void)_removeSource:(CFRunLoopSourceRef)source
-{
-    for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopRemoveSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
-    }
-}
-
-- (void)_addSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
-{
-    CFRunLoopAddSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
-}
-
-- (void)_removeSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
-{
-    CFRunLoopRemoveSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
-}
-
-- (void)_addTimer:(NSTimer *)timer
-{
-    for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopAddTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
-    }
-}
-
-- (void)_removeTimer:(NSTimer *)timer
-{
-    for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopRemoveTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
-    }
-}
-
-- (void)_addTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
-{
-    CFRunLoopAddTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
-}
-
-- (void)_removeTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
-{
-    CFRunLoopRemoveTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
-}
-
 - (void)_unscheduleReadStream
 {
-    for (NSString *runLoopMode in _runLoopModes) {
-        CFReadStreamUnscheduleFromRunLoop(_readStream, _runLoop, (__bridge CFStringRef)runLoopMode);
-    }
+    CFReadStreamSetDispatchQueue(_readStream, NULL);
     CFReadStreamSetClient(_readStream, kCFStreamEventNone, NULL, NULL);
 }
 
 - (void)_unscheduleWriteStream
 {
-    for (NSString *runLoopMode in _runLoopModes) {
-        CFWriteStreamUnscheduleFromRunLoop(_writeStream, _runLoop, (__bridge CFStringRef)runLoopMode);
-    }
+    CFWriteStreamSetDispatchQueue(_writeStream, NULL);
     CFWriteStreamSetClient(_writeStream, kCFStreamEventNone, NULL, NULL);
 }
-
-
-#pragma mark Configuration
-
-- (bool)setRunLoop:(NSRunLoop *)runLoop
-{
-    __block BOOL success;
-    [self synchronouslyPerformBlockOnSocketQueue:^{
-        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-        @"moveToRunLoop must be called from within the current RunLoop!");
-
-        if (runLoop == nil) {
-            success = NO;
-            return;
-        }
-        if (_runLoop == [runLoop getCFRunLoop]) {
-            success = YES;
-            return;
-        }
-
-        [NSObject cancelPreviousPerformRequestsWithTarget:self];
-        _flags &= ~kDequeueReadScheduled;
-        _flags &= ~kDequeueWriteScheduled;
-
-        if (_readStream && _writeStream) {
-            [self _unscheduleReadStream];
-            [self _unscheduleWriteStream];
-        }
-
-        if (_source4) [self _removeSource:_source4];
-        if (_source6) [self _removeSource:_source6];
-
-        _runLoop = [runLoop getCFRunLoop];
-
-        if (_source4) [self _addSource:_source4];
-        if (_source6) [self _addSource:_source6];
-
-        if (_readStream && _writeStream) {
-            if (![self _scheduleStreamsOnRunLoop:runLoop error:nil]) {
-                success = NO;
-                return;
-            }
-        }
-
-        [self asynchronouslyPerformBlockOnSocketQueue:^{
-            [self _dequeueRead];
-            [self _dequeueWrite];
-            [self _scheduleDisconnect];
-        }];
-
-        success = YES;
-    }];
-    return success;
-}
-
-- (bool)setRunLoopModes:(NSArray *)runLoopModes
-{
-    __block BOOL success;
-    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
-    [self synchronouslyPerformBlockOnSocketQueue:^{
-        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-        @"setRunLoopModes must be called from within the current RunLoop!");
-
-        if (runLoopModes.count == 0) {
-            success = NO;
-            return;
-        }
-        if ([_runLoopModes isEqualToArray:runLoopModes]) {
-            success = YES;
-            return;
-        }
-
-        [NSObject cancelPreviousPerformRequestsWithTarget:self];
-        _flags &= ~kDequeueReadScheduled;
-        _flags &= ~kDequeueWriteScheduled;
-
-        if (_readStream && _writeStream) {
-            [self _unscheduleReadStream];
-            [self _unscheduleWriteStream];
-        }
-
-        if (_source4) [self _removeSource:_source4];
-        if (_source6) [self _removeSource:_source6];
-
-        _runLoopModes = [runLoopModes copy];
-
-        if (_source4) [self _addSource:_source4];
-        if (_source6) [self _addSource:_source6];
-
-        if (_readStream && _writeStream) {
-            if (![self _scheduleStreamsOnRunLoop:runLoop error:nil]) {
-                success = NO;
-                return;
-            }
-        }
-
-        [self asynchronouslyPerformBlockOnSocketQueue:^{
-            [self _dequeueRead];
-            [self _dequeueWrite];
-            [self _scheduleDisconnect];
-        }];
-
-        success = YES;
-    }];
-    return success;
-}
-
-- (bool)addRunLoopMode:(NSString *)runLoopMode
-{
-    __block BOOL success;
-    [self synchronouslyPerformBlockOnSocketQueue:^{
-        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-        @"addRunLoopMode must be called from within the current RunLoop!");
-
-        if (runLoopMode == nil) {
-            success = NO;
-            return;
-        }
-        if ([_runLoopModes containsObject:runLoopMode]) {
-            success = YES;
-            return;
-        }
-
-        [NSObject cancelPreviousPerformRequestsWithTarget:self];
-        _flags &= ~kDequeueReadScheduled;
-        _flags &= ~kDequeueWriteScheduled;
-
-        NSArray *newRunLoopModes = [_runLoopModes arrayByAddingObject:runLoopMode];
-        _runLoopModes = newRunLoopModes;
-
-        if (_source4) [self _addSource:_source4 mode:runLoopMode];
-        if (_source6) [self _addSource:_source6 mode:runLoopMode];
-
-        if (_readStream && _writeStream) {
-            CFReadStreamScheduleWithRunLoop(_readStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-            CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-        }
-
-        [self asynchronouslyPerformBlockOnSocketQueue:^{
-            [self _dequeueRead];
-            [self _dequeueWrite];
-            [self _scheduleDisconnect];
-        }];
-
-        success = YES;
-    }];
-    return success;
-}
-
-- (bool)removeRunLoopMode:(NSString *)runLoopMode
-{
-    __block BOOL success;
-    [self synchronouslyPerformBlockOnSocketQueue:^{
-        NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
-                 @"addRunLoopMode must be called from within the current RunLoop!");
-        
-        if (runLoopMode == nil) {
-            success = NO;
-            return;
-        }
-        if (![_runLoopModes containsObject:runLoopMode]) {
-            success = YES;
-            return;
-        }
-        
-        NSMutableArray *newRunLoopModes = [_runLoopModes mutableCopy];
-        [newRunLoopModes removeObject:runLoopMode];
-        
-        if (newRunLoopModes.count == 0) {
-            success = NO;
-            return;
-        }
-        
-        [NSObject cancelPreviousPerformRequestsWithTarget:self];
-        _flags &= ~kDequeueReadScheduled;
-        _flags &= ~kDequeueWriteScheduled;
-        
-        _runLoopModes = [newRunLoopModes copy];
-        
-        if (_source4) [self _removeSource:_source4 mode:runLoopMode];
-        if (_source6) [self _removeSource:_source6 mode:runLoopMode];
-        
-        if (_readStream && _writeStream) {
-            CFReadStreamScheduleWithRunLoop(_readStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-            CFWriteStreamScheduleWithRunLoop(_writeStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
-        }
-        
-        [self asynchronouslyPerformBlockOnSocketQueue:^{
-            [self _dequeueRead];
-            [self _dequeueWrite];
-            [self _scheduleDisconnect];
-        }];
-        
-        success = YES;
-    }];
-    return success;
-}
-
-- (NSArray *)runLoopModes
-{
-    __block NSArray *runLoopModes;
-    [self synchronouslyPerformBlockOnSocketQueue:^{
-        runLoopModes = _runLoopModes;
-    }];
-    return runLoopModes;
-}
-
 
 #pragma mark Connecting
 
@@ -779,7 +451,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
                 error:(NSError **)pError
 {
     __block BOOL success;
-    NSRunLoop *runLoop = SPDYSocketRunLoop();
     [self synchronouslyPerformBlockOnSocketQueue:^{
         if (_delegate == nil) {
             [NSException raise:SPDYSocketException
@@ -794,7 +465,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         [self _emptyQueues];
 
         if (![self _createStreamsToHost:hostname onPort:port error:pError]) goto Failed;
-        if (![self _scheduleStreamsOnRunLoop:runLoop error:pError])             goto Failed;
+        if (![self _scheduleStreamsOnDispatchQueue:pError])                 goto Failed;
         if (![self _configureStreams:pError])                               goto Failed;
         if (![self _openStreams:pError])                                    goto Failed;
 
@@ -857,51 +528,49 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
     return YES;
 }
 
-- (bool)_scheduleStreamsOnRunLoop:(NSRunLoop *)runLoop error:(NSError **)pError
+- (BOOL)_scheduleStreamsOnDispatchQueue:(NSError **)pError
 {
-    _runLoop = runLoop ? [runLoop getCFRunLoop] : CFRunLoopGetCurrent();
-
+    NSLog(@"Attaching streams to dispatch queue...");
+    
     CFOptionFlags readStreamEvents =
-        kCFStreamEventHasBytesAvailable |
-        kCFStreamEventErrorOccurred     |
-        kCFStreamEventEndEncountered    |
-        kCFStreamEventOpenCompleted;
-
+    kCFStreamEventHasBytesAvailable |
+    kCFStreamEventErrorOccurred     |
+    kCFStreamEventEndEncountered    |
+    kCFStreamEventOpenCompleted;
+    
     if (!CFReadStreamSetClient(_readStream,
-        readStreamEvents,
-        (CFReadStreamClientCallBack)&SPDYSocketCFReadStreamCallback,
-        (CFStreamClientContext *)(&_context)))
+                               readStreamEvents,
+                               (CFReadStreamClientCallBack)&SPDYSocketCFReadStreamCallback,
+                               (CFStreamClientContext *)(&_context)))
     {
         NSError *error = [self streamError];
         SPDY_WARNING(@"%@ couldn't attach read stream to run loop: %@,", self, error);
-
+        
         if (pError) *pError = error;
         return NO;
     }
-
+    
     CFOptionFlags writeStreamEvents =
-        kCFStreamEventCanAcceptBytes |
-        kCFStreamEventErrorOccurred  |
-        kCFStreamEventEndEncountered |
-        kCFStreamEventOpenCompleted;
-
+    kCFStreamEventCanAcceptBytes |
+    kCFStreamEventErrorOccurred  |
+    kCFStreamEventEndEncountered |
+    kCFStreamEventOpenCompleted;
+    
     if (!CFWriteStreamSetClient(_writeStream,
-        writeStreamEvents,
-        (CFWriteStreamClientCallBack)&SPDYSocketCFWriteStreamCallback,
-        (CFStreamClientContext *)(&_context)))
+                                writeStreamEvents,
+                                (CFWriteStreamClientCallBack)&SPDYSocketCFWriteStreamCallback,
+                                (CFStreamClientContext *)(&_context)))
     {
         NSError *error = [self streamError];
         SPDY_WARNING(@"%@ couldn't attach write stream to run loop: %@,", self, error);
-
+        
         if (pError) *pError = error;
         return NO;
     }
-
-    for (NSString *runLoopMode in _runLoopModes) {
-        CFReadStreamScheduleWithRunLoop(_readStream, _runLoop, (__bridge CFStringRef)runLoopMode);
-        CFWriteStreamScheduleWithRunLoop(_writeStream, _runLoop, (__bridge CFStringRef)runLoopMode);
-    }
-
+    
+    CFReadStreamSetDispatchQueue(_readStream, _socketQueue);
+    CFWriteStreamSetDispatchQueue(_writeStream, _socketQueue);
+    
     return YES;
 }
 
@@ -1111,19 +780,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
     // Closing the streams or sockets resulted in closing the underlying native socket
     _socket4FD = 0;
     _socket6FD = 0;
-
-    if (_source4) {
-        [self _removeSource:_source4];
-        CFRelease(_source4);
-        _source4 = NULL;
-    }
-
-    if (_source6) {
-        [self _removeSource:_source6];
-        CFRelease(_source6);
-        _source6 = NULL;
-    }
-    _runLoop = NULL;
 
     // If the connection has at least been started, notify delegate that it is now ending
     bool shouldCallDelegate = (_flags & kDidStartDelegate) == kDidStartDelegate;
