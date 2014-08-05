@@ -1,0 +1,7 @@
+//
+// Prefix header for all source files of the 'SPDY.lib' target in the 'SPDY.lib' project
+//
+
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+#endif
