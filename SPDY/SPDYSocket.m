@@ -1630,9 +1630,7 @@ static void SPDYSocketCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
 {
     @autoreleasepool {
         SPDYSocket * volatile spdySocket = (__bridge SPDYSocket *)pSocket;
-        [spdySocket asynchronouslyPerformBlockOnSocketQueue:^{
-            [spdySocket handleCFReadStreamEvent:type forStream:stream];
-        }];
+        [spdySocket handleCFReadStreamEvent:type forStream:stream];
     }
 }
 
@@ -1640,9 +1638,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
     @autoreleasepool {
         SPDYSocket * volatile spdySocket = (__bridge SPDYSocket *)pSocket;
-        [spdySocket asynchronouslyPerformBlockOnSocketQueue:^{
-            [spdySocket handleCFWriteStreamEvent:type forStream:stream];
-        }];
+        [spdySocket handleCFWriteStreamEvent:type forStream:stream];
     }
 }
 
