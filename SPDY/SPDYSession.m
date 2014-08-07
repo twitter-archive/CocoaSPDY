@@ -247,20 +247,12 @@ NSString *const SPDYSessionQueueName = @"SPDYSession";
 
 - (bool)isCellular
 {
-    __block BOOL isCellular = NO;
-    dispatch_sync(_dispatchQueue, ^{
-        isCellular = _cellular;
-    });
-    return isCellular;
+    return _cellular;
 }
 
 - (bool)isOpen
 {
-    __block BOOL isOpen = NO;
-    dispatch_sync(_dispatchQueue, ^{
-        isOpen = (!_receivedGoAwayFrame && !_sentGoAwayFrame);
-    });
-    return isOpen;
+    return (!_receivedGoAwayFrame && !_sentGoAwayFrame);
 }
 
 - (void)close
