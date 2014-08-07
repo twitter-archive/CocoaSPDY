@@ -314,38 +314,36 @@ NSString *const SPDYSessionQueueName = @"SPDYSession";
 
 - (void)socket:(SPDYSocket *)socket didReadData:(NSData *)data withTag:(long)tag
 {
-    dispatch_sync(_dispatchQueue, ^{
-        _lastSocketActivity = CFAbsoluteTimeGetCurrent();
-        SPDY_DEBUG(@"socket read[%li] (%lu)", tag, (unsigned long)data.length);
+    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
+    SPDY_DEBUG(@"socket read[%li] (%lu)", tag, (unsigned long)data.length);
 
-        _bufferWriteIndex += data.length;
-        NSUInteger readableLength = _bufferWriteIndex - _bufferReadIndex;
-        NSError *error = nil;
+    _bufferWriteIndex += data.length;
+    NSUInteger readableLength = _bufferWriteIndex - _bufferReadIndex;
+    NSError *error = nil;
 
-        // Decode as much as possible
-        uint8_t *bytes = (uint8_t *)_inputBuffer.bytes + _bufferReadIndex;
-        NSUInteger bytesRead = [_frameDecoder decode:bytes length:readableLength error:&error];
+    // Decode as much as possible
+    uint8_t *bytes = (uint8_t *)_inputBuffer.bytes + _bufferReadIndex;
+    NSUInteger bytesRead = [_frameDecoder decode:bytes length:readableLength error:&error];
 
-        // Close session on decoding errors
-        if (error) {
-            [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
-            return;
-        }
+    // Close session on decoding errors
+    if (error) {
+        [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+        return;
+    }
 
-        _bufferReadIndex += bytesRead;
+    _bufferReadIndex += bytesRead;
 
-        // If we've successfully decoded all available input, reset the buffer
-        if (_bufferReadIndex == _bufferWriteIndex) {
-            _bufferReadIndex = 0;
-            _bufferWriteIndex = 0;
-        }
+    // If we've successfully decoded all available input, reset the buffer
+    if (_bufferReadIndex == _bufferWriteIndex) {
+        _bufferReadIndex = 0;
+        _bufferWriteIndex = 0;
+    }
 
-        SPDY_DEBUG(@"socket scheduling read[%li] (%lu:%lu)", (tag + 1), (unsigned long)_bufferReadIndex, (unsigned long)_bufferWriteIndex);
-        [socket readDataWithTimeout:(NSTimeInterval)-1
-                             buffer:_inputBuffer
-                       bufferOffset:_bufferWriteIndex
-                                tag:(tag + 1)];
-    });
+    SPDY_DEBUG(@"socket scheduling read[%li] (%lu:%lu)", (tag + 1), (unsigned long)_bufferReadIndex, (unsigned long)_bufferWriteIndex);
+    [socket readDataWithTimeout:(NSTimeInterval)-1
+                         buffer:_inputBuffer
+                   bufferOffset:_bufferWriteIndex
+                            tag:(tag + 1)];
 }
 
 - (void)socket:(SPDYSocket *)socket didWriteDataWithTag:(long)tag
