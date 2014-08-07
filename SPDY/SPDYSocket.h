@@ -145,9 +145,9 @@ extern NSString *const SPDYSocketException;
 #pragma mark SPDYSocket
 
 @interface SPDYSocket : NSObject
-@property (nonatomic, weak) id<SPDYSocketDelegate> delegate;
+@property (nonatomic, weak, readonly) id<SPDYSocketDelegate> delegate;
 
-- (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate;
+- (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate dispatchQueue:(dispatch_queue_t)dispatchQueue;
 - (CFSocketRef)cfSocket;
 - (CFReadStreamRef)cfReadStream;
 - (CFWriteStreamRef)cfWriteStream;

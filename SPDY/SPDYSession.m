@@ -38,6 +38,8 @@
 #define REMOTE_MAX_CONCURRENT_STREAMS  INT32_MAX
 #define INCLUDE_SPDY_RESPONSE_HEADERS  1
 
+NSString *const SPDYSessionQueueName = @"SPDYSession";
+
 @interface SPDYSession () <SPDYFrameDecoderDelegate, SPDYFrameEncoderDelegate, SPDYStreamDataDelegate, SPDYSocketDelegate>
 @property (nonatomic, readonly) SPDYStreamId nextStreamId;
 - (void)_sendSynStream:(SPDYStream *)stream streamId:(SPDYStreamId)streamId closeLocal:(bool)close;
@@ -57,6 +59,7 @@
     SPDYStreamManager *_inactiveStreams;
     SPDYSocket *_socket;
     NSMutableData *_inputBuffer;
+    dispatch_queue_t _dispatchQueue;
 
     SPDYStreamId _lastGoodStreamId;
     SPDYStreamId _nextStreamId;
@@ -97,73 +100,76 @@
             return nil;
         }
 
-        SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self];
+        _dispatchQueue = dispatch_queue_create([SPDYSessionQueueName UTF8String], DISPATCH_QUEUE_SERIAL);
+        SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self dispatchQueue:_dispatchQueue];
         bool connecting = [socket connectToHost:origin.host
                                          onPort:origin.port
                                     withTimeout:configuration.connectTimeout
                                           error:pError];
 
         if (connecting) {
-            _configuration = configuration;
-            _socket = socket;
-            _origin = origin;
-            SPDY_INFO(@"session connecting to %@", _origin);
-
-            // TODO: for accuracy confirm this later from the socket
-            _cellular = cellular;
-
-            if ([_origin.scheme isEqualToString:@"https"]) {
-                SPDY_DEBUG(@"session using TLS");
-                [_socket secureWithTLS:configuration.tlsSettings];
-            }
-
-            _frameDecoder = [[SPDYFrameDecoder alloc] initWithDelegate:self];
-            _frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:self
-                                                headerCompressionLevel:configuration.headerCompressionLevel];
-            _activeStreams = [[SPDYStreamManager alloc] init];
-            _inactiveStreams = [[SPDYStreamManager alloc] init];
-            _inputBuffer = [[NSMutableData alloc] initWithCapacity:INITIAL_INPUT_BUFFER_SIZE];
-
-            _lastGoodStreamId = 0;
-            _nextStreamId = 1;
-            _bufferReadIndex = 0;
-            _bufferWriteIndex = 0;
-            _sessionLatency = -1;
-
-            _initialSendWindowSize = DEFAULT_WINDOW_SIZE;
-            _initialReceiveWindowSize = (uint32_t)configuration.streamReceiveWindow;
-            _localMaxConcurrentStreams = LOCAL_MAX_CONCURRENT_STREAMS;
-            _remoteMaxConcurrentStreams = REMOTE_MAX_CONCURRENT_STREAMS;
-            _enableSettingsMinorVersion = configuration.enableSettingsMinorVersion;
-            _enableTCPNoDelay = configuration.enableTCPNoDelay;
-
-            SPDYSettings *settings = [SPDYSettingsStore settingsForOrigin:_origin];
-            if (settings != NULL) {
-                if (settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set) {
-                    _remoteMaxConcurrentStreams = (uint32_t)MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
+            dispatch_sync(_dispatchQueue, ^{
+                _configuration = configuration;
+                _socket = socket;
+                _origin = origin;
+                SPDY_INFO(@"session connecting to %@", _origin);
+                
+                // TODO: for accuracy confirm this later from the socket
+                _cellular = cellular;
+                
+                if ([_origin.scheme isEqualToString:@"https"]) {
+                    SPDY_DEBUG(@"session using TLS");
+                    [_socket secureWithTLS:configuration.tlsSettings];
                 }
-
-                if (settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].set) {
-                    _initialSendWindowSize = (uint32_t)MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
+                
+                _frameDecoder = [[SPDYFrameDecoder alloc] initWithDelegate:self];
+                _frameEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:self
+                                                    headerCompressionLevel:configuration.headerCompressionLevel];
+                _activeStreams = [[SPDYStreamManager alloc] init];
+                _inactiveStreams = [[SPDYStreamManager alloc] init];
+                _inputBuffer = [[NSMutableData alloc] initWithCapacity:INITIAL_INPUT_BUFFER_SIZE];
+                
+                _lastGoodStreamId = 0;
+                _nextStreamId = 1;
+                _bufferReadIndex = 0;
+                _bufferWriteIndex = 0;
+                _sessionLatency = -1;
+                
+                _initialSendWindowSize = DEFAULT_WINDOW_SIZE;
+                _initialReceiveWindowSize = (uint32_t)configuration.streamReceiveWindow;
+                _localMaxConcurrentStreams = LOCAL_MAX_CONCURRENT_STREAMS;
+                _remoteMaxConcurrentStreams = REMOTE_MAX_CONCURRENT_STREAMS;
+                _enableSettingsMinorVersion = configuration.enableSettingsMinorVersion;
+                _enableTCPNoDelay = configuration.enableTCPNoDelay;
+                
+                SPDYSettings *settings = [SPDYSettingsStore settingsForOrigin:_origin];
+                if (settings != NULL) {
+                    if (settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set) {
+                        _remoteMaxConcurrentStreams = (uint32_t)MAX(settings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].value, 0);
+                    }
+                    
+                    if (settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].set) {
+                        _initialSendWindowSize = (uint32_t)MAX(settings[SPDY_SETTINGS_INITIAL_WINDOW_SIZE].value, 0);
+                    }
                 }
-            }
-
-            _sessionSendWindowSize = DEFAULT_WINDOW_SIZE;
-            _sessionReceiveWindowSize = (uint32_t)configuration.sessionReceiveWindow;
-            _sentGoAwayFrame = NO;
-            _receivedGoAwayFrame = NO;
-
-            [_socket readDataWithTimeout:(NSTimeInterval)-1
-                                  buffer:_inputBuffer
-                            bufferOffset:_bufferWriteIndex
-                                     tag:0];
-
-            [self _sendServerPersistedSettings:settings];
-            [self _sendClientSettings];
-
-            uint32_t deltaWindowSize = _sessionReceiveWindowSize - DEFAULT_WINDOW_SIZE;
-            [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
-            [self _sendPing:1];
+                
+                _sessionSendWindowSize = DEFAULT_WINDOW_SIZE;
+                _sessionReceiveWindowSize = (uint32_t)configuration.sessionReceiveWindow;
+                _sentGoAwayFrame = NO;
+                _receivedGoAwayFrame = NO;
+                
+                [_socket readDataWithTimeout:(NSTimeInterval)-1
+                                      buffer:_inputBuffer
+                                bufferOffset:_bufferWriteIndex
+                                         tag:0];
+                
+                [self _sendServerPersistedSettings:settings];
+                [self _sendClientSettings];
+                
+                uint32_t deltaWindowSize = _sessionReceiveWindowSize - DEFAULT_WINDOW_SIZE;
+                [self _sendWindowUpdate:deltaWindowSize streamId:kSPDYSessionStreamId];
+                [self _sendPing:1];
+            });
         } else {
             self = nil;
         }
@@ -173,15 +179,17 @@
 
 - (void)issueRequest:(SPDYProtocol *)protocol
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol dataDelegate:self];
+    dispatch_sync(_dispatchQueue, ^{
+        SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol dataDelegate:self];
 
-    if (_activeStreams.localCount >= _remoteMaxConcurrentStreams) {
-        [_inactiveStreams addStream:stream];
-        SPDY_INFO(@"max concurrent streams reached, deferring request");
-        return;
-    }
+        if (_activeStreams.localCount >= _remoteMaxConcurrentStreams) {
+            [_inactiveStreams addStream:stream];
+            SPDY_INFO(@"max concurrent streams reached, deferring request");
+            return;
+        }
 
-    [self _startStream:stream];
+        [self _startStream:stream];
+    });
 }
 
 - (void)_issuePendingRequests
@@ -214,23 +222,24 @@
 
 - (void)cancelRequest:(SPDYProtocol *)protocol
 {
-    SPDYStream *stream = _activeStreams[protocol];
-    if (!stream) {
-        stream = _inactiveStreams[protocol];
-    }
+    dispatch_sync(_dispatchQueue, ^{
+        SPDYStream *stream = _activeStreams[protocol];
+        if (!stream) {
+            stream = _inactiveStreams[protocol];
+        }
 
-    if (stream) {
-        [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
-        stream.client = nil;
-        [_activeStreams removeStreamForProtocol:protocol];
-        [_inactiveStreams removeStreamForProtocol:protocol];
-        [self _issuePendingRequests];
-    }
+        if (stream) {
+            [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
+            stream.client = nil;
+            [_activeStreams removeStreamForProtocol:protocol];
+            [_inactiveStreams removeStreamForProtocol:protocol];
+            [self _issuePendingRequests];
+        }
+    });
 }
 
 - (void)dealloc
 {
-    _socket.delegate = nil;
     _frameDecoder.delegate = nil;
     _frameEncoder.delegate = nil;
     [_socket disconnect];
@@ -238,17 +247,27 @@
 
 - (bool)isCellular
 {
-    return _cellular;
+    __block BOOL isCellular = NO;
+    dispatch_sync(_dispatchQueue, ^{
+        isCellular = _cellular;
+    });
+    return isCellular;
 }
 
 - (bool)isOpen
 {
-    return (!_receivedGoAwayFrame && !_sentGoAwayFrame);
+    __block BOOL isOpen = NO;
+    dispatch_sync(_dispatchQueue, ^{
+        isOpen = (!_receivedGoAwayFrame && !_sentGoAwayFrame);
+    });
+    return isOpen;
 }
 
 - (void)close
 {
-    [self _closeWithStatus:SPDY_SESSION_OK];
+    dispatch_sync(_dispatchQueue, ^{
+        [self _closeWithStatus:SPDY_SESSION_OK];
+    });
 }
 
 - (void)_closeWithStatus:(SPDYSessionStatus)status
@@ -295,36 +314,38 @@
 
 - (void)socket:(SPDYSocket *)socket didReadData:(NSData *)data withTag:(long)tag
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
-    SPDY_DEBUG(@"socket read[%li] (%lu)", tag, (unsigned long)data.length);
+    dispatch_sync(_dispatchQueue, ^{
+        _lastSocketActivity = CFAbsoluteTimeGetCurrent();
+        SPDY_DEBUG(@"socket read[%li] (%lu)", tag, (unsigned long)data.length);
 
-    _bufferWriteIndex += data.length;
-    NSUInteger readableLength = _bufferWriteIndex - _bufferReadIndex;
-    NSError *error = nil;
+        _bufferWriteIndex += data.length;
+        NSUInteger readableLength = _bufferWriteIndex - _bufferReadIndex;
+        NSError *error = nil;
 
-    // Decode as much as possible
-    uint8_t *bytes = (uint8_t *)_inputBuffer.bytes + _bufferReadIndex;
-    NSUInteger bytesRead = [_frameDecoder decode:bytes length:readableLength error:&error];
+        // Decode as much as possible
+        uint8_t *bytes = (uint8_t *)_inputBuffer.bytes + _bufferReadIndex;
+        NSUInteger bytesRead = [_frameDecoder decode:bytes length:readableLength error:&error];
 
-    // Close session on decoding errors
-    if (error) {
-        [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
-        return;
-    }
+        // Close session on decoding errors
+        if (error) {
+            [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+            return;
+        }
 
-    _bufferReadIndex += bytesRead;
+        _bufferReadIndex += bytesRead;
 
-    // If we've successfully decoded all available input, reset the buffer
-    if (_bufferReadIndex == _bufferWriteIndex) {
-        _bufferReadIndex = 0;
-        _bufferWriteIndex = 0;
-    }
+        // If we've successfully decoded all available input, reset the buffer
+        if (_bufferReadIndex == _bufferWriteIndex) {
+            _bufferReadIndex = 0;
+            _bufferWriteIndex = 0;
+        }
 
-    SPDY_DEBUG(@"socket scheduling read[%li] (%lu:%lu)", (tag + 1), (unsigned long)_bufferReadIndex, (unsigned long)_bufferWriteIndex);
-    [socket readDataWithTimeout:(NSTimeInterval)-1
-                         buffer:_inputBuffer
-                   bufferOffset:_bufferWriteIndex
-                            tag:(tag + 1)];
+        SPDY_DEBUG(@"socket scheduling read[%li] (%lu:%lu)", (tag + 1), (unsigned long)_bufferReadIndex, (unsigned long)_bufferWriteIndex);
+        [socket readDataWithTimeout:(NSTimeInterval)-1
+                             buffer:_inputBuffer
+                       bufferOffset:_bufferWriteIndex
+                                tag:(tag + 1)];
+    });
 }
 
 - (void)socket:(SPDYSocket *)socket didWriteDataWithTag:(long)tag

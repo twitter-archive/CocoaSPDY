@@ -43,7 +43,6 @@ do { \
 #endif
 
 NSString *const SPDYSocketException = @"SPDYSocketException";
-NSString *const SPDYSocketQueueName = @"SPDYSocket";
 
 typedef enum : uint16_t {
     kDidStartDelegate        = 1 <<  0,  // If set, disconnection results in delegate call
@@ -316,10 +315,10 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (id)init
 {
-    return [self initWithDelegate:nil];
+    @throw [NSException exceptionWithName:NSInternalInconsistencyException reason:@"Failed to call designated initializer. Call `initWithDelegate:dispatchQueue:` instead." userInfo:nil];
 }
 
-- (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate
+- (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate dispatchQueue:(dispatch_queue_t)dispatchQueue
 {
     self = [super init];
     if (self) {
@@ -330,7 +329,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
         _readQueue = [[NSMutableArray alloc] initWithCapacity:READ_QUEUE_CAPACITY];
         _writeQueue = [[NSMutableArray alloc] initWithCapacity:WRITE_QUEUE_CAPACITY];
         
-        _socketQueue = dispatch_queue_create([SPDYSocketQueueName UTF8String], DISPATCH_QUEUE_SERIAL);
+        _socketQueue = dispatchQueue;
         void *nonNullUnusedPointer = (__bridge void *)self;
         dispatch_queue_set_specific(_socketQueue, SPDYSocketIsOnSocketQueue, nonNullUnusedPointer, NULL);
 
@@ -803,6 +802,7 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 - (void)disconnect
 {
     [self asynchronouslyPerformBlockOnSocketQueue:^{
+        _delegate = nil;
         [self _close];
     }];
 }
