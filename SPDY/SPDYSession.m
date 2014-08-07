@@ -39,6 +39,7 @@
 #define INCLUDE_SPDY_RESPONSE_HEADERS  1
 
 NSString *const SPDYSessionQueueName = @"SPDYSession";
+static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
 
 @interface SPDYSession () <SPDYFrameDecoderDelegate, SPDYFrameEncoderDelegate, SPDYStreamDataDelegate, SPDYSocketDelegate>
 @property (nonatomic, readonly) SPDYStreamId nextStreamId;
@@ -101,6 +102,8 @@ NSString *const SPDYSessionQueueName = @"SPDYSession";
         }
 
         _dispatchQueue = dispatch_queue_create([SPDYSessionQueueName UTF8String], DISPATCH_QUEUE_SERIAL);
+        void *nonNullUnusedPointer = (__bridge void *)self;
+        dispatch_queue_set_specific(_dispatchQueue, SPDYSessionIsOnSessionQueue, nonNullUnusedPointer, NULL);
         SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self dispatchQueue:_dispatchQueue];
         bool connecting = [socket connectToHost:origin.host
                                          onPort:origin.port
@@ -177,9 +180,27 @@ NSString *const SPDYSessionQueueName = @"SPDYSession";
     return self;
 }
 
+- (void)synchronouslyPerformBlockOnSocketQueue:(void (^)())block
+{
+    if (dispatch_get_specific(SPDYSessionIsOnSessionQueue)) {
+        block();
+    } else {
+        dispatch_sync(_dispatchQueue, block);
+    }
+}
+
+- (void)asynchronouslyPerformBlockOnSocketQueue:(void (^)())block
+{
+    if (dispatch_get_specific(SPDYSessionIsOnSessionQueue)) {
+        block();
+    } else {
+        dispatch_async(_dispatchQueue, block);
+    }
+}
+
 - (void)issueRequest:(SPDYProtocol *)protocol
 {
-    dispatch_sync(_dispatchQueue, ^{
+    dispatch_async(_dispatchQueue, ^{
         SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol dataDelegate:self];
 
         if (_activeStreams.localCount >= _remoteMaxConcurrentStreams) {
@@ -222,7 +243,7 @@ NSString *const SPDYSessionQueueName = @"SPDYSession";
 
 - (void)cancelRequest:(SPDYProtocol *)protocol
 {
-    dispatch_sync(_dispatchQueue, ^{
+    dispatch_async(_dispatchQueue, ^{
         SPDYStream *stream = _activeStreams[protocol];
         if (!stream) {
             stream = _inactiveStreams[protocol];
@@ -247,17 +268,25 @@ NSString *const SPDYSessionQueueName = @"SPDYSession";
 
 - (bool)isCellular
 {
-    return _cellular;
+    __block BOOL isCellular;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        isCellular = _cellular;
+    }];
+    return isCellular;
 }
 
 - (bool)isOpen
 {
-    return (!_receivedGoAwayFrame && !_sentGoAwayFrame);
+    __block BOOL isOpen;
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        isOpen = (!_receivedGoAwayFrame && !_sentGoAwayFrame);
+    }];
+    return isOpen;
 }
 
 - (void)close
 {
-    dispatch_sync(_dispatchQueue, ^{
+    dispatch_async(_dispatchQueue, ^{
         [self _closeWithStatus:SPDY_SESSION_OK];
     });
 }

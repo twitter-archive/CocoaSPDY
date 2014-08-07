@@ -529,8 +529,6 @@ static void *SPDYSocketIsOnSocketQueue = &SPDYSocketIsOnSocketQueue;
 
 - (BOOL)_scheduleStreamsOnDispatchQueue:(NSError **)pError
 {
-    NSLog(@"Attaching streams to dispatch queue...");
-    
     CFOptionFlags readStreamEvents =
     kCFStreamEventHasBytesAvailable |
     kCFStreamEventErrorOccurred     |
