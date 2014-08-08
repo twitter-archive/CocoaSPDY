@@ -80,6 +80,7 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
     bool _cellular;
+    BOOL _closing;
 }
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
@@ -281,7 +282,7 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
 {
     __block BOOL isOpen;
     [self synchronouslyPerformBlockOnSocketQueue:^{
-        isOpen = (!_receivedGoAwayFrame && !_sentGoAwayFrame);
+        isOpen = (!_closing && !_receivedGoAwayFrame && !_sentGoAwayFrame);
     }];
     return isOpen;
 }
@@ -289,7 +290,10 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
 - (void)close
 {
     [self synchronouslyPerformBlockOnSocketQueue:^{
-        [self _closeWithStatus:SPDY_SESSION_OK];
+        if (!_closing) {
+            _closing = YES;
+            [self _closeWithStatus:SPDY_SESSION_OK];
+        }
     }];
 }
 
