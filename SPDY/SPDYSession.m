@@ -200,7 +200,7 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
 
 - (void)issueRequest:(SPDYProtocol *)protocol
 {
-    dispatch_async(_dispatchQueue, ^{
+    [self synchronouslyPerformBlockOnSocketQueue:^{
         SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol dataDelegate:self];
 
         if (_activeStreams.localCount >= _remoteMaxConcurrentStreams) {
@@ -210,7 +210,7 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
         }
 
         [self _startStream:stream];
-    });
+    }];
 }
 
 - (void)_issuePendingRequests
@@ -243,7 +243,7 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
 
 - (void)cancelRequest:(SPDYProtocol *)protocol
 {
-    dispatch_async(_dispatchQueue, ^{
+    [self synchronouslyPerformBlockOnSocketQueue:^{
         SPDYStream *stream = _activeStreams[protocol];
         if (!stream) {
             stream = _inactiveStreams[protocol];
@@ -256,14 +256,16 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
             [_inactiveStreams removeStreamForProtocol:protocol];
             [self _issuePendingRequests];
         }
-    });
+    }];
 }
 
 - (void)dealloc
 {
-    _frameDecoder.delegate = nil;
-    _frameEncoder.delegate = nil;
-    [_socket disconnect];
+    [self synchronouslyPerformBlockOnSocketQueue:^{
+        _frameDecoder.delegate = nil;
+        _frameEncoder.delegate = nil;
+        [_socket disconnect];
+    }];
 }
 
 - (bool)isCellular
@@ -286,9 +288,9 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
 
 - (void)close
 {
-    dispatch_async(_dispatchQueue, ^{
+    [self synchronouslyPerformBlockOnSocketQueue:^{
         [self _closeWithStatus:SPDY_SESSION_OK];
-    });
+    }];
 }
 
 - (void)_closeWithStatus:(SPDYSessionStatus)status
