@@ -271,20 +271,12 @@ static void *SPDYSessionIsOnSessionQueue = &SPDYSessionIsOnSessionQueue;
 
 - (bool)isCellular
 {
-    __block BOOL isCellular;
-    [self synchronouslyPerformBlockOnSocketQueue:^{
-        isCellular = _cellular;
-    }];
-    return isCellular;
+    return _cellular;
 }
 
 - (bool)isOpen
 {
-    __block BOOL isOpen;
-    [self synchronouslyPerformBlockOnSocketQueue:^{
-        isOpen = (!_closing && !_receivedGoAwayFrame && !_sentGoAwayFrame);
-    }];
-    return isOpen;
+    return (!_closing && !_receivedGoAwayFrame && !_sentGoAwayFrame);
 }
 
 - (void)close

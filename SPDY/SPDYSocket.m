@@ -72,7 +72,7 @@ typedef enum : uint16_t {
 
 // Stream Implementation
 - (bool)_createStreamsToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError;
-- (bool)_scheduleStreamsOnDispatchQueue:(NSError **)pError;
+- (BOOL)_scheduleStreamsOnDispatchQueue:(NSError **)pError;
 - (bool)_configureStreams:(NSError **)pError;
 - (bool)_openStreams:(NSError **)pError;
 - (void)_onStreamOpened;
