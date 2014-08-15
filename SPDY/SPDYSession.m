@@ -46,7 +46,8 @@
 - (void)_sendPingResponse:(SPDYPingFrame *)pingFrame;
 - (void)_sendRstStream:(SPDYStreamStatus)status streamId:(SPDYStreamId)streamId;
 - (void)_sendGoAway:(SPDYSessionStatus)status;
-- (void)_closeStream:(SPDYStream *)stream withError:(NSError*)error;
+- (void)_closeStream:(SPDYStream *)stream withError:(NSError *)error;
+- (void)_removeStream:(SPDYStream *)stream;
 @end
 
 @implementation SPDYSession
@@ -77,6 +78,29 @@
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
     bool _cellular;
+}
+
++ (NSMutableDictionary *)getMetadataForSession:(SPDYSession *)session stream:(SPDYStream *)stream
+{
+    // Note: all values must be strings, since they may be returned in the HTTP response headers.
+    NSMutableDictionary *metadata = [[NSMutableDictionary alloc] initWithCapacity:3];
+    metadata[SPDYMetadataVersionKey] = @"3.1";
+    if (stream) {
+        metadata[SPDYMetadataRequestStreamIdKey] = [@(stream.streamId) stringValue];
+    }
+    if (session && session.latencyMs > -1) {
+        metadata[SPDYMetadataSessionLatencyKey] = [@(session.latencyMs) stringValue];
+    }
+    return metadata;
+}
+
++ (NSError *)addMetadata:(NSMutableDictionary *)metadata toError:(NSError *)error
+{
+    // NSError instances are immutable, but all we want to do is augment it with our own
+    // custom error keys. This avoids the headache of making the application deal with a
+    // nested NSError (under the NSUnderlyingErrorKey).
+    [metadata addEntriesFromDictionary:error.userInfo];
+    return [[NSError alloc] initWithDomain:error.domain code:error.code userInfo:metadata];
 }
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
@@ -249,6 +273,11 @@
     return (!_receivedGoAwayFrame && !_sentGoAwayFrame);
 }
 
+- (NSInteger)latencyMs
+{
+    return _sessionLatency * 1000;
+}
+
 - (void)close
 {
     [self _closeWithStatus:SPDY_SESSION_OK];
@@ -261,7 +290,9 @@
     }
     for (SPDYStream *stream in _activeStreams) {
         [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
-        [stream closeWithStatus:stream.local ? SPDY_STREAM_CANCEL : SPDY_STREAM_INTERNAL_ERROR];
+        // TODO: shouldn't just convert a SPDYStreamStatus to a SPDYStreamError
+        SPDYStreamStatus status = stream.local ? SPDY_STREAM_CANCEL : SPDY_STREAM_INTERNAL_ERROR;
+        [self _closeStream:stream withError:SPDY_STREAM_ERROR((SPDYStreamError)status, @"SPDY stream closed.")];
     }
 
     [_activeStreams removeAllStreams];
@@ -342,7 +373,7 @@
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_WARNING(@"session connection error: %@", error);
     for (SPDYStream *stream in _activeStreams) {
-        [stream closeWithError:error];
+        [self _closeStream:stream withError:error];
     }
     [_activeStreams removeAllStreams];
 }
@@ -500,12 +531,14 @@
         stream.receiveWindowSize = _initialReceiveWindowSize;
     }
 
-    [stream didLoadData:dataFrame.data];
+    NSError *error = nil;
+    if (![stream didLoadData:dataFrame.data error:&error]) {
+        [self _closeStream:stream withError:error];
+    }
 
     stream.remoteSideClosed = dataFrame.last;
     if (stream.closed) {
-        [_activeStreams removeStreamWithStreamId:streamId];
-        [self _issuePendingRequests];
+        [self _removeStream:stream];
     }
 }
 
@@ -575,26 +608,23 @@
     }
 
 #if INCLUDE_SPDY_RESPONSE_HEADERS
+    // We want to add our local metadata headers after the reply headers. This will replace
+    // those headers *if* they are in the response, which is a more consistent behavior for the
+    // application.
     NSMutableDictionary *headers = [synReplyFrame.headers mutableCopy];
-    headers[@"x-spdy-version"] = @"3.1";
-    headers[@"x-spdy-parallelism"] = [[NSString alloc] initWithFormat:@"%lu", (unsigned long)_configuration.sessionPoolSize];
-    headers[@"x-spdy-stream-id"] = [[NSString alloc] initWithFormat:@"%u", streamId];
-
-    if (_sessionLatency > -1) {
-        NSString *sessionLatencyMs = [@((int)(_sessionLatency * 1000)) stringValue];
-        headers[@"x-spdy-session-latency"] = sessionLatencyMs;
-    }
+    [headers addEntriesFromDictionary:[SPDYSession getMetadataForSession:self stream:stream]];
 #else
     NSDictionary *headers = synReplyFrame.headers;
 #endif
 
-    [stream didReceiveResponse:headers];
+    NSError *error = nil;
+    if (![stream didReceiveResponse:headers error:&error]) {
+        [self _closeStream:stream withError:error];
+    }
 
     stream.remoteSideClosed = synReplyFrame.last;
-
     if (stream.closed) {
-        [_activeStreams removeStreamWithStreamId:streamId];
-        [self _issuePendingRequests];
+        [self _removeStream:stream];
     }
 }
 
@@ -614,9 +644,9 @@
     SPDY_DEBUG(@"received RST_STREAM.%u (%u)", streamId, rstStreamFrame.statusCode);
 
     if (stream) {
-        [stream closeWithStatus:rstStreamFrame.statusCode];
-        [_activeStreams removeStreamWithStreamId:streamId];
-        [self _issuePendingRequests];
+        // TODO: shouldn't just convert a SPDYStreamStatus to a SPDYStreamError
+        [self _closeStream:stream withError:SPDY_STREAM_ERROR((SPDYStreamError)rstStreamFrame.statusCode, @"SPDY stream closed.")];
+        [self _removeStream:stream];
     }
 }
 
@@ -717,8 +747,7 @@
 
     stream.remoteSideClosed = headersFrame.last;
     if (stream.closed) {
-        [_activeStreams removeStreamWithStreamId:streamId];
-        [self _issuePendingRequests];
+        [self _removeStream:stream];
     }
 }
 
@@ -821,6 +850,7 @@
     NSError *error;
     if (![_frameEncoder encodeSynStreamFrame:synStreamFrame error:&error]) {
         [self _closeStream:stream withError:error];
+        [self _removeStream:stream];
         SPDY_ERROR(@"error encoding SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
     } else {
         SPDY_DEBUG(@"sent SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
@@ -853,6 +883,7 @@
             if (error) {
                 [self _sendRstStream:SPDY_STREAM_CANCEL streamId:streamId];
                 [self _closeStream:stream withError:error];
+                [self _removeStream:stream];
             }
 
             // -[SPDYStream hasDataAvailable] may return true if we need to perform
@@ -874,8 +905,7 @@
     }
 
     if (stream.closed) {
-        [_activeStreams removeStreamWithStreamId:streamId];
-        [self _issuePendingRequests];
+        [self _removeStream:stream];
     }
 }
 
@@ -921,10 +951,20 @@
     _sentGoAwayFrame = YES;
 }
 
-- (void)_closeStream:(SPDYStream *)stream withError:(NSError*)error
+- (void)_closeStream:(SPDYStream *)stream withError:(NSError *)error
 {
+    NSParameterAssert(error != nil);
+    NSParameterAssert(stream != nil);
+
     SPDY_ERROR(@"closing stream %u with error %@", stream.streamId, error);
-    [stream closeWithError:error];
+    NSMutableDictionary *newUserInfo = [SPDYSession getMetadataForSession:self stream:stream];
+    NSError *newError = [SPDYSession addMetadata:newUserInfo toError:error];
+    [stream closeWithError:newError];
+}
+
+- (void)_removeStream:(SPDYStream *)stream
+{
+    SPDY_ERROR(@"removing stream %u", stream.streamId);
     [_activeStreams removeStreamWithStreamId:stream.streamId];
     [self _issuePendingRequests];
 }
