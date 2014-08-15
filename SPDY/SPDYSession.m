@@ -86,7 +86,7 @@
     NSMutableDictionary *metadata = [[NSMutableDictionary alloc] initWithCapacity:3];
     metadata[SPDYMetadataVersionKey] = @"3.1";
     if (stream) {
-        metadata[SPDYMetadataRequestStreamIdKey] = [@(stream.streamId) stringValue];
+        metadata[SPDYMetadataStreamIdKey] = [@(stream.streamId) stringValue];
     }
     if (session && session.latencyMs > -1) {
         metadata[SPDYMetadataSessionLatencyKey] = [@(session.latencyMs) stringValue];

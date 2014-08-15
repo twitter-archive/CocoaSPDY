@@ -24,7 +24,7 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 #define SPDYMetadataVersionKey @"x-spdy-version"
 
 // SPDY request stream id, e.g. "1"
-#define SPDYMetadataRequestStreamIdKey @"x-spdy-stream-id"
+#define SPDYMetadataStreamIdKey @"x-spdy-stream-id"
 
 // SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
 #define SPDYMetadataSessionLatencyKey @"x-spdy-session-latency"
