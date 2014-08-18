@@ -115,7 +115,9 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     NSError *error;
     _session = [SPDYSessionManager sessionForURL:request.URL error:&error];
     if (!_session) {
-        [self.client URLProtocol:self didFailWithError:error];
+        NSMutableDictionary *metadata = [SPDYSession getMetadataForSession:nil stream:nil];
+        NSError *newError = [SPDYSession addMetadata:metadata toError:error];
+        [self.client URLProtocol:self didFailWithError:newError];
     } else {
         [_session issueRequest:self];
     }

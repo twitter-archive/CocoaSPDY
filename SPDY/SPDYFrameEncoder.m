@@ -69,7 +69,7 @@
     return YES;
 }
 
-- (bool)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError**)pError
+- (bool)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:synStreamFrame.headers error:pError]) {
         return NO;
@@ -99,7 +99,7 @@
     return YES;
 }
 
-- (bool)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError**)pError
+- (bool)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:synReplyFrame.headers error:pError]) {
         return NO;
