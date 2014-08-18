@@ -14,6 +14,21 @@
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
 
+/**
+  SPDY metadata is returned in the HTTP response headers, or if those are not available due to an
+  error, then they are returned in the userInfo dictionary in the NSError. Both are NSDictionary
+  objects, and the values are stored under the following keys.
+*/
+
+// SPDY version, e.g. "3.1"
+#define SPDYMetadataVersionKey @"x-spdy-version"
+
+// SPDY request stream id, e.g. "1"
+#define SPDYMetadataStreamIdKey @"x-spdy-stream-id"
+
+// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
+#define SPDYMetadataSessionLatencyKey @"x-spdy-session-latency"
+
 @class SPDYConfiguration;
 
 @protocol SPDYLogger;
