@@ -174,6 +174,7 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
 {
     if (SPDY_COMMON_HEADER_SIZE <= len) {
         _header = getCommonHeader(buffer);
+        _frameLength = SPDY_COMMON_HEADER_SIZE + _header.length;  // exposed as property
         if (_header.ctrl) {
             if (_header.control.version == SPDY_VERSION) {
                 _type = (SPDYControlFrameType) _header.control.type;

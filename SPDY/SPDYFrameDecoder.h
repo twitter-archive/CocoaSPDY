@@ -30,6 +30,7 @@
 
 @interface SPDYFrameDecoder : NSObject
 @property (nonatomic, weak) id<SPDYFrameDecoderDelegate> delegate;
+@property (nonatomic) NSInteger frameLength;
 
 - (id)initWithDelegate:(id<SPDYFrameDecoderDelegate>)delegate;
 

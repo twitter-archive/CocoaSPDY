@@ -52,6 +52,9 @@
 #define AssertLastDelegateMessage(SELECTOR_NAME) \
     STAssertEqualObjects(_mock.lastDelegateMessage, SELECTOR_NAME, @"expected mock delegate's last message received to be %@ but was %@", SELECTOR_NAME, _mock.lastDelegateMessage)
 
+#define AssertDecodedFrameLength(LENGTH) \
+    STAssertEquals(_decoder.frameLength, LENGTH, @"expected the decoded frame to be %d bytes but got %d bytes", LENGTH, _decoder.frameLength)
+
 NSDictionary *testHeaders()
 {
     return @{
@@ -87,10 +90,12 @@ NSDictionary *testHeaders()
 
     inFrame.data = [[NSData alloc] initWithBytes:data length:100];
 
-    [_encoder encodeDataFrame:inFrame];
+    NSInteger bytesEncoded = [_encoder encodeDataFrame:inFrame];
+    STAssertEquals(bytesEncoded, 108, nil);
 
     AssertLastFrameClass(@"SPDYDataFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYDataFrame *outFrame = _mock.lastFrame;
 
@@ -112,10 +117,13 @@ NSDictionary *testHeaders()
     inFrame.priority = (uint8_t)(arc4random() & 7);
     inFrame.slot = 0;
 
-    STAssertTrue([_encoder encodeSynStreamFrame:inFrame error:nil], nil);
+    // Header block is compressed. Hard to figure out exact size, so we'll use a lower bound.
+    NSInteger bytesEncoded = [_encoder encodeSynStreamFrame:inFrame error:nil];
+    STAssertTrue(bytesEncoded > 18, nil);
 
     AssertLastFrameClass(@"SPDYSynStreamFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYSynStreamFrame *outFrame = _mock.lastFrame;
 
@@ -138,10 +146,12 @@ NSDictionary *testHeaders()
     inFrame.slot = 0;
     inFrame.headers = testHeaders();
 
-    STAssertTrue([_encoder encodeSynStreamFrame:inFrame error:nil], nil);
+    NSInteger bytesEncoded = [_encoder encodeSynStreamFrame:inFrame error:nil];
+    STAssertTrue(bytesEncoded > 18, nil);
 
     AssertLastFrameClass(@"SPDYSynStreamFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYSynStreamFrame *outFrame = _mock.lastFrame;
 
@@ -175,12 +185,12 @@ NSDictionary *testHeaders()
     };
 
     // Try with no error parameter
-    STAssertFalse([_encoder  encodeSynStreamFrame:inFrame error:nil], nil);
+    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:nil], 0, nil);
     AssertFramesReceivedCount(0);
 
     // Try with error parameter
     NSError *error;
-    STAssertFalse([_encoder encodeSynStreamFrame:inFrame error:&error], nil);
+    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:&error], 0, nil);
     AssertFramesReceivedCount(0);
     STAssertNotNil(error, nil);
     STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);
@@ -207,7 +217,7 @@ NSDictionary *testHeaders()
     };
 
     NSError *error;
-    STAssertFalse([_encoder encodeSynStreamFrame:inFrame error:&error], nil);
+    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:&error], 0, nil);
     AssertFramesReceivedCount(0);
     STAssertNotNil(error, nil);
     STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);
@@ -220,10 +230,13 @@ NSDictionary *testHeaders()
     inFrame.streamId = arc4random() & 0x7FFFFFFF;
     inFrame.last = (bool)(arc4random() & 1);
 
-    STAssertTrue([_encoder encodeSynReplyFrame:inFrame error:nil], nil);
+    // Header block is compressed. Hard to figure out exact size, so we'll use a lower bound.
+    NSInteger bytesEncoded = [_encoder encodeSynReplyFrame:inFrame error:nil];
+    STAssertTrue(bytesEncoded > 12, nil);
 
     AssertLastFrameClass(@"SPDYSynReplyFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYSynReplyFrame *outFrame = _mock.lastFrame;
 
@@ -238,10 +251,12 @@ NSDictionary *testHeaders()
     inFrame.last = (bool)(arc4random() & 1);
     inFrame.headers = testHeaders();
 
-    STAssertTrue([_encoder encodeSynReplyFrame:inFrame error:nil], nil);
+    NSInteger bytesEncoded = [_encoder encodeSynReplyFrame:inFrame error:nil];
+    STAssertTrue(bytesEncoded > 12, nil);
 
     AssertLastFrameClass(@"SPDYSynReplyFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYSynReplyFrame *outFrame = _mock.lastFrame;
 
@@ -258,10 +273,12 @@ NSDictionary *testHeaders()
     inFrame.streamId = arc4random() & 0x7FFFFFFF;
     inFrame.statusCode = (SPDYStreamStatus)(arc4random() % 11 + 1);
 
-    [_encoder encodeRstStreamFrame:inFrame];
+    NSInteger bytesEncoded = [_encoder encodeRstStreamFrame:inFrame];
+    STAssertEquals(bytesEncoded, 16, nil);
 
     AssertLastFrameClass(@"SPDYRstStreamFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYRstStreamFrame *outFrame = _mock.lastFrame;
 
@@ -295,10 +312,12 @@ NSDictionary *testHeaders()
         inFrame.settings[chosenIds[i]].value = arc4random();
     }
 
-    [_encoder encodeSettingsFrame:inFrame];
+    NSInteger bytesEncoded = [_encoder encodeSettingsFrame:inFrame];
+    STAssertEquals(bytesEncoded, 12 + (k * 8), nil);
 
     AssertLastFrameClass(@"SPDYSettingsFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYSettingsFrame *outFrame = _mock.lastFrame;
 
@@ -317,10 +336,12 @@ NSDictionary *testHeaders()
     SPDYPingFrame *inFrame = [[SPDYPingFrame alloc] init];
     inFrame.pingId = arc4random() & 0xFFFFFFFE;
 
-    [_encoder encodePingFrame:inFrame];
+    NSInteger bytesEncoded = [_encoder encodePingFrame:inFrame];
+    STAssertEquals(bytesEncoded, 12, nil);
 
     AssertLastFrameClass(@"SPDYPingFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYPingFrame *outFrame = _mock.lastFrame;
 
@@ -332,10 +353,12 @@ NSDictionary *testHeaders()
     SPDYGoAwayFrame *inFrame = [[SPDYGoAwayFrame alloc] init];
     inFrame.statusCode = (SPDYSessionStatus)(arc4random() % 3);
 
-    [_encoder encodeGoAwayFrame:inFrame];
+    NSInteger bytesEncoded = [_encoder encodeGoAwayFrame:inFrame];
+    STAssertEquals(bytesEncoded, 16, nil);
 
     AssertLastFrameClass(@"SPDYGoAwayFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYGoAwayFrame *outFrame = _mock.lastFrame;
 
@@ -348,10 +371,13 @@ NSDictionary *testHeaders()
     inFrame.streamId = arc4random() & 0x7FFFFFFF;
     inFrame.last = (bool)(arc4random() & 1);
 
-    STAssertTrue([_encoder encodeHeadersFrame:inFrame error:nil], nil);
+    // Header block is compressed. Hard to figure out exact size, so we'll use a lower bound.
+    NSInteger bytesEncoded = [_encoder encodeHeadersFrame:inFrame error:nil];
+    STAssertTrue(bytesEncoded > 12, nil);
 
     AssertLastFrameClass(@"SPDYHeadersFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYHeadersFrame *outFrame = _mock.lastFrame;
 
@@ -366,10 +392,12 @@ NSDictionary *testHeaders()
     inFrame.last = (bool)(arc4random() & 1);
     inFrame.headers = testHeaders();
 
-    STAssertTrue([_encoder encodeHeadersFrame:inFrame error:nil], nil);
+    NSInteger bytesEncoded = [_encoder encodeHeadersFrame:inFrame error:nil];
+    STAssertTrue(bytesEncoded > 12, nil);
 
     AssertLastFrameClass(@"SPDYHeadersFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYHeadersFrame *outFrame = _mock.lastFrame;
 
@@ -386,10 +414,12 @@ NSDictionary *testHeaders()
     inFrame.streamId = arc4random() & 0x7FFFFFFF;
     inFrame.deltaWindowSize = arc4random() & 0x7FFFFFFF;
 
-    [_encoder encodeWindowUpdateFrame:inFrame];
+    NSInteger bytesEncoded = [_encoder encodeWindowUpdateFrame:inFrame];
+    STAssertEquals(bytesEncoded, 16, nil);
 
     AssertLastFrameClass(@"SPDYWindowUpdateFrame");
     AssertFramesReceivedCount(1);
+    AssertDecodedFrameLength(bytesEncoded);
 
     SPDYWindowUpdateFrame *outFrame = _mock.lastFrame;
 

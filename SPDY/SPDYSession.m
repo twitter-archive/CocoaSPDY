@@ -87,6 +87,8 @@
     metadata[SPDYMetadataVersionKey] = @"3.1";
     if (stream) {
         metadata[SPDYMetadataStreamIdKey] = [@(stream.streamId) stringValue];
+        metadata[SPDYMetadataStreamRxBytesKey] = [@(stream.rxBytes) stringValue];
+        metadata[SPDYMetadataStreamTxBytesKey] = [@(stream.txBytes) stringValue];
     }
     if (session && session.latencyMs > -1) {
         metadata[SPDYMetadataSessionLatencyKey] = [@(session.latencyMs) stringValue];
@@ -442,6 +444,12 @@
     SPDYStream *stream = _activeStreams[streamId];
     SPDY_DEBUG(@"received DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
+    // Perform receive bytes accounting here. Beware the recursive call back into this function
+    // below for partial data frame chunking. Don't double-add.
+    if (stream) {
+        stream.rxBytes += frameDecoder.frameLength;
+    }
+
     // Check if session flow control is violated
     if (_sessionReceiveWindowSize < dataFrame.data.length) {
         [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
@@ -501,6 +509,11 @@
     // Window size became negative due to sender writing frame before receiving SETTINGS
     // Send data frames upstream in initialReceiveWindowSize chunks
     if (dataFrame.data.length > _initialReceiveWindowSize) {
+        // This frame is too large, so it's going to get chunked up. didReadDataFrame will be
+        // called recursively for each chunk, and we don't want those to be counted as rxBytes
+        // (since we already accounted for the entire large frame).
+        frameDecoder.frameLength = 0;
+
         NSUInteger dataOffset = 0;
         while (dataFrame.data.length - dataOffset > _initialReceiveWindowSize) {
             SPDYDataFrame *partialDataFrame = [[SPDYDataFrame alloc] init];
@@ -577,6 +590,7 @@
     stream.remoteSideClosed = synStreamFrame.last;
     stream.sendWindowSize = _initialSendWindowSize;
     stream.receiveWindowSize = _initialReceiveWindowSize;
+    stream.rxBytes += frameDecoder.frameLength;
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
@@ -600,6 +614,8 @@
         [self _sendRstStream:SPDY_STREAM_INVALID_STREAM streamId:streamId];
         return;
     }
+
+    stream.rxBytes += frameDecoder.frameLength;
 
     // Check if we have received multiple frames for the same Stream-ID
     if (stream.receivedReply) {
@@ -644,6 +660,7 @@
     SPDY_DEBUG(@"received RST_STREAM.%u (%u)", streamId, rstStreamFrame.statusCode);
 
     if (stream) {
+        stream.rxBytes += frameDecoder.frameLength;
         // TODO: shouldn't just convert a SPDYStreamStatus to a SPDYStreamError
         [self _closeStream:stream withError:SPDY_STREAM_ERROR((SPDYStreamError)rstStreamFrame.statusCode, @"SPDY stream closed.")];
         [self _removeStream:stream];
@@ -739,6 +756,10 @@
     SPDYStreamId streamId = headersFrame.streamId;
     SPDYStream *stream = _activeStreams[streamId];
     SPDY_DEBUG(@"received HEADERS.%u", streamId);
+
+    if (stream) {
+        stream.rxBytes += frameDecoder.frameLength;
+    }
 
     if (!stream || stream.remoteSideClosed) {
         [self _sendRstStream:SPDY_STREAM_INVALID_STREAM streamId:streamId];
@@ -848,11 +869,13 @@
     synStreamFrame.headers = stream.protocol.request.allSPDYHeaderFields;
 
     NSError *error;
-    if (![_frameEncoder encodeSynStreamFrame:synStreamFrame error:&error]) {
+    NSInteger result = [_frameEncoder encodeSynStreamFrame:synStreamFrame error:&error];
+    if (result <= 0) {
         [self _closeStream:stream withError:error];
         [self _removeStream:stream];
         SPDY_ERROR(@"error encoding SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
     } else {
+        stream.txBytes += result;
         SPDY_DEBUG(@"sent SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
     }
 }
@@ -871,9 +894,15 @@
             dataFrame.streamId = streamId;
             dataFrame.data = data;
             dataFrame.last = !stream.hasDataPending;
-            [_frameEncoder encodeDataFrame:dataFrame];
+            NSInteger result = [_frameEncoder encodeDataFrame:dataFrame];
             SPDY_DEBUG(@"sent DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
+            // On-the-wire byte accounting
+            if (result > 0) {
+                stream.txBytes += result;
+            }
+
+            // SPDY window accounting
             uint32_t bytesSent = (uint32_t)data.length;
             sendWindowSize -= bytesSent;
             _sessionSendWindowSize -= bytesSent;
@@ -898,9 +927,12 @@
         SPDYDataFrame *dataFrame = [[SPDYDataFrame alloc] init];
         dataFrame.streamId = streamId;
         dataFrame.last = YES;
-        [_frameEncoder encodeDataFrame:dataFrame];
+        NSInteger result = [_frameEncoder encodeDataFrame:dataFrame];
         SPDY_DEBUG(@"sent DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
+        if (result > 0) {
+            stream.txBytes += result;
+        }
         stream.localSideClosed = YES;
     }
 

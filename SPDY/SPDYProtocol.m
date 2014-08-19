@@ -29,6 +29,8 @@ NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotific
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
 NSString *const SPDYMetadataVersionKey = @"x-spdy-version";
 NSString *const SPDYMetadataStreamIdKey = @"x-spdy-stream-id";
+NSString *const SPDYMetadataStreamRxBytesKey = @"x-spdy-stream-rx-bytes";
+NSString *const SPDYMetadataStreamTxBytesKey = @"x-spdy-stream-tx-bytes";
 NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
 
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";

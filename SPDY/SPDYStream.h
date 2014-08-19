@@ -40,6 +40,8 @@
 @property (nonatomic) uint32_t receiveWindowSize;
 @property (nonatomic) uint32_t sendWindowSizeLowerBound;
 @property (nonatomic) uint32_t receiveWindowSizeLowerBound;
+@property (nonatomic) NSUInteger txBytes;
+@property (nonatomic) NSUInteger rxBytes;
 
 - (id)initWithProtocol:(SPDYProtocol *)protocol dataDelegate:(id<SPDYStreamDataDelegate>)delegate;
 - (void)startWithStreamId:(SPDYStreamId)id sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize;

@@ -26,6 +26,12 @@ extern NSString *const SPDYMetadataVersionKey;
 // SPDY request stream id, e.g. "1"
 extern NSString *const SPDYMetadataStreamIdKey;
 
+// SPDY stream bytes received. Includes all SPDY headers and bodies.
+extern NSString *const SPDYMetadataStreamRxBytesKey;
+
+// SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
+extern NSString *const SPDYMetadataStreamTxBytesKey;
+
 // SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
 extern NSString *const SPDYMetadataSessionLatencyKey;
 
