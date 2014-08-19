@@ -24,6 +24,14 @@ NSDictionary* GetHeadersFromRequest(NSString *urlString)
     return [request allSPDYHeaderFields];
 }
 
+NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
+{
+    NSURL *url = [[NSURL alloc] initWithString:urlString];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+    [request setHTTPMethod:httpMethod];
+    return request;
+}
+
 - (void)testAllSPDYHeaderFields
 {
     // Test basic mainline case with a single custom multi-value header.
@@ -81,9 +89,7 @@ NSDictionary* GetHeadersFromRequest(NSString *urlString)
 - (void)testContentTypeHeaderDefaultForPost
 {
     // Ensure SPDY adds a default content-type when request is a POST with body.
-    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    [request setHTTPMethod:@"POST"];
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
     [request setSPDYBodyFile:@"bodyfile.json"];
 
     NSDictionary *headers = [request allSPDYHeaderFields];
@@ -94,15 +100,116 @@ NSDictionary* GetHeadersFromRequest(NSString *urlString)
 - (void)testContentTypeHeaderCustomForPost
 {
     // Ensure we can also override the default content-type.
-    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    [request setHTTPMethod:@"POST"];
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
     [request setSPDYBodyFile:@"bodyfile.json"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
     NSDictionary *headers = [request allSPDYHeaderFields];
     STAssertEqualObjects(headers[@":method"], @"POST", nil);
     STAssertEqualObjects(headers[@"content-type"], @"application/json", nil);
+}
+
+- (void)testContentLengthHeaderDefaultForPostWithHTTPBody
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
+    [request setHTTPBody:data];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
+}
+
+- (void)testContentLengthHeaderDefaultForPostWithInvalidSPDYBodyFile
+{
+    // An invalid body file will result in a size of 0
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    [request setSPDYBodyFile:@"doesnotexist.json"];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], @"0", nil);
+}
+
+- (void)testContentLengthHeaderDefaultForPostWithSPDYBodyStream
+{
+    // No default for input streams
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
+    NSInputStream *dataStream = [NSInputStream inputStreamWithData:data];
+    [request setSPDYBodyStream:dataStream];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], nil, nil);
+}
+
+- (void)testContentLengthHeaderCustomForPostWithSPDYBodyStream
+{
+    // No default for input streams
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
+    NSInputStream *dataStream = [NSInputStream inputStreamWithData:data];
+    [request setSPDYBodyStream:dataStream];
+    [request setValue:@"12" forHTTPHeaderField:@"Content-Length"];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], @"12", nil);
+}
+
+- (void)testContentLengthHeaderCustomForPostWithHTTPBody
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
+    [request setHTTPBody:data];
+    [request setValue:@"1" forHTTPHeaderField:@"Content-Length"];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], @"1", nil);
+}
+
+- (void)testContentLengthHeaderDefaultForPutWithHTTPBody
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"PUT");
+    NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
+    [request setHTTPBody:data];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
+}
+
+- (void)testContentLengthHeaderDefaultForGet
+{
+    // Unusual but not explicitly disallowed
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], nil, nil);
+}
+
+- (void)testContentLengthHeaderDefaultForGetWithHTTPBody
+{
+    // Unusual but not explicitly disallowed
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+    NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
+    [request setHTTPBody:data];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
+}
+
+- (void)testAcceptEncodingHeaderDefault
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"accept-encoding"], @"gzip, deflate", nil);
+}
+
+- (void)testAcceptEncodingHeaderCustom
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+    [request setValue:@"bogus" forHTTPHeaderField:@"Accept-Encoding"];
+
+    NSDictionary *headers = [request allSPDYHeaderFields];
+    STAssertEqualObjects(headers[@"accept-encoding"], @"bogus", nil);
 }
 
 - (void)testPathHeaderWithQueryString
