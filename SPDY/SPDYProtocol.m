@@ -27,6 +27,9 @@ NSString *const SPDYCodecErrorDomain = @"SPDYCodecErrorDomain";
 NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
+NSString *const SPDYMetadataVersionKey = @"x-spdy-version";
+NSString *const SPDYMetadataStreamIdKey = @"x-spdy-stream-id";
+NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
 
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
 static dispatch_once_t initConfig;
