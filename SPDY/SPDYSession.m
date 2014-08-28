@@ -20,6 +20,7 @@
 #import "SPDYFrameDecoder.h"
 #import "SPDYFrameEncoder.h"
 #import "SPDYOrigin.h"
+#import "SPDYOriginEndpoint.h"
 #import "SPDYProtocol.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
@@ -123,10 +124,9 @@
         }
 
         SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self];
-        bool connecting = [socket connectToHost:origin.host
-                                         onPort:origin.port
-                                    withTimeout:configuration.connectTimeout
-                                          error:pError];
+        bool connecting = [socket connectToOrigin:origin
+                                      withTimeout:configuration.connectTimeout
+                                            error:pError];
 
         if (connecting) {
             _configuration = configuration;
@@ -308,10 +308,10 @@
     return evaluator == nil || [evaluator evaluateServerTrust:trust forHost:_origin.host];
 }
 
-- (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port
+- (void)socket:(SPDYSocket *)socket didConnectToEndpoint:(SPDYOriginEndpoint *)endpoint
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
-    SPDY_DEBUG(@"socket connected to %@:%u", host, port);
+    SPDY_DEBUG(@"socket connected to %@:%d using %@", [socket connectedHost], [socket connectedPort], endpoint);
 
     if(_enableTCPNoDelay){
         CFDataRef nativeSocket = CFWriteStreamCopyProperty(socket.cfWriteStream, kCFStreamPropertySocketNativeHandle);

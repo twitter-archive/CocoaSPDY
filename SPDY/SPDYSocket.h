@@ -30,7 +30,7 @@ extern NSString *const SPDYSocketException;
 
   You may call [SPDYSocket unreadData] during this callback to retrieve
   remaining data off the socket. This delegate method may be called before
-  socket:didAcceptNewSocket: or onSocket:didConnectToHost:.
+  socket:didAcceptNewSocket: or socket:didConnectToEndpoint:.
 */
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error;
 
@@ -47,7 +47,7 @@ extern NSString *const SPDYSocketException;
   Called when a socket accepts a connection.
 
   Another SPDYSocket is spawned to handle it. The new socket will have
-  the same delegate and will call socket:didConnectToHost:port:.
+  the same delegate and will call socket:didConnectToEndpoint:.
 */
 - (void)socket:(SPDYSocket *)socket didAcceptNewSocket:(SPDYSocket *)newSocket;
 
@@ -69,7 +69,7 @@ extern NSString *const SPDYSocketException;
   If [SPDYSocket connectToAddress:error:] was called, the delegate will be able
   to access and configure the CFSocket and CFSocketNativeHandle (BSD socket) as
   desired prior to connection. You will be able to access and configure the
-  CFReadStream and CFWriteStream during socket:didConnectToHost:port:.
+  CFReadStream and CFWriteStream during socket:didConnectToEndpoint:.
 
   @return YES to continue, NO to abort resulting in a SPDYSocketConnectCanceled
 */
@@ -80,7 +80,7 @@ extern NSString *const SPDYSocketException;
 
   @param host IP address of the connected host
 */
-- (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port;
+- (void)socket:(SPDYSocket *)socket didConnectToEndpoint:(SPDYOriginEndpoint *)endpoint;
 
 /**
   Called when a socket has completed reading the requested data into memory.
@@ -154,18 +154,12 @@ extern NSString *const SPDYSocketException;
 
 /**
   Connects to the given host and port.
-*/
-- (bool)connectToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError;
-
-/**
-  Connects to the given host and port.
 
   @param timeout use a negative value for no connection timeout
 **/
-- (bool)connectToHost:(NSString *)hostname
-               onPort:(in_port_t)port
-          withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)pError;
+- (bool)connectToOrigin:(SPDYOrigin *)origin
+            withTimeout:(NSTimeInterval)timeout
+                  error:(NSError **)pError;
 
 /**
   Disconnects immediately; any pending reads or writes are dropped.
