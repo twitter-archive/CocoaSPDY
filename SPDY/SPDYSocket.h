@@ -17,6 +17,8 @@
 @class SPDYSocket;
 @class SPDYSocketReadOp;
 @class SPDYSocketWriteOp;
+@class SPDYOrigin;
+@class SPDYOriginEndpoint;
 
 extern NSString *const SPDYSocketException;
 
