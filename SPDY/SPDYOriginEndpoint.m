@@ -47,7 +47,7 @@
     } else {
         return [NSString stringWithFormat:@"<SPDYOriginEndpoint: %@:%d (%@ proxy%@) origin:%@>",
                                           _host, _port,
-                                          _type == SPDYOriginEndpointTypeHttpProxy ? @"http" : @"https",
+                                          _type == SPDYOriginEndpointTypeHttpsProxy ? @"https" : @"unknown",
                                           _user ? @" with credentials" : @"",
                                           _origin];
     }
@@ -228,11 +228,11 @@
 
         SPDY_DEBUG(@"Proxy: discovered endpoint %@:%d (%@)", host, port, proxyType);
 
-        bool isHttpProxy = [proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeHTTP];
-        bool isHttpsProxy = [proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeHTTPS];
-        if (isHttpProxy || isHttpsProxy) {
+        // We only support HTTPS proxies, since SPDY requires the use of TLS. An HTTP proxy
+        // does not use the CONNECT message, so is unable to speak anything but plaintext HTTP.
+        if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeHTTPS]) {
             SPDYOriginEndpoint *endpoint;
-            SPDYOriginEndpointType type = (isHttpProxy) ? SPDYOriginEndpointTypeHttpProxy : SPDYOriginEndpointTypeHttpsProxy;
+            SPDYOriginEndpointType type = SPDYOriginEndpointTypeHttpsProxy;
             endpoint = [[SPDYOriginEndpoint alloc] initWithHost:host
                                                            port:port
                                                            user:user
