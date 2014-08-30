@@ -539,6 +539,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     SPDYOriginEndpoint *endpoint = [_endpointManager getCurrentEndpoint];
 
+    SPDY_INFO(@"socket attempting connection to %@", endpoint);
+
     if (![self _createStreamsToHost:endpoint.host onPort:endpoint.port error:pError]) goto Failed;
     if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
     if (![self _configureStreams:pError])                               goto Failed;
@@ -547,17 +549,22 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     [self _startConnectTimeout:timeout];
     _flags |= kDidStartDelegate;
 
+    // If connecting to a proxy, we have to exchange an HTTP CONNECT message. This exchange
+    // needs to be included in the timeout. If anything fails, we'd prefer to hide the error
+    // from the app, until no more endpoints (proxy or direct) are available. Let's go start
+    // the CONNECT exchange now.
     if (endpoint.type == SPDYOriginEndpointTypeHttpProxy ||
             endpoint.type == SPDYOriginEndpointTypeHttpsProxy) {
         CHECK_THREAD_SAFETY();
 
-        SPDY_INFO(@"socket connecting using proxy: %@", endpoint);
         _flags |= kConnectingToProxy;
 
         if (endpoint.type == SPDYOriginEndpointTypeHttpsProxy) {
-            // @@@ TODO address this!
+            // @@@ TODO: what exactly is an Https proxy? Initiating a TLS handshake right now
+            // seems like the right thing to do, but it breaks Charles. Not doing it works fine.
+            SPDY_DEBUG(@"proxy connection is HTTPS");
             //[self secureWithTLS:nil];
-            SPDY_DEBUG(@"proxy connection using TLS");
+            //SPDY_DEBUG(@"proxy connection using TLS");
         }
 
         // Issue the proxy read op
@@ -569,6 +576,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         SPDYSocketWriteOp *writeOp = [[SPDYSocketProxyWriteOp alloc] initWithOrigin:endpoint.origin timeout:timeout];
         [_writeQueue addObject:writeOp];
         [self _scheduleWrite];
+
         SPDY_DEBUG(@"sent proxy CONNECT request");
     }
 
@@ -576,9 +584,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     Failed:
     [self _close];
-
-    // @@@ TODO: Adjust timeout value
-    return [self _connectToNextEndpointWithTimeout:timeout error:pError];
+    return NO;
 }
 
 - (void)_startConnectTimeout:(NSTimeInterval)timeout
@@ -604,6 +610,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 #pragma unused(timer)
 
     [self _endConnectTimeout];
+    // Proxy, if applicable, is done
+    _flags &= ~kConnectingToProxy;
     [self _closeWithError:[self connectTimeoutError]];
 }
 
@@ -740,7 +748,11 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             return;
         }
 
-        [self _endConnectTimeout];
+        // A non-proxy connection is finished at this point. Proxy connections still have to
+        // exchange an HTTP CONNECT message.
+        if (!(_flags & kConnectingToProxy)) {
+            [self _endConnectTimeout];
+        }
         [self _setConnectionProperties];
 
         if ([_delegate respondsToSelector:@selector(socket:didConnectToEndpoint:)]) {
@@ -880,13 +892,17 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)_close
 {
+    bool connectingToProxy = (_flags & kConnectingToProxy);
+
     [self _emptyQueues];
 
     _unreadData = nil;
 
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];
 
-    if (_connectTimer) {
+    // With a proxy connection, we may end up trying more than one connection, in which case we
+    // don't want to cancel the connect timer.
+    if (_connectTimer && !connectingToProxy) {
         [self _endConnectTimeout];
     }
 
@@ -934,19 +950,36 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     _runLoop = NULL;
 
     // If the connection has at least been started, notify delegate that it is now ending
-    bool shouldCallDelegate = (_flags & kDidStartDelegate) && !(_flags & kConnectingToProxy);
+    bool shouldCallDelegate = (_flags & kDidStartDelegate) && !connectingToProxy;
 
     // Clear all flags
     _flags = (uint16_t)0;
 
     if (shouldCallDelegate) {
+        // Do not access any instance variables after calling onSocketDidDisconnect.
+        // This gives the delegate freedom to release us without returning here and crashing.
         if ([_delegate respondsToSelector:@selector(socketDidDisconnect:)]) {
             [_delegate socketDidDisconnect:self];
         }
-    }
+    } else if (connectingToProxy) {
+        // Try next proxy, if available
+        NSError *error;
+        // Pass -1 for timeout, this will ensure previously set timer continues
+        NSAssert(_connectTimer != nil, @"connect timer should already be set for a proxy re-connect");
+        if (![self _connectToNextEndpointWithTimeout:(NSTimeInterval)-1 error:&error]) {
+            SPDY_ERROR(@"socket failed connecting to any proxy: %@", error);
 
-    // Do not access any instance variables after calling onSocketDidDisconnect.
-    // This gives the delegate freedom to release us without returning here and crashing.
+            // This breaks with the non-proxy pattern in that it alerts the app of an error
+            // through the delegate. Normally this error would be returned in connectToOrigin,
+            // but we can't do that here. Clearing the proxy flag will ensure the read/write
+            // queues are completely emptied and the socketDidDisconnect delegate is called
+            // and the connect timer is cancelled. Calling _closeWithError will ensure the
+            // willDisconnectWithError delegate is called. It also ensures unread data is captured,
+            // though this isn't exactly desired.
+            _flags &= ~kConnectingToProxy;
+            [self _closeWithError:error];
+        }
+    }
 }
 
 /**
@@ -1670,9 +1703,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
             newTlsSettings[(__bridge NSString *)kCFStreamSSLPeerName] = endpoint.origin.host;
 
-            // @@@ TODO Need this?
-            //newTlsSettings[(__bridge NSString *)kCFStreamSSLValidatesCertificateChain] = (__bridge NSString *)kCFBooleanFalse;
-
             tlsOp->_tlsSettings = newTlsSettings;
         }
 
@@ -1696,7 +1726,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         bool acceptTrust = YES;
         if ([_delegate respondsToSelector:@selector(socket:securedWithTrust:)]) {
             SecTrustRef trust = (SecTrustRef)CFReadStreamCopyProperty(_readStream, kCFStreamPropertySSLPeerTrust);
-            // @@@ TODO Need something to distinguish proxy from endpoint?
+            // TODO: Need something to distinguish proxy from endpoint? Only when/if we secure
+            // the proxy connection itself with TLS. Not doing that yet.
             acceptTrust = [_delegate socket:self securedWithTrust:trust];
             if (trust) {
                 CFRelease(trust);
@@ -1725,16 +1756,31 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         SPDY_DEBUG(@"received proxy response: %@", proxyReadOp);
 
         if ([proxyReadOp success]) {
-            // Successfully connected to proxy server, carry on
-            SPDY_INFO(@"socket connected to proxy");
-            _flags &= ~kConnectingToProxy;
-
             // The write op has clearly completed, since we're received the response, but it's
             // still sitting as the current op. Finish it too.
             NSAssert([_currentReadOp isKindOfClass:[SPDYSocketProxyReadOp class]], nil);
             NSAssert([_currentWriteOp isKindOfClass:[SPDYSocketProxyWriteOp class]], nil);
 
-            // @@@ TODO: handle case where proxyReadOp->_bytesParsed is < _bytesRead
+            // Since this is a TCP stream, it's possible for there to be data present after the
+            // proxy's HTTP response. However, because we always block on completion of both the
+            // proxy read op and proxy write op before executing any additional operations, we
+            // won't have sent data. Thus we can't receive data from the origin yet. To do so would
+            // be a protocol error.
+            // Note that we are allowed to immediately send data to the origin after sending the
+            // proxy CONNECT message per the spec, but we don't. In addition, because we should
+            // always use TLS with SPDY to the origin, we're doubly safe from an early send and
+            // extra receive.
+            SPDYSocketProxyReadOp *op = (SPDYSocketProxyReadOp *)_currentReadOp;
+            if (op->_bytesParsed != op->_bytesRead) {
+                SPDY_WARNING(@"proxy response too big: %lu parsed, %lu read", (unsigned long)op->_bytesParsed, (unsigned long)op->_bytesRead);
+                // Error, shut it down and try next proxy if possible
+                [self _close];
+                return;
+            }
+
+            // Successfully connected to proxy server, carry on
+            SPDY_INFO(@"socket is now connected to proxy");
+            _flags &= ~kConnectingToProxy;
 
             [self _endRead];
             [self _scheduleRead];
@@ -1746,24 +1792,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             SPDY_WARNING(@"socket failed proxy connection to %@, got response: \"%@\"",
                          [_endpointManager getCurrentEndpoint], [proxyReadOp responseAsString]);
 
-            // Error, shut it down and try next proxy if possible
+            // Error returned from proxy, shut it down and try next proxy if possible
             [self _close];
-
-            // @@@ TODO adjust timeout
-            NSError *error;
-            if (![self _connectToNextEndpointWithTimeout:(NSTimeInterval)-1 error:&error]) {
-                SPDY_ERROR(@"Failed connecting to any proxy: %@", error);
-
-                // This breaks with the non-proxy pattern in that it alerts the app of an error
-                // through the delegate. Normally this error would be return in connectToOrigin,
-                // but we can't do that here. Clearing the proxy flag will ensure the read/write
-                // queues are completely emptied and the socketDidDisconnect delegate is called.
-                // Calling _closeWithError will ensure the willDisconnectWithError delegate is
-                // called. It also ensures unread data is captured, though this isn't exactly
-                // desired.
-                _flags &= ~kConnectingToProxy;
-                [self _closeWithError:error];
-            }
         }
     }
 }

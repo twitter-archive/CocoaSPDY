@@ -215,8 +215,8 @@
 {
     NSString *httpConnect = [[NSString alloc] initWithData:_buffer encoding:NSUTF8StringEncoding];
     return [NSString stringWithFormat:
-            @"<SPDYSocketProxyWriteOp: timeout %lu, tag %ld, bytesWritten %lu> connect: %@",
-            (unsigned long)_timeout, _tag, (unsigned long)_bytesWritten, httpConnect];
+            @"<SPDYSocketProxyWriteOp: timeout %lu, tag %ld, size %lu, bytesWritten %lu> connect: %@",
+            (unsigned long)_timeout, _tag, (unsigned long)_buffer.length, (unsigned long)_bytesWritten, httpConnect];
 }
 
 @end
