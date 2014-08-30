@@ -549,23 +549,14 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     [self _startConnectTimeout:timeout];
     _flags |= kDidStartDelegate;
 
-    // If connecting to a proxy, we have to exchange an HTTP CONNECT message. This exchange
+    // If connecting to an HTTPS proxy, we have to exchange an HTTP CONNECT message. This exchange
     // needs to be included in the timeout. If anything fails, we'd prefer to hide the error
     // from the app, until no more endpoints (proxy or direct) are available. Let's go start
     // the CONNECT exchange now.
-    if (endpoint.type == SPDYOriginEndpointTypeHttpProxy ||
-            endpoint.type == SPDYOriginEndpointTypeHttpsProxy) {
+    if (endpoint.type == SPDYOriginEndpointTypeHttpsProxy) {
         CHECK_THREAD_SAFETY();
 
         _flags |= kConnectingToProxy;
-
-        if (endpoint.type == SPDYOriginEndpointTypeHttpsProxy) {
-            // @@@ TODO: what exactly is an Https proxy? Initiating a TLS handshake right now
-            // seems like the right thing to do, but it breaks Charles. Not doing it works fine.
-            SPDY_DEBUG(@"proxy connection is HTTPS");
-            //[self secureWithTLS:nil];
-            //SPDY_DEBUG(@"proxy connection using TLS");
-        }
 
         // Issue the proxy read op
         SPDYSocketReadOp *readOp = [[SPDYSocketProxyReadOp alloc] initWithTimeout:timeout];

@@ -13,9 +13,11 @@
 
 @class SPDYOrigin;
 
+// Direct means no proxy.
+// Https means a proxy for HTTPS requests, which is essentially what SPDY requires.
+// Http means a proxy for plaintext HTTP requests, which don't use the CONNECT message. Unsupported.
 typedef enum {
     SPDYOriginEndpointTypeDirect,
-    SPDYOriginEndpointTypeHttpProxy,
     SPDYOriginEndpointTypeHttpsProxy
 } SPDYOriginEndpointType;
 
