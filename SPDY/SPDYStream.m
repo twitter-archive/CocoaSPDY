@@ -174,7 +174,7 @@
     if (_localSideClosed && _remoteSideClosed && _client) {
         [_client URLProtocolDidFinishLoading:_protocol];
     }
-    if (_pushClient && [_pushClient respondsToSelector:@selector(stream:didReceivePushResponse:data:)]) {
+    if (_remoteSideClosed && _pushClient && [_pushClient respondsToSelector:@selector(stream:didReceivePushResponse:data:)]) {
         if (!_pushResponse) {
             if (!_headers[@":status"]) {
                 [self didReceiveResponse:@{@":status":@(200)}];
