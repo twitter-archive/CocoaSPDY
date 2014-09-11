@@ -26,14 +26,14 @@
                                                                       port:8888
                                                                       user:@"user"
                                                                   password:@"pass"
-                                                                      type:SPDYOriginEndpointTypeHttpProxy
+                                                                      type:SPDYOriginEndpointTypeHttpsProxy
                                                                     origin:origin];
     NSLog(@"%@", endpoint); // ensure description doesn't crash
     STAssertEqualObjects(endpoint.host, @"1.2.3.4", @"actual: %@", endpoint.host);
     STAssertEquals(endpoint.port, (in_port_t)8888, @"actual: %@", endpoint.port);
     STAssertEqualObjects(endpoint.user, @"user", @"actual: %@", endpoint.user);
     STAssertEqualObjects(endpoint.password, @"pass", @"actual: %@", endpoint.password);
-    STAssertEquals(endpoint.type, SPDYOriginEndpointTypeHttpProxy, @"actual: %@", endpoint.type);
+    STAssertEquals(endpoint.type, SPDYOriginEndpointTypeHttpsProxy, @"actual: %@", endpoint.type);
     STAssertEqualObjects(endpoint.origin, origin, @"actual: %@", endpoint.origin);
 }
 
