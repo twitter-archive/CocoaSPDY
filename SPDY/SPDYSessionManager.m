@@ -92,11 +92,13 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 @end
 
+@interface SPDYSessionManager ()
+@property (nonatomic) dispatch_queue_t dispatchQueue;
+@property (nonatomic) NSMutableDictionary *wifiSessions;
+@property (nonatomic) NSMutableDictionary *cellularSessions;
+@end
+
 @implementation SPDYSessionManager
-{
-    NSArray *_poolTables;
-    dispatch_queue_t _dispatchQueue;
-}
 
 + (void)initialize
 {
@@ -131,33 +133,26 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if (self) {
         _configuration = [SPDYConfiguration defaultConfiguration];
         _dispatchQueue = dispatch_queue_create(NULL, DISPATCH_QUEUE_SERIAL);
+        _wifiSessions = [NSMutableDictionary new];
+        _cellularSessions = [NSMutableDictionary new];
     }
     return self;
 }
 
-- (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError
+- (SPDYSession *)sessionForURL:(NSURL *)URL error:(NSError **)pError
 {
+    NSParameterAssert(URL);
     __block SPDYSession *session = nil;
     dispatch_sync(_dispatchQueue, ^{
-        SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:url error:pError];
-        NSMutableDictionary *poolTable = [self _sessionPoolTable:reachabilityIsWWAN];
-        SPDYSessionPool *pool = poolTable[origin];
-        session = [pool next];
-        if (!session) {
-            pool = [[SPDYSessionPool alloc] initWithOrigin:origin
-                                             configuration:self.configuration
-                                                      size:self.configuration.sessionPoolSize
-                                                     error:pError];
-            if (pool) {
-                poolTable[origin] = pool;
-                session = [pool next];
-            }
+        SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:URL error:pError];
+        SPDYSessionPool *pool = [self _sessionPoolForOrigin:origin error:pError];
+        if (!pool) {
+            return;
         }
-        
-        NSAssert(session != nil, @"session should not be nil");
+        session = [pool next];
         SPDY_DEBUG(@"Retrieving session: %@", session);
         if ([self.delegate respondsToSelector:@selector(sessionManager:willStartSession:forURL:)]) {
-            [self.delegate sessionManager:self willStartSession:session forURL:url];
+            [self.delegate sessionManager:self willStartSession:session forURL:URL];
         }
     });
     return session;
@@ -172,9 +167,10 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         if ([self.delegate respondsToSelector:@selector(sessionManager:willStartSession:forURL:)]) {
             [self.delegate sessionManager:self willRemoveSession:session];
         }
-        NSMutableDictionary *poolTable = [self _sessionPoolTable:session.isCellular];
-        SPDYSessionPool *pool = poolTable[origin];
-        if (pool && [pool remove:session] == 0) {
+        
+        NSMutableDictionary *poolTable = reachabilityIsWWAN ? _wifiSessions : _cellularSessions;
+        SPDYSessionPool *sessionPool = poolTable[origin];
+        if (sessionPool && [sessionPool remove:session] == 0) {
             [poolTable removeObjectForKey:origin];
         }
     });
@@ -183,22 +179,29 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 - (NSArray *)allSessions
 {
     NSMutableArray *sessions = [NSMutableArray new];
-    [sessions addObjectsFromArray:[[_poolTables[0] allValues] valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
-    [sessions addObjectsFromArray:[[_poolTables[1] allValues] valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+    dispatch_sync(_dispatchQueue, ^{
+        [sessions addObjectsFromArray:[[_wifiSessions allValues] valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+        [sessions addObjectsFromArray:[[_cellularSessions allValues] valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+    });
     return sessions;
 }
 
-- (NSMutableDictionary *)_sessionPoolTable:(bool)cellular
+- (SPDYSessionPool *)_sessionPoolForOrigin:(SPDYOrigin *)origin error:(NSError **)error
 {
-    if (!_poolTables) {
-        _poolTables = @[
-            [NSMutableDictionary new],
-            [NSMutableDictionary new]  // WWAN
-        ];
+    NSMutableDictionary *poolTable = reachabilityIsWWAN ? _wifiSessions : _cellularSessions;
+    SPDYSessionPool *sessionPool = poolTable[origin];
+    if (!sessionPool) {
+        sessionPool = [[SPDYSessionPool alloc] initWithOrigin:origin
+                                                configuration:self.configuration
+                                                         size:self.configuration.sessionPoolSize
+                                                        error:error];
+        if (!sessionPool) {
+            SPDY_ERROR(@"Failed creating session pool for origin %@: %@", origin, error ? *error : nil);
+            return nil;
+        }
+        poolTable[origin] = sessionPool;
     }
-
-    SPDY_DEBUG(@"using %@ session pool", cellular ? @"cellular" : @"standard");
-    return _poolTables[cellular ? 1 : 0];
+    return sessionPool;
 }
 
 @end
