@@ -54,7 +54,7 @@
 @public
     NSString *_version;
     NSInteger _statusCode;
-    NSString *_statusMessage;
+    NSString *_remaining;
     NSUInteger _bytesParsed;
 }
 

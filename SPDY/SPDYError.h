@@ -47,7 +47,8 @@ typedef enum {
     SPDYSocketReadTimeout,
     SPDYSocketWriteTimeout,
     SPDYSocketTLSVerificationFailed,
-    SPDYSocketTransportError
+    SPDYSocketTransportError,
+    SPDYSocketProxyError
 } SPDYSocketError;
 
 #define SPDY_STREAM_ERROR(CODE, MESSAGE) \

@@ -16,8 +16,6 @@
 #endif
 
 #import <arpa/inet.h>
-#import <netinet/in.h>
-#import <sys/socket.h>
 #import <Foundation/Foundation.h>
 #import "SPDYCommonLogger.h"
 #import "SPDYOrigin.h"
@@ -532,14 +530,15 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)_connectToNextEndpointWithTimeout:(NSTimeInterval)timeout error:(NSError **)pError
 {
+    // Note: the first call to moveToNextEndpoint should *always* return an endpoint, either a proxy
+    // or direct.
     if (![_endpointManager moveToNextEndpoint]) {
-        NSParameterAssert(pError != nil);
         return NO;
     }
 
     SPDYOriginEndpoint *endpoint = [_endpointManager getCurrentEndpoint];
 
-    SPDY_INFO(@"socket attempting connection to %@", endpoint);
+    SPDY_ERROR(@"socket attempting connection to %@", endpoint);
 
     if (![self _createStreamsToHost:endpoint.host onPort:endpoint.port error:pError]) goto Failed;
     if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
@@ -601,8 +600,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 #pragma unused(timer)
 
     [self _endConnectTimeout];
-    // Proxy, if applicable, is done
-    _flags &= ~kConnectingToProxy;
     [self _closeWithError:[self connectTimeoutError]];
 }
 
@@ -834,42 +831,13 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     [self _emptyQueues];
 }
 
-- (void)_removeAllProxyObjectsInQueue:(NSMutableArray *)queue
-{
-    // A proxy connect will have the following items on the queue:
-    //   Proxy TLS [optional]
-    //   Proxy read/write op
-    //   App TLS [optional]
-    //   App read/write op
-    //   ...
-    // A write queue potentially has no Proxy ops, since it may have completed.
-    // We want to remove the "Proxy" items. We'll do that by removing everything
-    // up to and including the proxy read/write op.
-
-    NSUInteger indexToRemove = 0;
-    for (indexToRemove = 0; indexToRemove < queue.count; indexToRemove++) {
-        NSObject *item = [queue objectAtIndex:indexToRemove];
-        if ([item isMemberOfClass:[SPDYSocketProxyReadOp class]] ||
-                [item isMemberOfClass:[SPDYSocketProxyWriteOp class]]) {
-            [queue removeObjectsInRange:NSMakeRange(0, indexToRemove + 1)];
-            return;
-        }
-    }
-}
-
 - (void)_emptyQueues
 {
     if (_currentReadOp) [self _endRead];
     if (_currentWriteOp) [self _endWrite];
 
-    if (_flags & kConnectingToProxy) {
-        [self _removeAllProxyObjectsInQueue:_readQueue];
-        [self _removeAllProxyObjectsInQueue:_writeQueue];
-
-    } else {
-        [_readQueue removeAllObjects];
-        [_writeQueue removeAllObjects];
-    }
+    [_readQueue removeAllObjects];
+    [_writeQueue removeAllObjects];
 
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_dequeueRead) object:nil];
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_dequeueWrite) object:nil];
@@ -883,7 +851,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)_close
 {
-    bool connectingToProxy = (_flags & kConnectingToProxy);
+    if ((_flags & kConnectingToProxy) && _endpointManager.remaining > 0) {
+        SPDY_ERROR(@"socket failed connecting to proxy %@. %lu endpoints remain, but only 1 attempt is supported.",
+                   [_endpointManager getCurrentEndpoint], (unsigned long)_endpointManager.remaining);
+    }
 
     [self _emptyQueues];
 
@@ -891,9 +862,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];
 
-    // With a proxy connection, we may end up trying more than one connection, in which case we
-    // don't want to cancel the connect timer.
-    if (_connectTimer && !connectingToProxy) {
+    if (_connectTimer) {
         [self _endConnectTimeout];
     }
 
@@ -941,7 +910,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     _runLoop = NULL;
 
     // If the connection has at least been started, notify delegate that it is now ending
-    bool shouldCallDelegate = (_flags & kDidStartDelegate) && !connectingToProxy;
+    bool shouldCallDelegate = (_flags & kDidStartDelegate);
 
     // Clear all flags
     _flags = (uint16_t)0;
@@ -951,24 +920,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         // This gives the delegate freedom to release us without returning here and crashing.
         if ([_delegate respondsToSelector:@selector(socketDidDisconnect:)]) {
             [_delegate socketDidDisconnect:self];
-        }
-    } else if (connectingToProxy) {
-        // Try next proxy, if available
-        NSError *error;
-        // Pass -1 for timeout, this will ensure previously set timer continues
-        NSAssert(_connectTimer != nil, @"connect timer should already be set for a proxy re-connect");
-        if (![self _connectToNextEndpointWithTimeout:(NSTimeInterval)-1 error:&error]) {
-            SPDY_ERROR(@"socket failed connecting to any proxy: %@", error);
-
-            // This breaks with the non-proxy pattern in that it alerts the app of an error
-            // through the delegate. Normally this error would be returned in connectToOrigin,
-            // but we can't do that here. Clearing the proxy flag will ensure the read/write
-            // queues are completely emptied and the socketDidDisconnect delegate is called
-            // and the connect timer is cancelled. Calling _closeWithError will ensure the
-            // willDisconnectWithError delegate is called. It also ensures unread data is captured,
-            // though this isn't exactly desired.
-            _flags &= ~kConnectingToProxy;
-            [self _closeWithError:error];
         }
     }
 }
@@ -1320,8 +1271,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             _currentReadOp = [_readQueue objectAtIndex:0];
             [_readQueue removeObjectAtIndex:0];
 
-            //SPDY_DEBUG(@"socket: dequeued read %@", _currentReadOp);
-
             if ([_currentReadOp isKindOfClass:[SPDYSocketTLSOp class]]) {
                 _flags |= kStartingReadTLS;
 
@@ -1399,8 +1348,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     if (_currentReadOp->_fixedLength <= 0 && _currentReadOp->_bytesRead > 0) {
         readComplete = YES;
     }
-
-    //SPDY_DEBUG(@"socket: read into %@, bytes read %lu, complete %d", _currentReadOp, (unsigned long)newBytesRead, readComplete);
 
     if ([_currentReadOp isKindOfClass:[SPDYSocketProxyReadOp class]]) {
         // Let's see if the proxy has fully responded
@@ -1527,8 +1474,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             _currentWriteOp = [_writeQueue objectAtIndex:0];
             [_writeQueue removeObjectAtIndex:0];
 
-            //SPDY_DEBUG(@"socket: dequeued write %@", _currentWriteOp);
-
             if ([_currentWriteOp isKindOfClass:[SPDYSocketTLSOp class]]) {
                 _flags |= kStartingWriteTLS;
 
@@ -1589,8 +1534,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             newBytesWritten += bytesWritten;
         }
     }
-
-    //SPDY_DEBUG(@"socket: write from %@, complete %d", _currentWriteOp, writeComplete);
 
     if ([_currentWriteOp isKindOfClass:[SPDYSocketProxyWriteOp class]]) {
         // Proxy connect has been written. We need to block other writes until the read is
@@ -1691,9 +1634,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
                 !(_flags & kConnectingToProxy) &&
                 !tlsOp->_tlsSettings[(__bridge NSString *)kCFStreamSSLPeerName]) {
             NSMutableDictionary *newTlsSettings = [tlsOp->_tlsSettings mutableCopy];
-
             newTlsSettings[(__bridge NSString *)kCFStreamSSLPeerName] = endpoint.origin.host;
-
             tlsOp->_tlsSettings = newTlsSettings;
         }
 
@@ -1743,8 +1684,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     NSAssert(_flags & kConnectingToProxy, @"must be connecting to proxy");
 
     SPDYSocketProxyReadOp *proxyReadOp = (SPDYSocketProxyReadOp *)_currentReadOp;
+    SPDY_DEBUG(@"parsing proxy response: %@", proxyReadOp);
     if ([proxyReadOp tryParseResponse]) {
-        SPDY_DEBUG(@"received proxy response: %@", proxyReadOp);
+        SPDY_INFO(@"received proxy response: %@", proxyReadOp);
 
         if ([proxyReadOp success]) {
             // The write op has clearly completed, since we're received the response, but it's
@@ -1763,9 +1705,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             // extra receive.
             SPDYSocketProxyReadOp *op = (SPDYSocketProxyReadOp *)_currentReadOp;
             if (op->_bytesParsed != op->_bytesRead) {
-                SPDY_WARNING(@"proxy response too big: %lu parsed, %lu read", (unsigned long)op->_bytesParsed, (unsigned long)op->_bytesRead);
-                // Error, shut it down and try next proxy if possible
-                [self _close];
+                SPDY_ERROR(@"socket failed proxy connection to %@, response too large: %lu parsed, %lu read",
+                           [_endpointManager getCurrentEndpoint], (unsigned long)op->_bytesParsed, (unsigned long)op->_bytesRead);
+                [self _closeWithError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Proxy response too large")];
                 return;
             }
 
@@ -1780,11 +1722,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             [self _scheduleWrite];
         }
         else {
-            SPDY_WARNING(@"socket failed proxy connection to %@, got response: \"%@\"",
-                         [_endpointManager getCurrentEndpoint], [proxyReadOp responseAsString]);
-
-            // Error returned from proxy, shut it down and try next proxy if possible
-            [self _close];
+            SPDY_ERROR(@"socket failed proxy connection to %@, got response: \"%@\"",
+                       [_endpointManager getCurrentEndpoint], [proxyReadOp responseAsString]);
+            [self _closeWithError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Invalid proxy response")];
+            return;
         }
     }
 }

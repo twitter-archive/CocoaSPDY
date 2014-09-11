@@ -74,6 +74,11 @@
     return self;
 }
 
+- (NSUInteger)getRemaining
+{
+    return (_endpointIndex >= _endpointList.count) ? 0 : (_endpointList.count - _endpointIndex - 1);
+}
+
 - (SPDYOriginEndpoint *)getCurrentEndpoint
 {
     if (_endpointIndex >= 0 && _endpointIndex < _endpointList.count) {
@@ -119,15 +124,17 @@
     [self _proxyAddSupportedFrom:originalProxyList toEndpointList:endpointList];
     [self _proxyAddSupportedFrom:newProxyList toEndpointList:endpointList];
 
-    SPDY_DEBUG(@"Proxy: %lu proxies discovered", (unsigned long)endpointList.count);
-
-    // Add the direct, no-proxy option last
-    [endpointList addObject:[[SPDYOriginEndpoint alloc] initWithHost:_origin.host
-                                                                port:_origin.port
-                                                                user:nil
-                                                            password:nil
-                                                                type:SPDYOriginEndpointTypeDirect
-                                                              origin:_origin]];
+    if (endpointList.count == 0) {
+        SPDY_INFO(@"Proxy: none found, using direct connection to origin %@", _origin);
+        [endpointList addObject:[[SPDYOriginEndpoint alloc] initWithHost:_origin.host
+                                                                    port:_origin.port
+                                                                    user:nil
+                                                                password:nil
+                                                                    type:SPDYOriginEndpointTypeDirect
+                                                                  origin:_origin]];
+    } else {
+        SPDY_INFO(@"Proxy: %lu proxies found for origin %@", (unsigned long)endpointList.count, _origin);
+    }
     return endpointList;
 }
 

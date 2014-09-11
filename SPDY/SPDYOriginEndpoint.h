@@ -42,6 +42,7 @@ typedef enum {
 @interface SPDYOriginEndpointManager : NSObject
 
 @property (nonatomic, readonly) SPDYOrigin *origin;
+@property (nonatomic, readonly) NSUInteger remaining;
 
 - (id)initWithOrigin:(SPDYOrigin *)origin;
 

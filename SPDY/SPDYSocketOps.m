@@ -101,8 +101,10 @@
         return NO;
     }
 
-    // Response will look like:
-    // HTTP/1.1 200 Connection established\r\n\r\n
+    // Response will look something like the following. Note we ignore any additional headers.
+    //   HTTP/1.1 200 Connection established\r\n
+    //   <Optional headers>
+    //   \r\n
 
     NSError *error = NULL;
     NSString *pattern = @"^([^ ]+) ([^ ]+) ([^ ]+.*)\\r\\n\\r\\n";
@@ -110,7 +112,7 @@
                                                                            options:NSRegularExpressionDotMatchesLineSeparators
                                                                              error:&error];
     if (error) {
-        SPDY_ERROR(@"regex error: %@", error);
+        SPDY_ERROR(@"unexpected proxy response regex error: %@", error);
         return NO;
     }
 
@@ -130,7 +132,7 @@
                                  _statusCode = [statusCode integerValue];
                              }
                              if ([match rangeAtIndex:3].location != NSNotFound) {
-                                 _statusMessage = [response substringWithRange:[match rangeAtIndex:3]];
+                                 _remaining = [response substringWithRange:[match rangeAtIndex:3]];
                              }
 
                              _bytesParsed = [match range].length;
@@ -156,18 +158,14 @@
     if (_statusCode < 200 || _statusCode >= 300) {
         return NO;
     }
-    if (_statusMessage.length == 0) {
-        return NO;
-    }
-
     return YES;
 }
 
 - (NSString *)description
 {
     return [NSString stringWithFormat:
-            @"<SPDYSocketProxyReadOp: fixedLength %lu, timeout %lu, bytesRead %lu, version %@, statusCode %lu, status %@>",
-            (unsigned long)_fixedLength, (unsigned long)_timeout, (unsigned long)_bytesRead, _version, (unsigned long)_statusCode, _statusMessage];
+            @"<SPDYSocketProxyReadOp: fixedLength %lu, timeout %lu, bytesRead %lu, version %@, statusCode %lu>",
+            (unsigned long)_fixedLength, (unsigned long)_timeout, (unsigned long)_bytesRead, _version, (unsigned long)_statusCode];
 }
 
 @end
