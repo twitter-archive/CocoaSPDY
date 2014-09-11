@@ -97,7 +97,6 @@
 		5C0456F919B03278009E0AC2 /* SPDYSocketOpsTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456F819B03278009E0AC2 /* SPDYSocketOpsTest.m */; };
 		5C0456FF19B033E9009E0AC2 /* SPDYSocketOps.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */; };
 		5C04570019B033E9009E0AC2 /* SPDYSocketOps.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */; };
-		5C04570119B033EA009E0AC2 /* SPDYSocketOps.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */; };
 		5C04570219B033EA009E0AC2 /* SPDYSocketOps.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */; };
 		5C04570319B033EA009E0AC2 /* SPDYSocketOps.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */; };
 		5C04570519B043CB009E0AC2 /* SPDYOriginEndpointTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C04570419B043CB009E0AC2 /* SPDYOriginEndpointTest.m */; };
@@ -107,7 +106,6 @@
 		7774CA1FA1F4A59CA0906BB7 /* SPDYSocket+SPDYSocketMock.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774C0ECD0C6E5D73FB38752 /* SPDYSocket+SPDYSocketMock.m */; };
 		5C5549A619AE521900BAC2B7 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CD094B519A7000B00507D7B /* SPDYOriginEndpoint.m */; };
 		5C5549A719AE522700BAC2B7 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CD094B519A7000B00507D7B /* SPDYOriginEndpoint.m */; };
-		5C5549A819AE522B00BAC2B7 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CD094B519A7000B00507D7B /* SPDYOriginEndpoint.m */; };
 		5C5549A919AE523000BAC2B7 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CD094B519A7000B00507D7B /* SPDYOriginEndpoint.m */; };
 		5C5549AA19AE523400BAC2B7 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CD094B519A7000B00507D7B /* SPDYOriginEndpoint.m */; };
 /* End PBXBuildFile section */
@@ -404,12 +402,12 @@
 				069D0E89167F9D010037D8AF /* SPDYStream.m */,
 				D2CC14CF161A9EE9002E37CF /* SPDYSocket.h */,
 				D2CC14D0161A9EE9002E37CF /* SPDYSocket.m */,
+				5C0456FC19B033D5009E0AC2 /* SPDYSocketOps.h */,
+				5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */,
 				061C8E9217C5954400D22083 /* SPDYStreamManager.h */,
 				061C8E9317C5954400D22083 /* SPDYStreamManager.m */,
 				06E7BF111823B74D004DB65D /* SPDYTLSTrustEvaluator.h */,
 				06290990169E497300E35A82 /* SPDYZLibCommon.h */,
-				5C0456FC19B033D5009E0AC2 /* SPDYSocketOps.h */,
-				5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */,
 			);
 			path = SPDY;
 			sourceTree = "<group>";
