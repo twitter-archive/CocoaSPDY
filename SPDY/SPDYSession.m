@@ -956,4 +956,9 @@
     }
 }
 
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"<%@:%p isOpen=%@>", [self class], self, self.isOpen ? @"YES" : @"NO"];
+}
+
 @end
