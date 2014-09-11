@@ -1392,7 +1392,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)_readStreamReady
 {
-    return (_flags & kSocketHasBytesAvailable) || CFReadStreamHasBytesAvailable(_readStream);
+    return (_flags & kSocketHasBytesAvailable) && CFReadStreamHasBytesAvailable(_readStream);
 }
 
 - (void)_read
