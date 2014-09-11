@@ -40,6 +40,10 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 - (id)initWithOrigin:(SPDYOrigin *)origin configuration:(SPDYConfiguration *)configuration size:(NSUInteger)size error:(NSError **)pError;
 - (NSUInteger)remove:(SPDYSession *)session;
 - (SPDYSession *)next;
+
+@property (nonatomic, readonly) NSArray *sessions;
+@property (nonatomic, readonly) BOOL hasOpenSessions;
+
 @end
 
 @implementation SPDYSessionPool
@@ -88,6 +92,11 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         [_sessions addObject:session];
     }
     return session;
+}
+
+- (BOOL)hasOpenSessions
+{
+    return [(NSNumber *)[_sessions valueForKeyPath:@"@sum.isOpen"] boolValue];
 }
 
 @end
@@ -147,10 +156,12 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:URL error:pError];
         SPDYSessionPool *pool = [self _sessionPoolForOrigin:origin error:pError];
         if (!pool) {
+            SPDY_ERROR(@"Failed to return a session pool: %@", pError ? *pError : nil);
             return;
         }
         session = [pool next];
-        SPDY_DEBUG(@"Retrieving session: %@", session);
+        NSAssert(session, @"Session cannot be nil.");
+        SPDY_DEBUG(@"Retrieving session: %@ from pool %@", session, pool);
         if ([self.delegate respondsToSelector:@selector(sessionManager:willStartSession:forURL:)]) {
             [self.delegate sessionManager:self willStartSession:session forURL:URL];
         }
@@ -190,7 +201,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 {
     NSMutableDictionary *poolTable = reachabilityIsWWAN ? _wifiSessions : _cellularSessions;
     SPDYSessionPool *sessionPool = poolTable[origin];
-    if (!sessionPool) {
+    if (!sessionPool || !sessionPool.hasOpenSessions) {
         sessionPool = [[SPDYSessionPool alloc] initWithOrigin:origin
                                                 configuration:self.configuration
                                                          size:self.configuration.sessionPoolSize
