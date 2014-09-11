@@ -31,7 +31,8 @@ end
 desc "Tag a new release of CocoaSPDY-Layer"
 task :release do
   current_branch = `git symbolic-ref --short HEAD`.chomp
-  fail "Release can only be tagged from `master` or `layer`" unless %w{layer master}.include?(current_branch)
+  valid_branches = %w{master layer layer-runloops}
+  fail "Release can only be tagged from #{valid_branches.map { |s| "`#{s}`" }.join(', ')}" unless valid_branches.include?(current_branch)
   version = Time.now.strftime('%Y%m%d%H%M%S%3N').to_i
   pod_release = PodRelease.new(name: 'CocoaSPDY-Layer', version: version, tag: version)
   
