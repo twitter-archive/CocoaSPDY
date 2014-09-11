@@ -1,5 +1,5 @@
 source "http://rubygems.org"
-ruby '2.0.0'
+ruby '2.1.2'
 
 gem "bundler", "~> 1.6.1"
 gem "rake", "~> 10.3.2"
