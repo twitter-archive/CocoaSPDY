@@ -45,6 +45,9 @@
     NSData *_data;
     NSString *_dataFile;
     NSInputStream *_dataStream;
+    NSMutableData *_pushData;
+    NSDictionary *_headers;
+    NSURLResponse *_pushResponse;
     NSRunLoop *_runLoop;
     CFReadStreamRef _dataStreamRef;
     CFRunLoopRef _runLoopRef;
@@ -54,6 +57,7 @@
     bool _compressedResponse;
     bool _writeStreamOpened;
     int _zlibStreamStatus;
+    bool _ignoreHeaders;
 }
 
 - (id)init
@@ -63,6 +67,8 @@
         _localSideClosed = NO;
         _remoteSideClosed = NO;
         _compressedResponse = NO;
+        _ignoreHeaders = NO;
+        _pushData = [[NSMutableData alloc] init];
     }
     return self;
 }
@@ -168,6 +174,17 @@
     if (_localSideClosed && _remoteSideClosed && _client) {
         [_client URLProtocolDidFinishLoading:_protocol];
     }
+    if (_remoteSideClosed && _pushClient && [_pushClient respondsToSelector:@selector(stream:didReceivePushResponse:data:)]) {
+        if (!_pushResponse) {
+            if (!_headers[@":status"]) {
+                [self didReceiveResponse:@{@":status":@(200)}];
+            } else {
+                [self didReceiveResponse:_headers];
+            }
+        }
+        [_pushClient stream:self didReceivePushResponse:_pushResponse data:[_pushData copy]];
+        [_pushData setLength:0];
+    }
 }
 
 - (bool)closed
@@ -241,10 +258,41 @@
     return nil;
 }
 
-- (void)didReceiveResponse:(NSDictionary *)headers
+- (BOOL)mergeHeaders:(NSDictionary *)headers
+{
+    if (!_headers) {
+        _headers = headers;
+    } else if (!_ignoreHeaders && [[NSSet setWithArray:[_headers allKeys]] intersectsSet:[NSSet setWithArray:[headers allKeys]]]) {
+        NSDictionary *info = @{ NSLocalizedDescriptionKey: @"received duplicated headers" };
+        NSError *error = [[NSError alloc] initWithDomain:SPDYStreamErrorDomain
+                                                    code:SPDYStreamProtocolError
+                                                userInfo:info];
+        [_client URLProtocol:_protocol didFailWithError:error];
+        return NO;
+    }
+    
+    // If the server sends a HEADERS frame after sending a data frame
+    // for the same stream, the client MAY ignore the HEADERS frame.
+    // Ignoring the HEADERS frame after a data frame prevents handling of HTTP's
+    // trailing headers (http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.40).
+    _ignoreHeaders = NO;
+    
+    NSMutableDictionary *merged = [NSMutableDictionary dictionaryWithDictionary:_headers];
+    [merged addEntriesFromDictionary:headers];
+    _headers = merged;
+    
+    return YES;
+}
+
+- (BOOL)didReceiveResponse:(NSDictionary *)newHeaders
 {
     _receivedReply = YES;
-
+    _ignoreHeaders = NO;
+    
+    BOOL successMergingHeaders = [self mergeHeaders:newHeaders];
+    
+    NSDictionary *headers = _headers;
+    
     NSInteger statusCode = [headers[@":status"] intValue];
     if (statusCode < 100 || statusCode > 599) {
         NSDictionary *info = @{ NSLocalizedDescriptionKey: @"invalid http response code" };
@@ -252,9 +300,9 @@
                                                     code:NSURLErrorBadServerResponse
                                                 userInfo:info];
         [_client URLProtocol:_protocol didFailWithError:error];
-        return;
+        return successMergingHeaders;
     }
-
+    
     NSString *version = headers[@":version"];
     if (!version) {
         NSDictionary *info = @{ NSLocalizedDescriptionKey: @"response missing version header" };
@@ -262,9 +310,9 @@
                                                     code:NSURLErrorBadServerResponse
                                                 userInfo:info];
         [_client URLProtocol:_protocol didFailWithError:error];
-        return;
+        return successMergingHeaders;
     }
-
+    
     NSMutableDictionary *allHTTPHeaders = [[NSMutableDictionary alloc] init];
     for (NSString *key in headers) {
         if (![key hasPrefix:@":"]) {
@@ -276,9 +324,9 @@
             }
         }
     }
-
-    NSURL *requestURL = _protocol.request.URL;
-
+    
+    NSURL *requestURL = _protocol ? _protocol.request.URL : [NSURL URLWithString:headers[@":path"]];
+    
     if (_protocol.request.HTTPShouldHandleCookies) {
         NSString *httpSetCookie = allHTTPHeaders[@"set-cookie"];
         if (httpSetCookie) {
@@ -287,31 +335,31 @@
             // force the case-senstive name "Set-Cookie"
             allHTTPHeaders[@"Set-Cookie"] = httpSetCookie;
             [allHTTPHeaders removeObjectForKey:@"set-cookie"];
-
+            
             NSDictionary *cookieHeaders = @{ @"Set-Cookie": httpSetCookie };
             NSArray *cookies = [NSHTTPCookie cookiesWithResponseHeaderFields:cookieHeaders
                                                                       forURL:requestURL];
-
+            
             [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookies:cookies
                                                                forURL:requestURL
                                                       mainDocumentURL:_protocol.request.mainDocumentURL];
         }
     }
-
+    
     NSString *encoding = allHTTPHeaders[@"content-encoding"];
     _compressedResponse = [encoding hasPrefix:@"deflate"] || [encoding hasPrefix:@"gzip"];
     if (_compressedResponse) {
         bzero(&_zlibStream, sizeof(_zlibStream));
         _zlibStreamStatus = inflateInit2(&_zlibStream, MAX_WBITS + 32);
     }
-
+    
     NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:requestURL
                                                               statusCode:statusCode
                                                              HTTPVersion:version
                                                             headerFields:allHTTPHeaders];
-
+    
     NSString *location = allHTTPHeaders[@"location"];
-
+    
     if (location != nil) {
         NSURL *redirectURL = [[NSURL alloc] initWithString:location relativeToURL:requestURL];
         if (redirectURL == nil) {
@@ -319,25 +367,29 @@
                                                         code:NSURLErrorRedirectToNonExistentLocation
                                                     userInfo:nil];
             [_client URLProtocol:_protocol didFailWithError:error];
-            return;
+            return successMergingHeaders;
         }
-
+        
         NSMutableURLRequest *redirect = [_protocol.request mutableCopy];
         redirect.URL = redirectURL;
         redirect.SPDYPriority = _request.SPDYPriority;
         redirect.SPDYBodyFile = _request.SPDYBodyFile;
-
+        
         if (statusCode == 303) {
             redirect.HTTPMethod = @"GET";
         }
-
+        
         [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:response];
-        return;
+        return successMergingHeaders;
     }
-
+    
     [_client URLProtocol:_protocol
-          didReceiveResponse:response
-          cacheStoragePolicy:NSURLCacheStorageAllowed];
+      didReceiveResponse:response
+      cacheStoragePolicy:NSURLCacheStorageAllowed];
+    
+    _pushResponse = response;
+    
+    return successMergingHeaders;
 }
 
 - (void)didLoadData:(NSData *)data
@@ -368,6 +420,7 @@
             NSUInteger inflatedLength = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
             inflatedData.length = inflatedLength;
             if (inflatedLength > 0) {
+                if (!_local) [_pushData appendData:inflatedData];
                 [_client URLProtocol:_protocol didLoadData:inflatedData];
             }
 
@@ -389,6 +442,7 @@
         }
     } else {
         NSData *dataCopy = [[NSData alloc] initWithBytes:data.bytes length:dataLength];
+        if (!_local) [_pushData appendData:dataCopy];
         [_client URLProtocol:_protocol didLoadData:dataCopy];
     }
 }
