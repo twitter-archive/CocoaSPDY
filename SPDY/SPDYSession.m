@@ -177,6 +177,7 @@
 - (void)issueRequest:(SPDYProtocol *)protocol
 {
     SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol dataDelegate:self];
+    SPDY_INFO(@"%@: Issueing request %@ on Stream %@ with socket=%@", self, protocol, stream, _socket);
 
     if (_activeStreams.localCount >= _remoteMaxConcurrentStreams) {
         [_inactiveStreams addStream:stream];
@@ -285,7 +286,7 @@
 - (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
-    SPDY_DEBUG(@"socket connected to %@:%u", host, port);
+    SPDY_DEBUG(@"%@ socket connected to %@:%u", self, host, port);
 
     if(_enableTCPNoDelay){
         CFDataRef nativeSocket = CFWriteStreamCopyProperty(socket.cfWriteStream, kCFStreamPropertySocketNativeHandle);
@@ -355,7 +356,7 @@
 - (void)socketDidDisconnect:(SPDYSocket *)socket
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
-    SPDY_INFO(@"session connection closed");
+    SPDY_INFO(@"%@: session connection closed", self);
     [[SPDYProtocol sessionManager] removeSession:self];
 }
 
