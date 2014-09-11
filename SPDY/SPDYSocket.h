@@ -146,6 +146,7 @@ extern NSString *const SPDYSocketException;
 
 @interface SPDYSocket : NSObject
 @property (nonatomic, weak) id<SPDYSocketDelegate> delegate;
+@property (nonatomic, readonly) NSRunLoop *runLoop;
 
 - (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate;
 - (CFSocketRef)cfSocket;

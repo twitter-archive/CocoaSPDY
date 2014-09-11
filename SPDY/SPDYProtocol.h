@@ -14,7 +14,7 @@
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
 
-@class SPDYConfiguration;
+@class SPDYConfiguration, SPDYSessionManager;
 
 @protocol SPDYLogger;
 @protocol SPDYTLSTrustEvaluator;
@@ -23,6 +23,8 @@ extern NSString *const SPDYOriginUnregisteredNotification;
   Client implementation of the SPDY/3.1 draft protocol.
 */
 @interface SPDYProtocol : NSURLProtocol
+
++ (SPDYSessionManager *)sessionManager;
 
 /**
   Set configuration options to be used for all future SPDY sessions.

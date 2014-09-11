@@ -299,7 +299,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     CFRunLoopSourceRef _source4; // For _socket4
     CFRunLoopSourceRef _source6; // For _socket6
-    CFRunLoopRef _runLoop;
+    NSRunLoop *_runLoop;
+    CFRunLoopRef _runLoopRef;
     CFSocketContext _context;
     NSArray *_runLoopModes;
 
@@ -395,55 +396,55 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 - (void)_addSource:(CFRunLoopSourceRef)source
 {
     for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopAddSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
+        CFRunLoopAddSource(_runLoopRef, source, (__bridge CFStringRef)runLoopMode);
     }
 }
 
 - (void)_removeSource:(CFRunLoopSourceRef)source
 {
     for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopRemoveSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
+        CFRunLoopRemoveSource(_runLoopRef, source, (__bridge CFStringRef)runLoopMode);
     }
 }
 
 - (void)_addSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
 {
-    CFRunLoopAddSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
+    CFRunLoopAddSource(_runLoopRef, source, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)_removeSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
 {
-    CFRunLoopRemoveSource(_runLoop, source, (__bridge CFStringRef)runLoopMode);
+    CFRunLoopRemoveSource(_runLoopRef, source, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)_addTimer:(NSTimer *)timer
 {
     for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopAddTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
+        CFRunLoopAddTimer(_runLoopRef, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
     }
 }
 
 - (void)_removeTimer:(NSTimer *)timer
 {
     for (NSString *runLoopMode in _runLoopModes) {
-        CFRunLoopRemoveTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
+        CFRunLoopRemoveTimer(_runLoopRef, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
     }
 }
 
 - (void)_addTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
 {
-    CFRunLoopAddTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
+    CFRunLoopAddTimer(_runLoopRef, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)_removeTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
 {
-    CFRunLoopRemoveTimer(_runLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
+    CFRunLoopRemoveTimer(_runLoopRef, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)_unscheduleReadStream
 {
     for (NSString *runLoopMode in _runLoopModes) {
-        CFReadStreamUnscheduleFromRunLoop(_readStream, _runLoop, (__bridge CFStringRef)runLoopMode);
+        CFReadStreamUnscheduleFromRunLoop(_readStream, _runLoopRef, (__bridge CFStringRef)runLoopMode);
     }
     CFReadStreamSetClient(_readStream, kCFStreamEventNone, NULL, NULL);
 }
@@ -451,7 +452,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 - (void)_unscheduleWriteStream
 {
     for (NSString *runLoopMode in _runLoopModes) {
-        CFWriteStreamUnscheduleFromRunLoop(_writeStream, _runLoop, (__bridge CFStringRef)runLoopMode);
+        CFWriteStreamUnscheduleFromRunLoop(_writeStream, _runLoopRef, (__bridge CFStringRef)runLoopMode);
     }
     CFWriteStreamSetClient(_writeStream, kCFStreamEventNone, NULL, NULL);
 }
@@ -461,13 +462,13 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)setRunLoop:(NSRunLoop *)runLoop
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+    NSAssert(_runLoop == NULL || _runLoop == [NSRunLoop currentRunLoop],
     @"moveToRunLoop must be called from within the current RunLoop!");
 
     if (runLoop == nil) {
         return NO;
     }
-    if (_runLoop == [runLoop getCFRunLoop]) {
+    if (_runLoop == runLoop) {
         return YES;
     }
 
@@ -486,7 +487,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     if (_readTimer) [self _removeTimer:_readTimer];
     if (_writeTimer) [self _removeTimer:_writeTimer];
 
-    _runLoop = [runLoop getCFRunLoop];
+    _runLoop = runLoop;
+    _runLoopRef = [runLoop getCFRunLoop];
 
     if (_readTimer) [self _addTimer:_readTimer];
     if (_writeTimer) [self _addTimer:_writeTimer];
@@ -509,7 +511,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)setRunLoopModes:(NSArray *)runLoopModes
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+    NSAssert(_runLoop == NULL || _runLoop == [NSRunLoop currentRunLoop],
     @"setRunLoopModes must be called from within the current RunLoop!");
 
     if (runLoopModes.count == 0) {
@@ -557,7 +559,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)addRunLoopMode:(NSString *)runLoopMode
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+    NSAssert(_runLoop == NULL || _runLoop == [NSRunLoop currentRunLoop],
     @"addRunLoopMode must be called from within the current RunLoop!");
 
     if (runLoopMode == nil) {
@@ -594,7 +596,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)removeRunLoopMode:(NSString *)runLoopMode
 {
-    NSAssert(_runLoop == NULL || _runLoop == CFRunLoopGetCurrent(),
+    NSAssert(_runLoop == NULL || _runLoop == [NSRunLoop currentRunLoop],
     @"addRunLoopMode must be called from within the current RunLoop!");
 
     if (runLoopMode == nil) {
@@ -739,7 +741,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)_scheduleStreamsOnRunLoop:(NSRunLoop *)runLoop error:(NSError **)pError
 {
-    _runLoop = runLoop ? [runLoop getCFRunLoop] : CFRunLoopGetCurrent();
+    _runLoop = runLoop ?: [NSRunLoop currentRunLoop];
+    _runLoopRef = [_runLoop getCFRunLoop];
 
     CFOptionFlags readStreamEvents =
         kCFStreamEventHasBytesAvailable |
@@ -778,8 +781,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     }
 
     for (NSString *runLoopMode in _runLoopModes) {
-        CFReadStreamScheduleWithRunLoop(_readStream, _runLoop, (__bridge CFStringRef)runLoopMode);
-        CFWriteStreamScheduleWithRunLoop(_writeStream, _runLoop, (__bridge CFStringRef)runLoopMode);
+        CFReadStreamScheduleWithRunLoop(_readStream, _runLoopRef, (__bridge CFStringRef)runLoopMode);
+        CFWriteStreamScheduleWithRunLoop(_writeStream, _runLoopRef, (__bridge CFStringRef)runLoopMode);
     }
 
     return YES;

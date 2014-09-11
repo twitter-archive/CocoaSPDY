@@ -1,0 +1,613 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		25B6D34C1947DFA1009BBA9F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D34B1947DFA1009BBA9F /* Foundation.framework */; };
+		25B6D35A1947DFA2009BBA9F /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3591947DFA2009BBA9F /* XCTest.framework */; };
+		25B6D35B1947DFA2009BBA9F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D34B1947DFA1009BBA9F /* Foundation.framework */; };
+		25B6D35D1947DFA2009BBA9F /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D35C1947DFA2009BBA9F /* UIKit.framework */; };
+		25B6D3601947DFA2009BBA9F /* libCocoaSPDY.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3481947DFA1009BBA9F /* libCocoaSPDY.a */; };
+		25B6D3A61947E01F009BBA9F /* NSURLRequest+SPDYURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3751947DFDD009BBA9F /* NSURLRequest+SPDYURLRequest.m */; };
+		25B6D3A91947E01F009BBA9F /* SPDYCommonLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3791947DFDD009BBA9F /* SPDYCommonLogger.m */; };
+		25B6D3AD1947E01F009BBA9F /* SPDYFrame.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D37D1947DFDD009BBA9F /* SPDYFrame.m */; };
+		25B6D3AF1947E01F009BBA9F /* SPDYFrameDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D37F1947DFDD009BBA9F /* SPDYFrameDecoder.m */; };
+		25B6D3B11947E01F009BBA9F /* SPDYFrameEncoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3811947DFDD009BBA9F /* SPDYFrameEncoder.m */; };
+		25B6D3B31947E01F009BBA9F /* SPDYHeaderBlockCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3831947DFDD009BBA9F /* SPDYHeaderBlockCompressor.m */; };
+		25B6D3B51947E01F009BBA9F /* SPDYHeaderBlockDecompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3851947DFDD009BBA9F /* SPDYHeaderBlockDecompressor.m */; };
+		25B6D3B81947E01F009BBA9F /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3881947DFDD009BBA9F /* SPDYOrigin.m */; };
+		25B6D3BA1947E01F009BBA9F /* SPDYProtocol.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D38A1947DFDD009BBA9F /* SPDYProtocol.m */; };
+		25B6D3BC1947E01F009BBA9F /* SPDYSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D38C1947DFDD009BBA9F /* SPDYSession.m */; };
+		25B6D3BE1947E01F009BBA9F /* SPDYSessionManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D38E1947DFDD009BBA9F /* SPDYSessionManager.m */; };
+		25B6D3C01947E01F009BBA9F /* SPDYSettingsStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3901947DFDD009BBA9F /* SPDYSettingsStore.m */; };
+		25B6D3C21947E01F009BBA9F /* SPDYSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3921947DFDD009BBA9F /* SPDYSocket.m */; };
+		25B6D3C41947E01F009BBA9F /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3941947DFDD009BBA9F /* SPDYStream.m */; };
+		25B6D3C61947E01F009BBA9F /* SPDYStreamManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3961947DFDD009BBA9F /* SPDYStreamManager.m */; };
+		25B6D3C91947E04E009BBA9F /* SPDYFrameCodecTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D39C1947DFDD009BBA9F /* SPDYFrameCodecTest.m */; };
+		25B6D3CA1947E04E009BBA9F /* SPDYMockFrameDecoderDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D39E1947DFDD009BBA9F /* SPDYMockFrameDecoderDelegate.m */; };
+		25B6D3CB1947E04E009BBA9F /* SPDYOriginTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D39F1947DFDD009BBA9F /* SPDYOriginTest.m */; };
+		25B6D3CC1947E04E009BBA9F /* SPDYSessionManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3A01947DFDD009BBA9F /* SPDYSessionManagerTest.m */; };
+		25B6D3CD1947E04E009BBA9F /* SPDYStreamManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3A11947DFDD009BBA9F /* SPDYStreamManagerTest.m */; };
+		25B6D3CE1947E04E009BBA9F /* SPDYStreamTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25B6D3A21947DFDD009BBA9F /* SPDYStreamTest.m */; };
+		25B6D3D01947E1C0009BBA9F /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3CF1947E1C0009BBA9F /* SystemConfiguration.framework */; };
+		25B6D3D21947E1C8009BBA9F /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3D11947E1C8009BBA9F /* CFNetwork.framework */; };
+		25B6D3D31947E1DA009BBA9F /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3CF1947E1C0009BBA9F /* SystemConfiguration.framework */; };
+		25B6D3D41947E1E9009BBA9F /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3D11947E1C8009BBA9F /* CFNetwork.framework */; };
+		25B6D3D61947E1F0009BBA9F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B6D3D51947E1F0009BBA9F /* libz.dylib */; };
+		4F2DD63CFEF2450FACE78943 /* libPods-CocoaSPDYTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 62B3491766B6432C9A34939E /* libPods-CocoaSPDYTests.a */; };
+		D04653B71948C27300E88108 /* SPDYFrameEncoderAccumulator.m in Sources */ = {isa = PBXBuildFile; fileRef = D04653B01948C21B00E88108 /* SPDYFrameEncoderAccumulator.m */; };
+		D04653B81948C27300E88108 /* SPDYSocket+SPDYSocketMock.m in Sources */ = {isa = PBXBuildFile; fileRef = D04653B21948C21B00E88108 /* SPDYSocket+SPDYSocketMock.m */; };
+		D04653B91948C27300E88108 /* SPDYServerPushTest.m in Sources */ = {isa = PBXBuildFile; fileRef = D04653B31948C21B00E88108 /* SPDYServerPushTest.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		25B6D35E1947DFA2009BBA9F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 25B6D3401947DFA1009BBA9F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 25B6D3471947DFA1009BBA9F;
+			remoteInfo = CocoaSPDY;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		25B6D3461947DFA1009BBA9F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		25B6D3481947DFA1009BBA9F /* libCocoaSPDY.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCocoaSPDY.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		25B6D34B1947DFA1009BBA9F /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		25B6D3581947DFA2009BBA9F /* CocoaSPDYTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaSPDYTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		25B6D3591947DFA2009BBA9F /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		25B6D35C1947DFA2009BBA9F /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		25B6D3731947DFDD009BBA9F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		25B6D3741947DFDD009BBA9F /* NSURLRequest+SPDYURLRequest.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSURLRequest+SPDYURLRequest.h"; sourceTree = "<group>"; };
+		25B6D3751947DFDD009BBA9F /* NSURLRequest+SPDYURLRequest.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSURLRequest+SPDYURLRequest.m"; sourceTree = "<group>"; };
+		25B6D3771947DFDD009BBA9F /* SPDY-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY-Prefix.pch"; sourceTree = "<group>"; };
+		25B6D3781947DFDD009BBA9F /* SPDYCommonLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYCommonLogger.h; sourceTree = "<group>"; };
+		25B6D3791947DFDD009BBA9F /* SPDYCommonLogger.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYCommonLogger.m; sourceTree = "<group>"; };
+		25B6D37A1947DFDD009BBA9F /* SPDYDefinitions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYDefinitions.h; sourceTree = "<group>"; };
+		25B6D37B1947DFDD009BBA9F /* SPDYError.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYError.h; sourceTree = "<group>"; };
+		25B6D37C1947DFDD009BBA9F /* SPDYFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYFrame.h; sourceTree = "<group>"; };
+		25B6D37D1947DFDD009BBA9F /* SPDYFrame.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYFrame.m; sourceTree = "<group>"; };
+		25B6D37E1947DFDD009BBA9F /* SPDYFrameDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYFrameDecoder.h; sourceTree = "<group>"; };
+		25B6D37F1947DFDD009BBA9F /* SPDYFrameDecoder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYFrameDecoder.m; sourceTree = "<group>"; };
+		25B6D3801947DFDD009BBA9F /* SPDYFrameEncoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYFrameEncoder.h; sourceTree = "<group>"; };
+		25B6D3811947DFDD009BBA9F /* SPDYFrameEncoder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYFrameEncoder.m; sourceTree = "<group>"; };
+		25B6D3821947DFDD009BBA9F /* SPDYHeaderBlockCompressor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYHeaderBlockCompressor.h; sourceTree = "<group>"; };
+		25B6D3831947DFDD009BBA9F /* SPDYHeaderBlockCompressor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYHeaderBlockCompressor.m; sourceTree = "<group>"; };
+		25B6D3841947DFDD009BBA9F /* SPDYHeaderBlockDecompressor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYHeaderBlockDecompressor.h; sourceTree = "<group>"; };
+		25B6D3851947DFDD009BBA9F /* SPDYHeaderBlockDecompressor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYHeaderBlockDecompressor.m; sourceTree = "<group>"; };
+		25B6D3861947DFDD009BBA9F /* SPDYLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYLogger.h; sourceTree = "<group>"; };
+		25B6D3871947DFDD009BBA9F /* SPDYOrigin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYOrigin.h; sourceTree = "<group>"; };
+		25B6D3881947DFDD009BBA9F /* SPDYOrigin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYOrigin.m; sourceTree = "<group>"; };
+		25B6D3891947DFDD009BBA9F /* SPDYProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYProtocol.h; sourceTree = "<group>"; };
+		25B6D38A1947DFDD009BBA9F /* SPDYProtocol.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYProtocol.m; sourceTree = "<group>"; };
+		25B6D38B1947DFDD009BBA9F /* SPDYSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYSession.h; sourceTree = "<group>"; };
+		25B6D38C1947DFDD009BBA9F /* SPDYSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYSession.m; sourceTree = "<group>"; };
+		25B6D38D1947DFDD009BBA9F /* SPDYSessionManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYSessionManager.h; sourceTree = "<group>"; };
+		25B6D38E1947DFDD009BBA9F /* SPDYSessionManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYSessionManager.m; sourceTree = "<group>"; };
+		25B6D38F1947DFDD009BBA9F /* SPDYSettingsStore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYSettingsStore.h; sourceTree = "<group>"; };
+		25B6D3901947DFDD009BBA9F /* SPDYSettingsStore.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYSettingsStore.m; sourceTree = "<group>"; };
+		25B6D3911947DFDD009BBA9F /* SPDYSocket.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYSocket.h; sourceTree = "<group>"; };
+		25B6D3921947DFDD009BBA9F /* SPDYSocket.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYSocket.m; sourceTree = "<group>"; };
+		25B6D3931947DFDD009BBA9F /* SPDYStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYStream.h; sourceTree = "<group>"; };
+		25B6D3941947DFDD009BBA9F /* SPDYStream.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYStream.m; sourceTree = "<group>"; };
+		25B6D3951947DFDD009BBA9F /* SPDYStreamManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYStreamManager.h; sourceTree = "<group>"; };
+		25B6D3961947DFDD009BBA9F /* SPDYStreamManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYStreamManager.m; sourceTree = "<group>"; };
+		25B6D3971947DFDD009BBA9F /* SPDYTLSTrustEvaluator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYTLSTrustEvaluator.h; sourceTree = "<group>"; };
+		25B6D3981947DFDD009BBA9F /* SPDYZLibCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYZLibCommon.h; sourceTree = "<group>"; };
+		25B6D39B1947DFDD009BBA9F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		25B6D39C1947DFDD009BBA9F /* SPDYFrameCodecTest.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYFrameCodecTest.m; sourceTree = "<group>"; };
+		25B6D39D1947DFDD009BBA9F /* SPDYMockFrameDecoderDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYMockFrameDecoderDelegate.h; sourceTree = "<group>"; };
+		25B6D39E1947DFDD009BBA9F /* SPDYMockFrameDecoderDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYMockFrameDecoderDelegate.m; sourceTree = "<group>"; };
+		25B6D39F1947DFDD009BBA9F /* SPDYOriginTest.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYOriginTest.m; sourceTree = "<group>"; };
+		25B6D3A01947DFDD009BBA9F /* SPDYSessionManagerTest.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYSessionManagerTest.m; sourceTree = "<group>"; };
+		25B6D3A11947DFDD009BBA9F /* SPDYStreamManagerTest.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYStreamManagerTest.m; sourceTree = "<group>"; };
+		25B6D3A21947DFDD009BBA9F /* SPDYStreamTest.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SPDYStreamTest.m; sourceTree = "<group>"; };
+		25B6D3A31947DFDD009BBA9F /* SPDYUnitTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SPDYUnitTests-Info.plist"; sourceTree = "<group>"; };
+		25B6D3A41947DFDD009BBA9F /* SPDYUnitTests-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDYUnitTests-Prefix.pch"; sourceTree = "<group>"; };
+		25B6D3CF1947E1C0009BBA9F /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		25B6D3D11947E1C8009BBA9F /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
+		25B6D3D51947E1F0009BBA9F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		62B3491766B6432C9A34939E /* libPods-CocoaSPDYTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CocoaSPDYTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C6FC6C944E9417784C53C26 /* Pods-CocoaSPDYTests.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaSPDYTests.xcconfig"; path = "Pods/Pods-CocoaSPDYTests.xcconfig"; sourceTree = "<group>"; };
+		D04653AF1948C21B00E88108 /* SPDYFrameEncoderAccumulator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYFrameEncoderAccumulator.h; sourceTree = "<group>"; };
+		D04653B01948C21B00E88108 /* SPDYFrameEncoderAccumulator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYFrameEncoderAccumulator.m; sourceTree = "<group>"; };
+		D04653B11948C21B00E88108 /* SPDYSocket+SPDYSocketMock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SPDYSocket+SPDYSocketMock.h"; sourceTree = "<group>"; };
+		D04653B21948C21B00E88108 /* SPDYSocket+SPDYSocketMock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "SPDYSocket+SPDYSocketMock.m"; sourceTree = "<group>"; };
+		D04653B31948C21B00E88108 /* SPDYServerPushTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYServerPushTest.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		25B6D3451947DFA1009BBA9F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				25B6D3D21947E1C8009BBA9F /* CFNetwork.framework in Frameworks */,
+				25B6D3D01947E1C0009BBA9F /* SystemConfiguration.framework in Frameworks */,
+				25B6D34C1947DFA1009BBA9F /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		25B6D3551947DFA2009BBA9F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				25B6D3D61947E1F0009BBA9F /* libz.dylib in Frameworks */,
+				25B6D3D41947E1E9009BBA9F /* CFNetwork.framework in Frameworks */,
+				25B6D3D31947E1DA009BBA9F /* SystemConfiguration.framework in Frameworks */,
+				25B6D35A1947DFA2009BBA9F /* XCTest.framework in Frameworks */,
+				25B6D3601947DFA2009BBA9F /* libCocoaSPDY.a in Frameworks */,
+				25B6D35D1947DFA2009BBA9F /* UIKit.framework in Frameworks */,
+				25B6D35B1947DFA2009BBA9F /* Foundation.framework in Frameworks */,
+				4F2DD63CFEF2450FACE78943 /* libPods-CocoaSPDYTests.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		25B6D33F1947DFA1009BBA9F = {
+			isa = PBXGroup;
+			children = (
+				25B6D3711947DFDD009BBA9F /* SPDY */,
+				25B6D3991947DFDD009BBA9F /* SPDYUnitTests */,
+				25B6D34A1947DFA1009BBA9F /* Frameworks */,
+				25B6D3491947DFA1009BBA9F /* Products */,
+				7C6FC6C944E9417784C53C26 /* Pods-CocoaSPDYTests.xcconfig */,
+			);
+			sourceTree = "<group>";
+		};
+		25B6D3491947DFA1009BBA9F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				25B6D3481947DFA1009BBA9F /* libCocoaSPDY.a */,
+				25B6D3581947DFA2009BBA9F /* CocoaSPDYTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		25B6D34A1947DFA1009BBA9F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				25B6D3D51947E1F0009BBA9F /* libz.dylib */,
+				25B6D3D11947E1C8009BBA9F /* CFNetwork.framework */,
+				25B6D3CF1947E1C0009BBA9F /* SystemConfiguration.framework */,
+				25B6D34B1947DFA1009BBA9F /* Foundation.framework */,
+				25B6D3591947DFA2009BBA9F /* XCTest.framework */,
+				25B6D35C1947DFA2009BBA9F /* UIKit.framework */,
+				62B3491766B6432C9A34939E /* libPods-CocoaSPDYTests.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		25B6D3711947DFDD009BBA9F /* SPDY */ = {
+			isa = PBXGroup;
+			children = (
+				25B6D3721947DFDD009BBA9F /* InfoPlist.strings */,
+				25B6D3741947DFDD009BBA9F /* NSURLRequest+SPDYURLRequest.h */,
+				25B6D3751947DFDD009BBA9F /* NSURLRequest+SPDYURLRequest.m */,
+				25B6D3771947DFDD009BBA9F /* SPDY-Prefix.pch */,
+				25B6D3781947DFDD009BBA9F /* SPDYCommonLogger.h */,
+				25B6D3791947DFDD009BBA9F /* SPDYCommonLogger.m */,
+				25B6D37A1947DFDD009BBA9F /* SPDYDefinitions.h */,
+				25B6D37B1947DFDD009BBA9F /* SPDYError.h */,
+				25B6D37C1947DFDD009BBA9F /* SPDYFrame.h */,
+				25B6D37D1947DFDD009BBA9F /* SPDYFrame.m */,
+				25B6D37E1947DFDD009BBA9F /* SPDYFrameDecoder.h */,
+				25B6D37F1947DFDD009BBA9F /* SPDYFrameDecoder.m */,
+				25B6D3801947DFDD009BBA9F /* SPDYFrameEncoder.h */,
+				25B6D3811947DFDD009BBA9F /* SPDYFrameEncoder.m */,
+				25B6D3821947DFDD009BBA9F /* SPDYHeaderBlockCompressor.h */,
+				25B6D3831947DFDD009BBA9F /* SPDYHeaderBlockCompressor.m */,
+				25B6D3841947DFDD009BBA9F /* SPDYHeaderBlockDecompressor.h */,
+				25B6D3851947DFDD009BBA9F /* SPDYHeaderBlockDecompressor.m */,
+				25B6D3861947DFDD009BBA9F /* SPDYLogger.h */,
+				25B6D3871947DFDD009BBA9F /* SPDYOrigin.h */,
+				25B6D3881947DFDD009BBA9F /* SPDYOrigin.m */,
+				25B6D3891947DFDD009BBA9F /* SPDYProtocol.h */,
+				25B6D38A1947DFDD009BBA9F /* SPDYProtocol.m */,
+				25B6D38B1947DFDD009BBA9F /* SPDYSession.h */,
+				25B6D38C1947DFDD009BBA9F /* SPDYSession.m */,
+				25B6D38D1947DFDD009BBA9F /* SPDYSessionManager.h */,
+				25B6D38E1947DFDD009BBA9F /* SPDYSessionManager.m */,
+				25B6D38F1947DFDD009BBA9F /* SPDYSettingsStore.h */,
+				25B6D3901947DFDD009BBA9F /* SPDYSettingsStore.m */,
+				25B6D3911947DFDD009BBA9F /* SPDYSocket.h */,
+				25B6D3921947DFDD009BBA9F /* SPDYSocket.m */,
+				25B6D3931947DFDD009BBA9F /* SPDYStream.h */,
+				25B6D3941947DFDD009BBA9F /* SPDYStream.m */,
+				25B6D3951947DFDD009BBA9F /* SPDYStreamManager.h */,
+				25B6D3961947DFDD009BBA9F /* SPDYStreamManager.m */,
+				25B6D3971947DFDD009BBA9F /* SPDYTLSTrustEvaluator.h */,
+				25B6D3981947DFDD009BBA9F /* SPDYZLibCommon.h */,
+			);
+			path = SPDY;
+			sourceTree = "<group>";
+		};
+		25B6D3991947DFDD009BBA9F /* SPDYUnitTests */ = {
+			isa = PBXGroup;
+			children = (
+				D04653AE1948C21B00E88108 /* SPDYMock */,
+				25B6D39A1947DFDD009BBA9F /* InfoPlist.strings */,
+				25B6D39C1947DFDD009BBA9F /* SPDYFrameCodecTest.m */,
+				25B6D39D1947DFDD009BBA9F /* SPDYMockFrameDecoderDelegate.h */,
+				25B6D39E1947DFDD009BBA9F /* SPDYMockFrameDecoderDelegate.m */,
+				25B6D39F1947DFDD009BBA9F /* SPDYOriginTest.m */,
+				D04653B31948C21B00E88108 /* SPDYServerPushTest.m */,
+				25B6D3A01947DFDD009BBA9F /* SPDYSessionManagerTest.m */,
+				25B6D3A11947DFDD009BBA9F /* SPDYStreamManagerTest.m */,
+				25B6D3A21947DFDD009BBA9F /* SPDYStreamTest.m */,
+				25B6D3A31947DFDD009BBA9F /* SPDYUnitTests-Info.plist */,
+				25B6D3A41947DFDD009BBA9F /* SPDYUnitTests-Prefix.pch */,
+			);
+			path = SPDYUnitTests;
+			sourceTree = "<group>";
+		};
+		D04653AE1948C21B00E88108 /* SPDYMock */ = {
+			isa = PBXGroup;
+			children = (
+				D04653AF1948C21B00E88108 /* SPDYFrameEncoderAccumulator.h */,
+				D04653B01948C21B00E88108 /* SPDYFrameEncoderAccumulator.m */,
+				D04653B11948C21B00E88108 /* SPDYSocket+SPDYSocketMock.h */,
+				D04653B21948C21B00E88108 /* SPDYSocket+SPDYSocketMock.m */,
+			);
+			path = SPDYMock;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		25B6D3471947DFA1009BBA9F /* CocoaSPDY */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 25B6D36B1947DFA2009BBA9F /* Build configuration list for PBXNativeTarget "CocoaSPDY" */;
+			buildPhases = (
+				25B6D3441947DFA1009BBA9F /* Sources */,
+				25B6D3451947DFA1009BBA9F /* Frameworks */,
+				25B6D3461947DFA1009BBA9F /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CocoaSPDY;
+			productName = CocoaSPDY;
+			productReference = 25B6D3481947DFA1009BBA9F /* libCocoaSPDY.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		25B6D3571947DFA2009BBA9F /* CocoaSPDYTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 25B6D36E1947DFA2009BBA9F /* Build configuration list for PBXNativeTarget "CocoaSPDYTests" */;
+			buildPhases = (
+				036B84AFB54C4F8A932F1686 /* Check Pods Manifest.lock */,
+				25B6D3541947DFA2009BBA9F /* Sources */,
+				25B6D3551947DFA2009BBA9F /* Frameworks */,
+				25B6D3561947DFA2009BBA9F /* Resources */,
+				D1B56EDE659346089A6A5E6D /* Copy Pods Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				25B6D35F1947DFA2009BBA9F /* PBXTargetDependency */,
+			);
+			name = CocoaSPDYTests;
+			productName = CocoaSPDYTests;
+			productReference = 25B6D3581947DFA2009BBA9F /* CocoaSPDYTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		25B6D3401947DFA1009BBA9F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+				ORGANIZATIONNAME = Twitter;
+			};
+			buildConfigurationList = 25B6D3431947DFA1009BBA9F /* Build configuration list for PBXProject "CocoaSPDY" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 25B6D33F1947DFA1009BBA9F;
+			productRefGroup = 25B6D3491947DFA1009BBA9F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				25B6D3471947DFA1009BBA9F /* CocoaSPDY */,
+				25B6D3571947DFA2009BBA9F /* CocoaSPDYTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		25B6D3561947DFA2009BBA9F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		036B84AFB54C4F8A932F1686 /* Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Check Pods Manifest.lock";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [[ $? != 0 ]] ; then\n    cat << EOM\nerror: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\nEOM\n    exit 1\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+		D1B56EDE659346089A6A5E6D /* Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Pods-CocoaSPDYTests-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		25B6D3441947DFA1009BBA9F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				25B6D3A61947E01F009BBA9F /* NSURLRequest+SPDYURLRequest.m in Sources */,
+				25B6D3A91947E01F009BBA9F /* SPDYCommonLogger.m in Sources */,
+				25B6D3AD1947E01F009BBA9F /* SPDYFrame.m in Sources */,
+				25B6D3AF1947E01F009BBA9F /* SPDYFrameDecoder.m in Sources */,
+				25B6D3B11947E01F009BBA9F /* SPDYFrameEncoder.m in Sources */,
+				25B6D3B31947E01F009BBA9F /* SPDYHeaderBlockCompressor.m in Sources */,
+				25B6D3B51947E01F009BBA9F /* SPDYHeaderBlockDecompressor.m in Sources */,
+				25B6D3B81947E01F009BBA9F /* SPDYOrigin.m in Sources */,
+				25B6D3BA1947E01F009BBA9F /* SPDYProtocol.m in Sources */,
+				25B6D3BC1947E01F009BBA9F /* SPDYSession.m in Sources */,
+				25B6D3BE1947E01F009BBA9F /* SPDYSessionManager.m in Sources */,
+				25B6D3C01947E01F009BBA9F /* SPDYSettingsStore.m in Sources */,
+				25B6D3C21947E01F009BBA9F /* SPDYSocket.m in Sources */,
+				25B6D3C41947E01F009BBA9F /* SPDYStream.m in Sources */,
+				25B6D3C61947E01F009BBA9F /* SPDYStreamManager.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		25B6D3541947DFA2009BBA9F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				25B6D3C91947E04E009BBA9F /* SPDYFrameCodecTest.m in Sources */,
+				25B6D3CA1947E04E009BBA9F /* SPDYMockFrameDecoderDelegate.m in Sources */,
+				D04653B71948C27300E88108 /* SPDYFrameEncoderAccumulator.m in Sources */,
+				25B6D3CB1947E04E009BBA9F /* SPDYOriginTest.m in Sources */,
+				25B6D3CC1947E04E009BBA9F /* SPDYSessionManagerTest.m in Sources */,
+				D04653B91948C27300E88108 /* SPDYServerPushTest.m in Sources */,
+				D04653B81948C27300E88108 /* SPDYSocket+SPDYSocketMock.m in Sources */,
+				25B6D3CD1947E04E009BBA9F /* SPDYStreamManagerTest.m in Sources */,
+				25B6D3CE1947E04E009BBA9F /* SPDYStreamTest.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		25B6D35F1947DFA2009BBA9F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 25B6D3471947DFA1009BBA9F /* CocoaSPDY */;
+			targetProxy = 25B6D35E1947DFA2009BBA9F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		25B6D3721947DFDD009BBA9F /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				25B6D3731947DFDD009BBA9F /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		25B6D39A1947DFDD009BBA9F /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				25B6D39B1947DFDD009BBA9F /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		25B6D3691947DFA2009BBA9F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		25B6D36A1947DFA2009BBA9F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		25B6D36C1947DFA2009BBA9F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DSTROOT = /tmp/CocoaSPDY.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SPDY/SPDY-Prefix.pch";
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		25B6D36D1947DFA2009BBA9F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DSTROOT = /tmp/CocoaSPDY.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SPDY/SPDY-Prefix.pch";
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		25B6D36F1947DFA2009BBA9F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7C6FC6C944E9417784C53C26 /* Pods-CocoaSPDYTests.xcconfig */;
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SDKROOT)/Developer/Library/Frameworks",
+					"$(inherited)",
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+				);
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SPDYUnitTests/SPDYUnitTests-Prefix.pch";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = "SPDYUnitTests/SPDYUnitTests-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Debug;
+		};
+		25B6D3701947DFA2009BBA9F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7C6FC6C944E9417784C53C26 /* Pods-CocoaSPDYTests.xcconfig */;
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SDKROOT)/Developer/Library/Frameworks",
+					"$(inherited)",
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+				);
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SPDYUnitTests/SPDYUnitTests-Prefix.pch";
+				INFOPLIST_FILE = "SPDYUnitTests/SPDYUnitTests-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		25B6D3431947DFA1009BBA9F /* Build configuration list for PBXProject "CocoaSPDY" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25B6D3691947DFA2009BBA9F /* Debug */,
+				25B6D36A1947DFA2009BBA9F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		25B6D36B1947DFA2009BBA9F /* Build configuration list for PBXNativeTarget "CocoaSPDY" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25B6D36C1947DFA2009BBA9F /* Debug */,
+				25B6D36D1947DFA2009BBA9F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		25B6D36E1947DFA2009BBA9F /* Build configuration list for PBXNativeTarget "CocoaSPDYTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25B6D36F1947DFA2009BBA9F /* Debug */,
+				25B6D3701947DFA2009BBA9F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 25B6D3401947DFA1009BBA9F /* Project object */;
+}

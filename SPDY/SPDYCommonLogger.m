@@ -16,7 +16,9 @@
 #import "SPDYCommonLogger.h"
 
 #ifdef DEBUG
+#ifndef SPDY_DEBUG_LOGGING
 #define SPDY_DEBUG_LOGGING 1
+#endif
 #endif
 
 static const NSString *logLevels[4] = { @"ERROR", @"WARNING", @"INFO", @"DEBUG" };
@@ -48,15 +50,17 @@ static id<SPDYLogger> sharedLogger;
     NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
     va_end(args);
 
+    if (sharedLogger) {
+        dispatch_async(loggerQueue, ^{
+            if (sharedLogger) {
+                [sharedLogger log:message atLevel:level];
+            }
+        });
+    } else {
 #if SPDY_DEBUG_LOGGING
-    NSLog(@"SPDY [%@] %@", logLevels[level], message);
-#else
-    dispatch_async(loggerQueue, ^{
-        if (sharedLogger) {
-            [sharedLogger log:message atLevel:level];
-        }
-    });
+        NSLog(@"SPDY [%@] %@", logLevels[level], message);
 #endif
+    }
 }
 
 @end
