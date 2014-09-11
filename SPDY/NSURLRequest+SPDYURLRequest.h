@@ -11,6 +11,8 @@
 
 #import <Foundation/Foundation.h>
 
+@protocol SPDYRequestDelegate;
+
 @interface NSURLRequest (SPDYURLRequest)
 
 /**
@@ -47,6 +49,12 @@
 @property (nonatomic, readonly) BOOL SPDYBypass;
 
 /**
+  If set, SPDYProtocol will make callbacks during request events that are specific
+  to the SPDY protocol. This is an optional delegate.
+*/
+@property (nonatomic, readonly) id<SPDYRequestDelegate> SPDYDelegate;
+
+/**
   Request header fields canonicalized to SPDY format.
 */
 - (NSDictionary *)allSPDYHeaderFields;
@@ -58,4 +66,5 @@
 @property (nonatomic) NSUInteger SPDYPriority;
 @property (nonatomic) BOOL SPDYDiscretionary;
 @property (nonatomic) BOOL SPDYBypass;
+@property (nonatomic) id<SPDYRequestDelegate> SPDYDelegate;
 @end

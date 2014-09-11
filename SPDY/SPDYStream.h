@@ -14,6 +14,7 @@
 
 @class SPDYProtocol;
 @class SPDYStream;
+@protocol SPDYRequestDelegate;
 
 @protocol SPDYStreamDataDelegate <NSObject>
 - (void)streamDataAvailable:(SPDYStream *)stream;
@@ -23,6 +24,7 @@
 @interface SPDYStream : NSObject
 @property (nonatomic, weak) id<NSURLProtocolClient> client;
 @property (nonatomic, weak) id<SPDYStreamDataDelegate> dataDelegate;
+@property (nonatomic, weak) id<SPDYRequestDelegate> requestDelegate;
 @property (nonatomic) NSData *data;
 @property (nonatomic) NSInputStream *dataStream;
 @property (nonatomic, weak) NSURLRequest *request;
@@ -47,6 +49,7 @@
 - (void)startWithStreamId:(SPDYStreamId)id sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize;
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;
 - (void)closeWithError:(NSError *)error;
+- (void)closeWithMetadata:(NSDictionary *)metadata;
 - (bool)didReceiveResponse:(NSDictionary *)headers error:(NSError **)pError;
 - (bool)didLoadData:(NSData *)data error:(NSError **)pError;
 @end

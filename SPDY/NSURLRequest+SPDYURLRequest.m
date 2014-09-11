@@ -43,6 +43,11 @@
     return [SPDYProtocol propertyForKey:@"SPDYBodyFile" inRequest:self];
 }
 
+- (id<SPDYRequestDelegate>)SPDYDelegate
+{
+    return [SPDYProtocol propertyForKey:@"SPDYRequestDelegate" inRequest:self];
+}
+
 - (NSDictionary *)allSPDYHeaderFields
 {
     NSDictionary *httpHeaders = self.allHTTPHeaderFields;
@@ -202,6 +207,16 @@
 - (void)setSPDYBodyFile:(NSString *)SPDYBodyFile
 {
     [SPDYProtocol setProperty:SPDYBodyFile forKey:@"SPDYBodyFile" inRequest:self];
+}
+
+- (id<SPDYRequestDelegate>)SPDYDelegate
+{
+    return [SPDYProtocol propertyForKey:@"SPDYRequestDelegate" inRequest:self];
+}
+
+- (void)setSPDYDelegate:(id<SPDYRequestDelegate>)SPDYDelegate
+{
+    [SPDYProtocol setProperty:SPDYDelegate forKey:@"SPDYRequestDelegate" inRequest:self];
 }
 
 @end

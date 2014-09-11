@@ -80,6 +80,7 @@
         _remoteSideClosed = NO;
         _receivedReply = NO;
         _dataDelegate = delegate;
+        _requestDelegate = protocol.request.SPDYDelegate;
     }
     return self;
 }
@@ -146,20 +147,30 @@
     }
 }
 
+- (void)closeWithMetadata:(NSDictionary *)metadata
+{
+    NSAssert(_localSideClosed, @"stream should already be closed locally");
+    NSAssert(_remoteSideClosed, @"stream should already be closed remotely");
+
+    // Custom callback
+    if (_requestDelegate && [_requestDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
+        [_requestDelegate requestDidCompleteWithMetadata:metadata];
+    }
+
+    // NSURLProtocol callback
+    if (_client) {
+        [_client URLProtocolDidFinishLoading:_protocol];
+    }
+}
+
 - (void)setLocalSideClosed:(bool)localSideClosed
 {
     _localSideClosed = localSideClosed;
-    if (_localSideClosed && _remoteSideClosed && _client) {
-        [_client URLProtocolDidFinishLoading:_protocol];
-    }
 }
 
 - (void)setRemoteSideClosed:(bool)remoteSideClosed
 {
     _remoteSideClosed = remoteSideClosed;
-    if (_localSideClosed && _remoteSideClosed && _client) {
-        [_client URLProtocolDidFinishLoading:_protocol];
-    }
 }
 
 - (bool)closed

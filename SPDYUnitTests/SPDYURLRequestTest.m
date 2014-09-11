@@ -11,6 +11,13 @@
 
 #import <SenTestingKit/SenTestingKit.h>
 #import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYProtocol.h"
+
+@interface TestSPDYRequestDelegate : NSObject <SPDYRequestDelegate>
+@end
+
+@implementation TestSPDYRequestDelegate
+@end
 
 @interface SPDYURLRequestTest : SenTestCase
 @end
@@ -288,6 +295,20 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
 
     [request setSPDYBodyFile:@"Bodyfile.json"];
     STAssertEquals([request SPDYBodyFile], @"Bodyfile.json", nil);
+
+    TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
+    [request setSPDYDelegate:testDelegate];
+    STAssertEquals([request SPDYDelegate], testDelegate, nil);
+
+    // Test the unmutable versions
+    NSURLRequest *unmutableRequest = request;
+    STAssertEquals([unmutableRequest SPDYPriority], (NSUInteger)1, nil);
+    STAssertEquals([unmutableRequest SPDYDiscretionary], (BOOL)TRUE, nil);
+    STAssertEquals([unmutableRequest SPDYBypass], (BOOL)TRUE, nil);
+    STAssertEquals([unmutableRequest SPDYBodyStream], stream, nil);
+    STAssertEquals([unmutableRequest SPDYBodyFile], @"Bodyfile.json", nil);
+    STAssertEquals([unmutableRequest SPDYDelegate], testDelegate, nil);
+
 }
 
 @end
