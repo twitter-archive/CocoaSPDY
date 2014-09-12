@@ -530,9 +530,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)_connectToNextEndpointWithTimeout:(NSTimeInterval)timeout error:(NSError **)pError
 {
-    // Note: the first call to moveToNextEndpoint should *always* return an endpoint, either a proxy
-    // or direct.
     if (![_endpointManager moveToNextEndpoint]) {
+        if (pError) {
+            *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"No endpoints available, unable to connect socket");
+        }
         return NO;
     }
 
