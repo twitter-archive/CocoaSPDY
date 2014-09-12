@@ -124,17 +124,7 @@
     [self _proxyAddSupportedFrom:originalProxyList toEndpointList:endpointList];
     [self _proxyAddSupportedFrom:newProxyList toEndpointList:endpointList];
 
-    if (endpointList.count == 0) {
-        SPDY_INFO(@"Proxy: none found, using direct connection to origin %@", _origin);
-        [endpointList addObject:[[SPDYOriginEndpoint alloc] initWithHost:_origin.host
-                                                                    port:_origin.port
-                                                                    user:nil
-                                                                password:nil
-                                                                    type:SPDYOriginEndpointTypeDirect
-                                                                  origin:_origin]];
-    } else {
-        SPDY_INFO(@"Proxy: %lu proxies found for origin %@", (unsigned long)endpointList.count, _origin);
-    }
+    SPDY_INFO(@"Proxy: %lu endpoints found for origin %@", (unsigned long)endpointList.count, _origin);
     return endpointList;
 }
 
@@ -175,8 +165,8 @@
             (__bridge CFURLRef)originUrl,
             &error);
 
-    if (error) {
-        SPDY_WARNING(@"Proxy: error getting configuration from PAC file '%@': %@", pacScript, (__bridge NSError *)error);
+    if (error != NULL) {
+        SPDY_WARNING(@"Proxy: error getting configuration from PAC file: %@", (__bridge NSError *)error);
         return nil;
     }
 
@@ -191,16 +181,8 @@
 
     SPDY_DEBUG(@"Proxy: retrieving PAC file from %@", pacScriptUrl);
 
-    NSError *error = nil;
-    NSString *pacScript = [NSString stringWithContentsOfURL:pacScriptUrl
-                                               usedEncoding:nil
-                                                      error:&error];
-    if (error) {
-        SPDY_WARNING(@"Error retrieving proxy auto configuration from %@: %@", pacScriptUrl, error);
-        return nil;
-    }
-
-    return pacScript;
+    SPDY_ERROR(@"Proxy: _getPacScriptFromUrl not implemented");
+    return nil;
 }
 
 - (void)_proxyResolveAutoConfigProxies:(NSDictionary *)proxyDict toProxyList:(NSMutableArray *)proxyList
@@ -208,8 +190,7 @@
     NSString *proxyType = [proxyDict valueForKey:(__bridge NSString *)kCFProxyTypeKey];
     if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL]) {
         // Proxy auto-configuration URL. Retrieve and process PAC file.
-
-        NSURL *pacScriptUrl = [NSURL URLWithString:[proxyDict valueForKey:(__bridge NSString *)kCFProxyAutoConfigurationURLKey]];
+        NSURL *pacScriptUrl = [proxyDict valueForKey:(__bridge NSString*)kCFProxyAutoConfigurationURLKey];
         NSString *pacScript = [self _getPacScriptFromUrl:pacScriptUrl];
         NSArray *autoProxyList = [self _proxyGetListFromScript:pacScript];
         [proxyList addObjectsFromArray:autoProxyList];
@@ -233,8 +214,6 @@
         NSString *user = [proxyDict valueForKey:(__bridge NSString *)kCFProxyUsernameKey];
         NSString *pass = [proxyDict valueForKey:(__bridge NSString *)kCFProxyPasswordKey];
 
-        SPDY_DEBUG(@"Proxy: discovered endpoint %@:%d (%@)", host, port, proxyType);
-
         // We only support HTTPS proxies, since SPDY requires the use of TLS. An HTTP proxy
         // does not use the CONNECT message, so is unable to speak anything but plaintext HTTP.
         if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeHTTPS]) {
@@ -247,13 +226,20 @@
                                                            type:type
                                                          origin:_origin];
             [endpointList addObject:endpoint];
-            SPDY_DEBUG(@"Proxy: added endpoint %@", endpoint);
-        }
-        else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeNone]) {
-            // This case will be handled later
-        }
-        else {
-            SPDY_WARNING(@"Proxy: ignoring unsupported endpoint %@:%d (%@)", host, port, proxyType);
+            SPDY_INFO(@"Proxy: added endpoint %@", endpoint);
+        } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeNone]) {
+            [endpointList addObject:[[SPDYOriginEndpoint alloc] initWithHost:_origin.host
+                                                                        port:_origin.port
+                                                                        user:nil
+                                                                    password:nil
+                                                                        type:SPDYOriginEndpointTypeDirect
+                                                                      origin:_origin]];
+            SPDY_INFO(@"Proxy: added direct endpoint %@", endpointList.lastObject);
+        } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL] ||
+                   [proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationJavaScript]) {
+            // Ignore, already processed
+        } else {
+            SPDY_INFO(@"Proxy: ignoring unsupported endpoint %@:%d (%@)", host, port, proxyType);
         }
     }
 }

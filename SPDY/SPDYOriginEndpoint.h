@@ -13,9 +13,21 @@
 
 @class SPDYOrigin;
 
-// Direct means no proxy.
-// Https means a proxy for HTTPS requests, which is essentially what SPDY requires.
-// Http means a proxy for plaintext HTTP requests, which don't use the CONNECT message. Unsupported.
+// Some clarification:
+//
+// What Apple calls an "HTTPS" proxy, kCFProxyTypeHTTPS, means it is used for https:// requests. It
+// is still a HTTP proxy, but requires the use of the CONNECT message, since that is the only way
+// to establish a TLS session with the origin. SPDY requires TLS.
+//
+// An "HTTP" proxy, kCFProxyTypeHTTP, as defined on by Apple, is an HTTP proxy that does not use a
+// CONNECT  message. We don't support those.
+//
+// Direct, kCFProxyTypeNone, means no proxy.
+//
+// As far as I can tell, there is no way to configure a proxy that requires a TLS session
+// to connect to it, which would serve to obscure the CONNECT destination. If we could support that,
+// the name would be something like SPDYOriginEndpointTypeTlsHttpsProxy.
+
 typedef enum {
     SPDYOriginEndpointTypeDirect,
     SPDYOriginEndpointTypeHttpsProxy
