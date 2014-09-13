@@ -81,6 +81,10 @@
         _receivedReply = NO;
         _dataDelegate = delegate;
         _requestDelegate = protocol.request.SPDYDelegate;
+        _requestDelegateQueue = protocol.request.SPDYDelegateQueue;
+        if (_requestDelegateQueue == nil) {
+            _requestDelegateQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        }
     }
     return self;
 }
@@ -154,12 +158,18 @@
 
     // Custom callback
     if (_requestDelegate && [_requestDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
-        [_requestDelegate requestDidCompleteWithMetadata:metadata];
+        dispatch_async(_requestDelegateQueue, ^{
+            [_requestDelegate requestDidCompleteWithMetadata:metadata];
+            // NSURLProtocol callback. Needs to happen after the requestDidCompleteWithMetadata call.
+            if (_client) {
+                [_client URLProtocolDidFinishLoading:_protocol];
+            }
+        });
     }
-
-    // NSURLProtocol callback
-    if (_client) {
-        [_client URLProtocolDidFinishLoading:_protocol];
+    else {
+        if (_client) {
+            [_client URLProtocolDidFinishLoading:_protocol];
+        }
     }
 }
 

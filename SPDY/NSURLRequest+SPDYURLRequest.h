@@ -50,9 +50,12 @@
 
 /**
   If set, SPDYProtocol will make callbacks during request events that are specific
-  to the SPDY protocol. This is an optional delegate.
+  to the SPDY protocol using the supplied queue. Specifying the delegate is optional,
+  and if not specified the callbacks will simply be ignored. Specifying the request queue
+  is also optional, and if left nil the global default queue will be used.
 */
 @property (nonatomic, readonly) id<SPDYRequestDelegate> SPDYDelegate;
+@property (nonatomic, readonly) dispatch_queue_t SPDYDelegateQueue;
 
 /**
   Request header fields canonicalized to SPDY format.
@@ -67,4 +70,6 @@
 @property (nonatomic) BOOL SPDYDiscretionary;
 @property (nonatomic) BOOL SPDYBypass;
 @property (nonatomic) id<SPDYRequestDelegate> SPDYDelegate;
+@property (nonatomic) dispatch_queue_t SPDYDelegateQueue;
+
 @end

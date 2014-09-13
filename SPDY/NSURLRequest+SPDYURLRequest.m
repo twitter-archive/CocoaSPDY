@@ -48,6 +48,11 @@
     return [SPDYProtocol propertyForKey:@"SPDYRequestDelegate" inRequest:self];
 }
 
+- (dispatch_queue_t)SPDYDelegateQueue
+{
+    return [SPDYProtocol propertyForKey:@"SPDYRequestDelegateQueue" inRequest:self];
+}
+
 - (NSDictionary *)allSPDYHeaderFields
 {
     NSDictionary *httpHeaders = self.allHTTPHeaderFields;
@@ -217,6 +222,16 @@
 - (void)setSPDYDelegate:(id<SPDYRequestDelegate>)SPDYDelegate
 {
     [SPDYProtocol setProperty:SPDYDelegate forKey:@"SPDYRequestDelegate" inRequest:self];
+}
+
+- (dispatch_queue_t)SPDYDelegateQueue
+{
+    return [SPDYProtocol propertyForKey:@"SPDYRequestDelegateQueue" inRequest:self];
+}
+
+- (void)setSPDYDelegateQueue:(dispatch_queue_t)SPDYDelegateQueue;
+{
+    [SPDYProtocol setProperty:SPDYDelegateQueue forKey:@"SPDYRequestDelegateQueue" inRequest:self];
 }
 
 @end

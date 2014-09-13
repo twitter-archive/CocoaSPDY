@@ -297,7 +297,9 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     STAssertEquals([request SPDYBodyFile], @"Bodyfile.json", nil);
 
     TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
+    dispatch_queue_t testDelegateQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
     [request setSPDYDelegate:testDelegate];
+    [request setSPDYDelegateQueue:testDelegateQueue];
     STAssertEquals([request SPDYDelegate], testDelegate, nil);
 
     // Test the unmutable versions
@@ -308,6 +310,7 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     STAssertEquals([unmutableRequest SPDYBodyStream], stream, nil);
     STAssertEquals([unmutableRequest SPDYBodyFile], @"Bodyfile.json", nil);
     STAssertEquals([unmutableRequest SPDYDelegate], testDelegate, nil);
+    STAssertEquals([unmutableRequest SPDYDelegateQueue], testDelegateQueue, nil);
 
 }
 
