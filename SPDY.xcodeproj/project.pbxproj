@@ -410,7 +410,7 @@
 			name = SPDYUnitTests;
 			productName = SPDYUnitTests;
 			productReference = 064EFB1316715C9F002F0AEC /* SPDYUnitTests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		0651EBE716F3F7C700CE44D2 /* SPDY.iphoneos */ = {
 			isa = PBXNativeTarget;
@@ -540,7 +540,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nIOS_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/lib${PROJECT_NAME}.iphoneos.a\"\nSIM_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/lib${PROJECT_NAME}.iphonesimulator.a\"\nOSX_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.macosx.a\"\nIOS_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/${PRODUCT_NAME}.framework\"\nOSX_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}/${PRODUCT_NAME}.framework\"\n\nrm -rf \"${IOS_FRAMEWORK_PATH}\"\ncp -fR \"${OSX_FRAMEWORK_PATH}\" \"${IOS_FRAMEWORK_PATH}\"\nlipo \"${IOS_LIB_PATH}\" \"${SIM_LIB_PATH}\" -create -output \"${IOS_FRAMEWORK_PATH}/Versions/A/${PRODUCT_NAME}\"\nlipo \"${OSX_LIB_PATH}\" -create -output \"${OSX_FRAMEWORK_PATH}/Versions/A/${PRODUCT_NAME}\"\n\nif [[ $CONFIGURATION == \"Release\" ]]; then\nstrip -S \"${IOS_FRAMEWORK_PATH}/Versions/A/${PRODUCT_NAME}\"\nstrip -S \"${OSX_FRAMEWORK_PATH}/Versions/A/${PRODUCT_NAME}\"\nfi\n\nln -fs \"${IOS_FRAMEWORK_PATH}/Versions/Current/${PRODUCT_NAME}\" \"${IOS_FRAMEWORK_PATH}/${PRODUCT_NAME}\"\nln -fs \"${OSX_FRAMEWORK_PATH}/Versions/Current/${PRODUCT_NAME}\" \"${OSX_FRAMEWORK_PATH}/${PRODUCT_NAME}\"\n";
+			shellScript = "set -e\n\n#Variables\nIOS_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/lib${PROJECT_NAME}.iphoneos.a\"\nSIM_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/lib${PROJECT_NAME}.iphonesimulator.a\"\nOSX_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.macosx.a\"\nIOS_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/${PRODUCT_NAME}.framework\"\nOSX_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}/${PRODUCT_NAME}.framework\"\n\nSPDY_CONFIG=\"${BUILD_DIR}/${CONFIGURATION}/spdy.config\"\nSPDY_INSTALL_SCRIPT=\"${BUILD_DIR}/${CONFIGURATION}/spdy_install.sh\"\n\n#Install Functions\ninstall_iphoneos(){\n    rm -rf \"${IOS_FRAMEWORK_PATH}\"\n    cp -fR \"${OSX_FRAMEWORK_PATH}\" \"${IOS_FRAMEWORK_PATH}\"\n\n    static_libs=( \"${IOS_LIB_PATH}\" \"${SIM_LIB_PATH}\" )\n    install \"${IOS_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall_macosx(){\n    static_libs=( \"${OSX_LIB_PATH}\" )\n    install \"${OSX_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall() {\n    output_dir=$1\n    shift\n    static_libraries=($@)\n\n    lipo \"${static_libraries[@]}\" -create -output \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n\n    if [[ $CONFIGURATION == \"Release\" ]]; then\n    strip -S \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n    fi\n\n    ln -fs \"${output_dir}/Versions/Current/${PRODUCT_NAME}\" \"${output_dir}/${PRODUCT_NAME}\"\n}\n\n#Script\nif [ -f \"${SPDY_CONFIG}\" ]; then\n  source \"${SPDY_CONFIG}\"\nfi\n\nif [ -n \"${SPDY_INSTALL_SDK}\" ]; then\n  if [[ $SPDY_INSTALL_SDK == \"iphoneos\" ]]; then\n    install_iphoneos\n  elif [[ $SPDY_INSTALL_SDK == \"macosx\" ]]; then\n    install_macosx\n  fi\nelse\n  install_iphoneos\n  install_macosx\nfi\n\nif [ -f \"${SPDY_INSTALL_SCRIPT}\" ]; then\n  source \"${SPDY_INSTALL_SCRIPT}\"\nfi\n";
 		};
 		064EFB1116715C9F002F0AEC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
