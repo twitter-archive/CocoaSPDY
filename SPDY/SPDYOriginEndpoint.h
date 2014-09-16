@@ -55,11 +55,14 @@ typedef enum {
 
 @property (nonatomic, readonly) SPDYOrigin *origin;
 @property (nonatomic, readonly) NSUInteger remaining;
+@property (nonatomic, readonly) BOOL needsResolving;
 
 - (id)initWithOrigin:(SPDYOrigin *)origin;
 
 - (SPDYOriginEndpoint *)getCurrentEndpoint;
 
-- (bool)moveToNextEndpoint;
+- (BOOL)moveToNextEndpoint;
+
+- (CFRunLoopSourceRef)resolveUsingBlock:(void (^)(BOOL success))block;
 
 @end

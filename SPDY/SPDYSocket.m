@@ -69,7 +69,7 @@ typedef enum : uint16_t {
 }
 
 // Connecting
-- (bool)_connectToNextEndpointWithTimeout:(NSTimeInterval)timeout error:(NSError **)pError;
+- (bool)_connectToNextEndpointWithError:(NSError **)error;
 - (void)_startConnectTimeout:(NSTimeInterval)timeout;
 - (void)_endConnectTimeout;
 - (void)_timeoutConnect:(NSTimer *)timer;
@@ -524,11 +524,44 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     [self _emptyQueues];
 
-    return [self _connectToNextEndpointWithTimeout:timeout error:pError];
+    if (_runLoop == nil) {
+        _runLoop = CFRunLoopGetCurrent();
+    }
 
+    [self _startConnectTimeout:timeout];
+    _flags |= kDidStartDelegate;
+
+    if ([_endpointManager needsResolving]) {
+        CFRunLoopSourceRef runLoopSource = [_endpointManager resolveUsingBlock:^(BOOL success) {
+            SPDY_DEBUG(@">>> resolve block");
+            if (!success) {
+                [self _closeWithError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Unable to process auto-config proxy")];
+                return;
+            }
+
+            NSError *error = nil;
+            if (![self _connectToNextEndpointWithError:&error]) {
+                [self _closeWithError:error];
+                return;
+            }
+        }];
+
+        if (runLoopSource == nil) {
+            if (pError) {
+                *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Unable to initialize auto-config proxy");
+            }
+            return NO;
+        }
+
+        [self _addSource:runLoopSource];
+    } else {
+        return [self _connectToNextEndpointWithError:pError];
+    }
+
+    return YES;
 }
 
-- (bool)_connectToNextEndpointWithTimeout:(NSTimeInterval)timeout error:(NSError **)pError
+- (bool)_connectToNextEndpointWithError:(NSError **)pError
 {
     if (![_endpointManager moveToNextEndpoint]) {
         if (pError) {
@@ -546,9 +579,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     if (![self _configureStreams:pError])                               goto Failed;
     if (![self _openStreams:pError])                                    goto Failed;
 
-    [self _startConnectTimeout:timeout];
-    _flags |= kDidStartDelegate;
-
     // If connecting to an HTTPS proxy, we have to exchange an HTTP CONNECT message. This exchange
     // needs to be included in the timeout. If anything fails, we'd prefer to hide the error
     // from the app, until no more endpoints (proxy or direct) are available. Let's go start
@@ -559,12 +589,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         _flags |= kConnectingToProxy;
 
         // Issue the proxy read op
-        SPDYSocketReadOp *readOp = [[SPDYSocketProxyReadOp alloc] initWithTimeout:timeout];
+        SPDYSocketReadOp *readOp = [[SPDYSocketProxyReadOp alloc] initWithTimeout:(NSTimeInterval)-1];
         [_readQueue addObject:readOp];
         [self _scheduleRead];
 
         // Issue the proxy write op (CONNECT message)
-        SPDYSocketWriteOp *writeOp = [[SPDYSocketProxyWriteOp alloc] initWithOrigin:endpoint.origin timeout:timeout];
+        SPDYSocketWriteOp *writeOp = [[SPDYSocketProxyWriteOp alloc] initWithOrigin:endpoint.origin timeout:(NSTimeInterval)-1];
         [_writeQueue addObject:writeOp];
         [self _scheduleWrite];
 
@@ -1715,6 +1745,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             // Successfully connected to proxy server, carry on
             SPDY_INFO(@"socket is now connected to proxy");
             _flags &= ~kConnectingToProxy;
+
+            [self _endConnectTimeout];
 
             [self _endRead];
             [self _scheduleRead];

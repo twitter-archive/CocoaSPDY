@@ -59,8 +59,9 @@
 
 @implementation SPDYOriginEndpointManager
 {
-    NSArray *_endpointList;
+    NSMutableArray *_endpointList;
     NSInteger _endpointIndex;
+    __strong void (^_resolveCallback)(BOOL success);
 }
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
@@ -70,6 +71,8 @@
         _origin = origin;
         _endpointList = [self _getOriginEndpoints];
         _endpointIndex = -1;
+        _needsResolving = NO;
+        _resolveCallback = nil;
     }
     return self;
 }
@@ -88,7 +91,7 @@
     }
 }
 
-- (bool)moveToNextEndpoint
+- (BOOL)moveToNextEndpoint
 {
     if (_endpointIndex < (NSInteger)_endpointList.count) {
         _endpointIndex++;
@@ -97,13 +100,82 @@
     return _endpointIndex < _endpointList.count;
 }
 
+void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
+{
+    SPDY_DEBUG(@">>> ResultCallback");
+    SPDYOriginEndpointManager *manager = (__bridge SPDYOriginEndpointManager *)client;
+
+    NSError *nserror = nil;
+    NSArray *nsproxies = nil;
+    if (error != NULL) {
+        nserror = (NSError *)CFRetain(error);
+    } else {
+        nsproxies = (NSArray *)CFRetain(proxies);
+    }
+
+    // @@@ cleanup
+    [manager handleExecuteCallback:nsproxies error:nserror];
+}
+
+- (CFRunLoopSourceRef)resolveUsingBlock:(void (^)(BOOL success))block
+{
+    NSLog(@">>> resolveUsingBlock");
+
+    if (![self needsResolving]) {
+        return nil;
+    }
+
+    // Work around <rdar://problem/5530166>. This dummy call to
+    // CFNetworkCopyProxiesForURL initializes some state within CFNetwork that is
+    // required by CFNetworkExecuteProxyAutoConfigurationURL.
+
+    NSURL *originUrl = [self _getOriginUrlForProxy];
+    CFArrayRef dummy_result = CFNetworkCopyProxiesForURL(
+            (__bridge CFURLRef)originUrl,
+            NULL);
+    if (dummy_result)
+        CFRelease(dummy_result);
+
+    NSArray *originalProxyList = [self _proxyGetListFromSettings:[self _proxyGetSystemSettings]];
+    for (NSDictionary *proxyDict in originalProxyList) {
+        NSString *proxyType = [proxyDict valueForKey:(__bridge NSString *)kCFProxyTypeKey];
+        if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL]) {
+            NSURL *pacScriptUrl = [proxyDict valueForKey:(__bridge NSString*)kCFProxyAutoConfigurationURLKey];
+
+            // CFNetworkExecuteProxyAutoConfigurationURL returns a runloop source we need to release.
+            CFStreamClientContext context = { 0, (__bridge void *)self, nil, nil, nil};
+            CFRunLoopSourceRef runloop_source =  CFNetworkExecuteProxyAutoConfigurationURL(
+                    (__bridge CFURLRef)pacScriptUrl,
+                    (__bridge CFURLRef)originUrl,
+                    ResultCallback,
+                    &context);
+            return runloop_source;
+        }
+    }
+    return nil;
+}
+
+- (void)handleExecuteCallback:(NSArray *)proxies error:(NSError *)error
+{
+    SPDY_DEBUG(@">>> handleExecuteCallback");
+    if (proxies) {
+        [self _proxyAddSupportedFrom:proxies toEndpointList:_endpointList];
+    }
+
+    if (_resolveCallback) {
+        _resolveCallback(error == nil);
+    }
+
+}
+
+
 - (NSURL *)_getOriginUrlForProxy
 {
     NSString *originUrlString = [NSString stringWithFormat:@"%@://%@:%u", _origin.scheme, _origin.host, _origin.port];
     return [NSURL URLWithString:originUrlString];
 }
 
-- (NSArray *)_getOriginEndpoints
+- (NSMutableArray *)_getOriginEndpoints
 {
     NSArray *originalProxyList = [self _proxyGetListFromSettings:[self _proxyGetSystemSettings]];
     NSMutableArray *newProxyList = [[NSMutableArray alloc] init];
@@ -189,16 +261,22 @@
 {
     NSString *proxyType = [proxyDict valueForKey:(__bridge NSString *)kCFProxyTypeKey];
     if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL]) {
+        #if 0
         // Proxy auto-configuration URL. Retrieve and process PAC file.
         NSURL *pacScriptUrl = [proxyDict valueForKey:(__bridge NSString*)kCFProxyAutoConfigurationURLKey];
         NSString *pacScript = [self _getPacScriptFromUrl:pacScriptUrl];
         NSArray *autoProxyList = [self _proxyGetListFromScript:pacScript];
         [proxyList addObjectsFromArray:autoProxyList];
+        #else
+        _needsResolving = YES;
+        #endif
     } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationJavaScript]) {
+        #if 0
         // PAC file provided directly (really?). Process.
         NSString *pacScript = [proxyDict valueForKey:(__bridge NSString *)kCFProxyAutoConfigurationJavaScriptKey];
         NSArray *autoProxyList = [self _proxyGetListFromScript:pacScript];
         [proxyList addObjectsFromArray:autoProxyList];
+        #endif
     }
 }
 
