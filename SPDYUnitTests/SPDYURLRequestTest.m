@@ -302,15 +302,15 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     [request setSPDYDelegateQueue:testDelegateQueue];
     STAssertEquals([request SPDYDelegate], testDelegate, nil);
 
-    // Test the unmutable versions
-    NSURLRequest *unmutableRequest = request;
-    STAssertEquals([unmutableRequest SPDYPriority], (NSUInteger)1, nil);
-    STAssertEquals([unmutableRequest SPDYDiscretionary], (BOOL)TRUE, nil);
-    STAssertEquals([unmutableRequest SPDYBypass], (BOOL)TRUE, nil);
-    STAssertEquals([unmutableRequest SPDYBodyStream], stream, nil);
-    STAssertEquals([unmutableRequest SPDYBodyFile], @"Bodyfile.json", nil);
-    STAssertEquals([unmutableRequest SPDYDelegate], testDelegate, nil);
-    STAssertEquals([unmutableRequest SPDYDelegateQueue], testDelegateQueue, nil);
+    // Test the immutable versions
+    NSURLRequest *immutableRequest = request;
+    STAssertEquals([immutableRequest SPDYPriority], (NSUInteger)1, nil);
+    STAssertEquals([immutableRequest SPDYDiscretionary], (BOOL)TRUE, nil);
+    STAssertEquals([immutableRequest SPDYBypass], (BOOL)TRUE, nil);
+    STAssertEquals([immutableRequest SPDYBodyStream], stream, nil);
+    STAssertEquals([immutableRequest SPDYBodyFile], @"Bodyfile.json", nil);
+    STAssertEquals([immutableRequest SPDYDelegate], testDelegate, nil);
+    STAssertEquals([immutableRequest SPDYDelegateQueue], testDelegateQueue, nil);
 
 }
 
