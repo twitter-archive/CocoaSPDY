@@ -410,7 +410,7 @@
 			name = SPDYUnitTests;
 			productName = SPDYUnitTests;
 			productReference = 064EFB1316715C9F002F0AEC /* SPDYUnitTests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		0651EBE716F3F7C700CE44D2 /* SPDY.iphoneos */ = {
 			isa = PBXNativeTarget;
@@ -486,7 +486,7 @@
 		D2CC14A516179B43002E37CF /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0510;
+				LastUpgradeCheck = 0600;
 				ORGANIZATIONNAME = Twitter;
 			};
 			buildConfigurationList = D2CC14A816179B43002E37CF /* Build configuration list for PBXProject "SPDY" */;
