@@ -185,12 +185,12 @@ NSDictionary *testHeaders()
     };
 
     // Try with no error parameter
-    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:nil], 0, nil);
+    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:nil], -1, nil);
     AssertFramesReceivedCount(0);
 
     // Try with error parameter
     NSError *error;
-    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:&error], 0, nil);
+    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:&error], -1, nil);
     AssertFramesReceivedCount(0);
     STAssertNotNil(error, nil);
     STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);
@@ -217,7 +217,7 @@ NSDictionary *testHeaders()
     };
 
     NSError *error;
-    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:&error], 0, nil);
+    STAssertEquals([_encoder encodeSynStreamFrame:inFrame error:&error], -1, nil);
     AssertFramesReceivedCount(0);
     STAssertNotNil(error, nil);
     STAssertEquals(error.domain, SPDYCodecErrorDomain, nil);

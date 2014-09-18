@@ -72,7 +72,7 @@
 - (NSInteger)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:synStreamFrame.headers error:pError]) {
-        return 0;
+        return -1;
     }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:18 + _compressedLength];
@@ -102,7 +102,7 @@
 - (NSInteger)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:synReplyFrame.headers error:pError]) {
-        return 0;
+        return -1;
     }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];
@@ -230,7 +230,7 @@
 - (NSInteger)encodeHeadersFrame:(SPDYHeadersFrame *)headersFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:headersFrame.headers error:pError]) {
-        return 0;
+        return -1;
     }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];

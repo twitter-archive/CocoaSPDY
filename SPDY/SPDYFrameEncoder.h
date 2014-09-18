@@ -28,7 +28,7 @@
 @property (nonatomic, weak) id<SPDYFrameEncoderDelegate> delegate;
 - (id)initWithDelegate:(id <SPDYFrameEncoderDelegate>)delegate headerCompressionLevel:(NSUInteger)headerCompressionLevel;
 
-// All of the encode methods return the number of bytes encoded, or 0 if an error occurred.
+// All of the encode methods return the number of bytes encoded, or -1 if an error occurred.
 - (NSInteger)encodeDataFrame:(SPDYDataFrame *)dataFrame;
 - (NSInteger)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError**)pError;
 - (NSInteger)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError**)pError;
