@@ -196,12 +196,13 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
 
 @end
 
+
 /**
-  SPDYRequestDelegate may optionally be set in the NSURLRequest properties using
+  SPDYExtendedDelegate may optionally be set in the NSURLRequest properties using
   NSURLRequest+SPDYURLRequest.h category. Doing so is optional. If set, these callbacks
   will provide additional information and control over the SPDY-specific streams.
 */
-@protocol SPDYRequestDelegate <NSObject>
+@protocol SPDYExtendedDelegate <NSObject>
 @optional
 
 /**
@@ -210,4 +211,5 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
   request and session. See the SPDYMetadata keys defined above for additional discussion.
 */
 - (void)requestDidCompleteWithMetadata:(NSDictionary *)metadata;
+
 @end

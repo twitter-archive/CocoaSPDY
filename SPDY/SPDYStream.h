@@ -14,7 +14,7 @@
 
 @class SPDYProtocol;
 @class SPDYStream;
-@protocol SPDYRequestDelegate;
+@protocol SPDYExtendedDelegate;
 
 @protocol SPDYStreamDataDelegate <NSObject>
 - (void)streamDataAvailable:(SPDYStream *)stream;
@@ -24,8 +24,7 @@
 @interface SPDYStream : NSObject
 @property (nonatomic, weak) id<NSURLProtocolClient> client;
 @property (nonatomic, weak) id<SPDYStreamDataDelegate> dataDelegate;
-@property (nonatomic, weak) id<SPDYRequestDelegate> requestDelegate;
-@property (nonatomic) dispatch_queue_t requestDelegateQueue;
+@property (nonatomic, weak) id<SPDYExtendedDelegate> extendedDelegate;
 @property (nonatomic) NSData *data;
 @property (nonatomic) NSInputStream *dataStream;
 @property (nonatomic, weak) NSURLRequest *request;

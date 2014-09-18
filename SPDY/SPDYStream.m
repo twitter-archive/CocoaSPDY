@@ -80,11 +80,7 @@
         _remoteSideClosed = NO;
         _receivedReply = NO;
         _dataDelegate = delegate;
-        _requestDelegate = protocol.request.SPDYDelegate;
-        _requestDelegateQueue = protocol.request.SPDYDelegateQueue;
-        if (_requestDelegateQueue == nil) {
-            _requestDelegateQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        }
+        _extendedDelegate = protocol.request.SPDYDelegate;
     }
     return self;
 }
@@ -151,25 +147,37 @@
     }
 }
 
+- (void)doExtendedCallback:(void (^)(void))block
+{
+    // Custom callback
+    if ([_extendedDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
+        NSAssert(_request.SPDYDelegateRunLoop || _request.SPDYDelegateQueue, @"expected either SPDYDelegateRunLoop or SPDYDeleteQueue to be set");
+        if (_request.SPDYDelegateRunLoop != nil) {
+            CFRunLoopPerformBlock([_request.SPDYDelegateRunLoop getCFRunLoop],
+                    (__bridge CFStringRef)_request.SPDYDelegateRunLoopMode,
+                    block);
+        } else if (_request.SPDYDelegateQueue != nil) {
+            [_request.SPDYDelegateQueue addOperationWithBlock:block];
+        }
+    }
+}
+
 - (void)closeWithMetadata:(NSDictionary *)metadata
 {
     NSAssert(_localSideClosed, @"stream should already be closed locally");
     NSAssert(_remoteSideClosed, @"stream should already be closed remotely");
 
     // Custom callback
-    if (_requestDelegate && [_requestDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
-        dispatch_async(_requestDelegateQueue, ^{
-            [_requestDelegate requestDidCompleteWithMetadata:metadata];
-            // NSURLProtocol callback. Needs to happen after the requestDidCompleteWithMetadata call.
-            if (_client) {
-                [_client URLProtocolDidFinishLoading:_protocol];
+    if (_extendedDelegate && [_extendedDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
+        [self doExtendedCallback:^{
+            if (_extendedDelegate) {
+                [_extendedDelegate requestDidCompleteWithMetadata:metadata];
             }
-        });
+        }];
     }
-    else {
-        if (_client) {
-            [_client URLProtocolDidFinishLoading:_protocol];
-        }
+
+    if (_client) {
+        [_client URLProtocolDidFinishLoading:_protocol];
     }
 }
 

@@ -13,7 +13,7 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYProtocol.h"
 
-@interface TestSPDYRequestDelegate : NSObject <SPDYRequestDelegate>
+@interface TestSPDYRequestDelegate : NSObject <SPDYExtendedDelegate>
 @end
 
 @implementation TestSPDYRequestDelegate
@@ -296,12 +296,6 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     [request setSPDYBodyFile:@"Bodyfile.json"];
     STAssertEquals([request SPDYBodyFile], @"Bodyfile.json", nil);
 
-    TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
-    dispatch_queue_t testDelegateQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-    [request setSPDYDelegate:testDelegate];
-    [request setSPDYDelegateQueue:testDelegateQueue];
-    STAssertEquals([request SPDYDelegate], testDelegate, nil);
-
     // Test the immutable versions
     NSURLRequest *immutableRequest = request;
     STAssertEquals([immutableRequest SPDYPriority], (NSUInteger)1, nil);
@@ -309,9 +303,113 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     STAssertEquals([immutableRequest SPDYBypass], (BOOL)TRUE, nil);
     STAssertEquals([immutableRequest SPDYBodyStream], stream, nil);
     STAssertEquals([immutableRequest SPDYBodyFile], @"Bodyfile.json", nil);
-    STAssertEquals([immutableRequest SPDYDelegate], testDelegate, nil);
-    STAssertEquals([immutableRequest SPDYDelegateQueue], testDelegateQueue, nil);
 
 }
+
+- (void)testSPDYDelegateRunLoopProperties
+{
+    // Test getters/setters for all custom properties to catch any typos
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+
+    TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
+    NSRunLoop *runLoop = [NSRunLoop mainRunLoop];
+    NSString *runLoopMode = @"testmode";
+
+    [request setExtendedDelegate:testDelegate inRunLoop:runLoop forMode:runLoopMode];
+    STAssertEquals([request SPDYDelegate], testDelegate, nil);
+    STAssertEquals([request SPDYDelegateRunLoop], runLoop, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoopMode], runLoopMode, nil);
+    STAssertEqualObjects([request SPDYDelegateQueue], nil, nil);
+
+    // Test the immutable versions
+    NSURLRequest *immutableRequest = request;
+    STAssertEquals([immutableRequest SPDYDelegate], testDelegate, nil);
+    STAssertEquals([immutableRequest SPDYDelegateRunLoop], runLoop, nil);
+    STAssertEqualObjects([immutableRequest SPDYDelegateRunLoopMode], runLoopMode, nil);
+    STAssertEqualObjects([immutableRequest SPDYDelegateQueue], nil, nil);
+}
+
+- (void)testSPDYDelegateDefaultRunLoopProperties
+{
+    // Test getters/setters for all custom properties to catch any typos
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+
+    TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
+    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
+    NSString *runLoopMode = NSDefaultRunLoopMode;
+
+    [request setExtendedDelegate:testDelegate inRunLoop:nil forMode:nil];
+    STAssertEquals([request SPDYDelegate], testDelegate, nil);
+    STAssertEquals([request SPDYDelegateRunLoop], runLoop, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoopMode], runLoopMode, nil);
+    STAssertEqualObjects([request SPDYDelegateQueue], nil, nil);
+}
+
+- (void)testSPDYDelegateQueueProperties
+{
+    // Test getters/setters for all custom properties to catch any typos
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+
+    TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
+    NSOperationQueue *queue = [NSOperationQueue mainQueue];
+
+    [request setExtendedDelegate:testDelegate queue:queue];
+    STAssertEquals([request SPDYDelegate], testDelegate, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoop], nil, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoopMode], nil, nil);
+    STAssertEquals([request SPDYDelegateQueue], queue, nil);
+
+    // Test the immutable versions
+    NSURLRequest *immutableRequest = request;
+    STAssertEquals([immutableRequest SPDYDelegate], testDelegate, nil);
+    STAssertEqualObjects([immutableRequest SPDYDelegateRunLoop], nil, nil);
+    STAssertEqualObjects([immutableRequest SPDYDelegateRunLoopMode], nil, nil);
+    STAssertEquals([immutableRequest SPDYDelegateQueue], queue, nil);
+}
+
+- (void)testSPDYDelegateDefaultQueueProperties
+{
+    // Test getters/setters for all custom properties to catch any typos
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+
+    TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
+    NSOperationQueue *queue = [NSOperationQueue currentQueue];
+
+    [request setExtendedDelegate:testDelegate queue:nil];
+    STAssertEquals([request SPDYDelegate], testDelegate, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoop], nil, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoopMode], nil, nil);
+    STAssertEquals([request SPDYDelegateQueue], queue, nil);
+}
+
+- (void)testSPDYDelegateSwitchRunLoopAndQueueProperties
+{
+    // Test getters/setters for all custom properties to catch any typos
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+
+    TestSPDYRequestDelegate *testDelegate = [[TestSPDYRequestDelegate alloc] init];
+    NSOperationQueue *queue = [NSOperationQueue currentQueue];
+    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
+    NSString *runLoopMode = NSDefaultRunLoopMode;
+
+    [request setExtendedDelegate:testDelegate inRunLoop:nil forMode:nil];
+    [request setExtendedDelegate:testDelegate queue:nil];
+    STAssertEquals([request SPDYDelegate], testDelegate, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoop], nil, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoopMode], nil, nil);
+    STAssertEquals([request SPDYDelegateQueue], queue, nil);
+
+    // And back
+    [request setExtendedDelegate:testDelegate inRunLoop:runLoop forMode:runLoopMode];
+    STAssertEquals([request SPDYDelegateRunLoop], runLoop, nil);
+    STAssertEqualObjects([request SPDYDelegateRunLoopMode], runLoopMode, nil);
+    STAssertEqualObjects([request SPDYDelegateQueue], nil, nil);
+}
+
 
 @end
