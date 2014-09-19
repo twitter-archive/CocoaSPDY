@@ -445,7 +445,7 @@
     // Perform receive bytes accounting here. Beware the recursive call back into this function
     // below for partial data frame chunking. Don't double-add.
     if (stream) {
-        stream.rxBytes += frameDecoder.frameLength;
+        stream.rxBytes += dataFrame.encodedLength;
     }
 
     // Check if session flow control is violated
@@ -507,14 +507,11 @@
     // Window size became negative due to sender writing frame before receiving SETTINGS
     // Send data frames upstream in initialReceiveWindowSize chunks
     if (dataFrame.data.length > _initialReceiveWindowSize) {
-        // This frame is too large, so it's going to get chunked up. didReadDataFrame will be
-        // called recursively for each chunk, and we don't want those to be counted as rxBytes
-        // (since we already accounted for the entire large frame).
-        frameDecoder.frameLength = 0;
 
         NSUInteger dataOffset = 0;
         while (dataFrame.data.length - dataOffset > _initialReceiveWindowSize) {
-            SPDYDataFrame *partialDataFrame = [[SPDYDataFrame alloc] init];
+            // These chunked frames were never actually transmitted, so their encoded length is 0
+            SPDYDataFrame *partialDataFrame = [[SPDYDataFrame alloc] initWithLength:0];
             partialDataFrame.streamId = streamId;
             partialDataFrame.last = NO;
 
@@ -589,7 +586,7 @@
     stream.remoteSideClosed = synStreamFrame.last;
     stream.sendWindowSize = _initialSendWindowSize;
     stream.receiveWindowSize = _initialReceiveWindowSize;
-    stream.rxBytes += frameDecoder.frameLength;
+    stream.rxBytes += synStreamFrame.encodedLength;
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
@@ -614,7 +611,7 @@
         return;
     }
 
-    stream.rxBytes += frameDecoder.frameLength;
+    stream.rxBytes += synReplyFrame.encodedLength;
 
     // Check if we have received multiple frames for the same Stream-ID
     if (stream.receivedReply) {
@@ -651,7 +648,7 @@
     SPDY_DEBUG(@"received RST_STREAM.%u (%u)", streamId, rstStreamFrame.statusCode);
 
     if (stream) {
-        stream.rxBytes += frameDecoder.frameLength;
+        stream.rxBytes += rstStreamFrame.encodedLength;
         // TODO: shouldn't just convert a SPDYStreamStatus to a SPDYStreamError
         [self _closeStream:stream withError:SPDY_STREAM_ERROR((SPDYStreamError)rstStreamFrame.statusCode, @"SPDY stream closed.")];
     }
@@ -748,7 +745,7 @@
     SPDY_DEBUG(@"received HEADERS.%u", streamId);
 
     if (stream) {
-        stream.rxBytes += frameDecoder.frameLength;
+        stream.rxBytes += headersFrame.encodedLength;
     }
 
     if (!stream || stream.remoteSideClosed) {

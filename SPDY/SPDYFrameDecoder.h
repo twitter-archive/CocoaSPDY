@@ -30,11 +30,10 @@
 
 @interface SPDYFrameDecoder : NSObject
 @property (nonatomic, weak) id<SPDYFrameDecoderDelegate> delegate;
-@property (nonatomic) NSInteger frameLength;
 
 - (id)initWithDelegate:(id<SPDYFrameDecoderDelegate>)delegate;
 
-// returns the number of bytes consumed; the caller is responsible for accumulating unconsumed bytes
+// returns the number of bytes consumed; the caller is responsible for accumulating unprocessed bytes
 - (NSUInteger)decode:(uint8_t *)buffer length:(NSUInteger)len error:(NSError **)pError;
 
 @end
