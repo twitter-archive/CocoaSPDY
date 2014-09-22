@@ -73,7 +73,7 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
     NSLog(@"SPDYSocketMock::writeData %@", data);
     if (socketMock_frameDecoder) {
         NSError *error = nil;
-        [socketMock_frameDecoder decode:data.bytes length:data.length error:&error];
+        [socketMock_frameDecoder decode:(uint8_t *)data.bytes length:data.length error:&error];
         socketMock_lastError = error;
     }
 }

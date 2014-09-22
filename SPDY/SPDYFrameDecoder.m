@@ -359,7 +359,7 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         return 0;
     }
 
-    SPDYDataFrame *frame = [[SPDYDataFrame alloc] init];
+    SPDYDataFrame *frame = [[SPDYDataFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
     frame.streamId = streamId;
     frame.data = [[NSData alloc] initWithBytesNoCopy:buffer
                                               length:bytesToRead

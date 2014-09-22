@@ -53,7 +53,7 @@
     STAssertEqualObjects(_mock.lastDelegateMessage, SELECTOR_NAME, @"expected mock delegate's last message received to be %@ but was %@", SELECTOR_NAME, _mock.lastDelegateMessage)
 
 #define AssertDecodedFrameLength(LENGTH) \
-    STAssertEquals(_decoder.frameLength, LENGTH, @"expected the decoded frame to be %d bytes but got %d bytes", LENGTH, _decoder.frameLength)
+    STAssertEquals(((SPDYFrame *)_mock.lastFrame).encodedLength, (NSUInteger)LENGTH, @"expected the decoded frame to be %d bytes but got %d bytes", LENGTH, ((SPDYFrame *)_mock.lastFrame).encodedLength)
 
 NSDictionary *testHeaders()
 {
