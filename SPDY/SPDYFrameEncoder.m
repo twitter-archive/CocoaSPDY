@@ -53,7 +53,7 @@
     free(_compressed);
 }
 
-- (bool)encodeDataFrame:(SPDYDataFrame *)dataFrame
+- (NSInteger)encodeDataFrame:(SPDYDataFrame *)dataFrame
 {
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:8];
 
@@ -66,13 +66,13 @@
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
     [_delegate didEncodeData:dataFrame.data frameEncoder:self];
-    return YES;
+    return encodedData.length + dataFrame.data.length;
 }
 
-- (bool)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError **)pError
+- (NSInteger)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:synStreamFrame.headers error:pError]) {
-        return NO;
+        return -1;
     }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:18 + _compressedLength];
@@ -96,13 +96,13 @@
     [encodedData appendBytes:_compressed length:_compressedLength];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
-- (bool)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError **)pError
+- (NSInteger)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:synReplyFrame.headers error:pError]) {
-        return NO;
+        return -1;
     }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];
@@ -122,10 +122,10 @@
     [encodedData appendBytes:_compressed length:_compressedLength];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
-- (bool)encodeRstStreamFrame:(SPDYRstStreamFrame *)rstStreamFrame
+- (NSInteger)encodeRstStreamFrame:(SPDYRstStreamFrame *)rstStreamFrame
 {
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:16];
 
@@ -144,10 +144,10 @@
     [encodedData appendBytes:&statusCode length:4];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
-- (bool)encodeSettingsFrame:(SPDYSettingsFrame *)settingsFrame
+- (NSInteger)encodeSettingsFrame:(SPDYSettingsFrame *)settingsFrame
 {
     uint32_t numEntries = 0;
 
@@ -182,10 +182,10 @@
     }
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
-- (bool)encodePingFrame:(SPDYPingFrame *)pingFrame
+- (NSInteger)encodePingFrame:(SPDYPingFrame *)pingFrame
 {
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12];
 
@@ -202,10 +202,10 @@
     [encodedData appendBytes:&pingId length:4];
 
     [_delegate didEncodeData:encodedData withTag:pingFrame.pingId frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
-- (bool)encodeGoAwayFrame:(SPDYGoAwayFrame *)goAwayFrame
+- (NSInteger)encodeGoAwayFrame:(SPDYGoAwayFrame *)goAwayFrame
 {
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:1];
 
@@ -224,13 +224,13 @@
     [encodedData appendBytes:&statusCode length:4];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
-- (bool)encodeHeadersFrame:(SPDYHeadersFrame *)headersFrame error:(NSError **)pError
+- (NSInteger)encodeHeadersFrame:(SPDYHeadersFrame *)headersFrame error:(NSError **)pError
 {
     if (![self _encodeHeaders:headersFrame.headers error:pError]) {
-        return NO;
+        return -1;
     }
 
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:12 + _compressedLength];
@@ -250,10 +250,10 @@
     [encodedData appendBytes:_compressed length:_compressedLength];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
-- (bool)encodeWindowUpdateFrame:(SPDYWindowUpdateFrame *)windowUpdateFrame
+- (NSInteger)encodeWindowUpdateFrame:(SPDYWindowUpdateFrame *)windowUpdateFrame
 {
     NSMutableData *encodedData = [[NSMutableData alloc] initWithCapacity:16];
 
@@ -272,7 +272,7 @@
     [encodedData appendBytes:&windowDelta length:4];
 
     [_delegate didEncodeData:encodedData frameEncoder:self];
-    return YES;
+    return encodedData.length;
 }
 
 #pragma mark private methods

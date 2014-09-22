@@ -36,7 +36,6 @@
 #define INITIAL_INPUT_BUFFER_SIZE      65536
 #define LOCAL_MAX_CONCURRENT_STREAMS   0
 #define REMOTE_MAX_CONCURRENT_STREAMS  INT32_MAX
-#define INCLUDE_SPDY_RESPONSE_HEADERS  1
 
 @interface SPDYSession () <SPDYFrameDecoderDelegate, SPDYFrameEncoderDelegate, SPDYStreamDataDelegate, SPDYSocketDelegate>
 @property (nonatomic, readonly) SPDYStreamId nextStreamId;
@@ -47,6 +46,7 @@
 - (void)_sendRstStream:(SPDYStreamStatus)status streamId:(SPDYStreamId)streamId;
 - (void)_sendGoAway:(SPDYSessionStatus)status;
 - (void)_closeStream:(SPDYStream *)stream withError:(NSError *)error;
+- (void)_closeStream:(SPDYStream *)stream;
 - (void)_removeStream:(SPDYStream *)stream;
 @end
 
@@ -87,6 +87,8 @@
     metadata[SPDYMetadataVersionKey] = @"3.1";
     if (stream) {
         metadata[SPDYMetadataStreamIdKey] = [@(stream.streamId) stringValue];
+        metadata[SPDYMetadataStreamRxBytesKey] = [@(stream.rxBytes) stringValue];
+        metadata[SPDYMetadataStreamTxBytesKey] = [@(stream.txBytes) stringValue];
     }
     if (session && session.latencyMs > -1) {
         metadata[SPDYMetadataSessionLatencyKey] = [@(session.latencyMs) stringValue];
@@ -295,7 +297,6 @@
         [self _closeStream:stream withError:SPDY_STREAM_ERROR((SPDYStreamError)status, @"SPDY stream closed.")];
     }
 
-    [_activeStreams removeAllStreams];
     [_socket disconnectAfterWrites];
 }
 
@@ -375,7 +376,6 @@
     for (SPDYStream *stream in _activeStreams) {
         [self _closeStream:stream withError:error];
     }
-    [_activeStreams removeAllStreams];
 }
 
 - (void)socketDidDisconnect:(SPDYSocket *)socket
@@ -442,6 +442,12 @@
     SPDYStream *stream = _activeStreams[streamId];
     SPDY_DEBUG(@"received DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
+    // Perform receive bytes accounting here. Beware the recursive call back into this function
+    // below for partial data frame chunking. Don't double-add.
+    if (stream) {
+        stream.rxBytes += dataFrame.encodedLength;
+    }
+
     // Check if session flow control is violated
     if (_sessionReceiveWindowSize < dataFrame.data.length) {
         [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
@@ -501,9 +507,11 @@
     // Window size became negative due to sender writing frame before receiving SETTINGS
     // Send data frames upstream in initialReceiveWindowSize chunks
     if (dataFrame.data.length > _initialReceiveWindowSize) {
+
         NSUInteger dataOffset = 0;
         while (dataFrame.data.length - dataOffset > _initialReceiveWindowSize) {
-            SPDYDataFrame *partialDataFrame = [[SPDYDataFrame alloc] init];
+            // These chunked frames were never actually transmitted, so their encoded length is 0
+            SPDYDataFrame *partialDataFrame = [[SPDYDataFrame alloc] initWithLength:0];
             partialDataFrame.streamId = streamId;
             partialDataFrame.last = NO;
 
@@ -534,11 +542,12 @@
     NSError *error = nil;
     if (![stream didLoadData:dataFrame.data error:&error]) {
         [self _closeStream:stream withError:error];
+        return;
     }
 
     stream.remoteSideClosed = dataFrame.last;
     if (stream.closed) {
-        [self _removeStream:stream];
+        [self _closeStream:stream];
     }
 }
 
@@ -577,6 +586,7 @@
     stream.remoteSideClosed = synStreamFrame.last;
     stream.sendWindowSize = _initialSendWindowSize;
     stream.receiveWindowSize = _initialReceiveWindowSize;
+    stream.rxBytes += synStreamFrame.encodedLength;
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
@@ -601,30 +611,24 @@
         return;
     }
 
+    stream.rxBytes += synReplyFrame.encodedLength;
+
     // Check if we have received multiple frames for the same Stream-ID
     if (stream.receivedReply) {
         [self _sendRstStream:SPDY_STREAM_STREAM_IN_USE streamId:streamId];
         return;
     }
 
-#if INCLUDE_SPDY_RESPONSE_HEADERS
-    // We want to add our local metadata headers after the reply headers. This will replace
-    // those headers *if* they are in the response, which is a more consistent behavior for the
-    // application.
-    NSMutableDictionary *headers = [synReplyFrame.headers mutableCopy];
-    [headers addEntriesFromDictionary:[SPDYSession getMetadataForSession:self stream:stream]];
-#else
     NSDictionary *headers = synReplyFrame.headers;
-#endif
-
     NSError *error = nil;
     if (![stream didReceiveResponse:headers error:&error]) {
         [self _closeStream:stream withError:error];
+        return;
     }
 
     stream.remoteSideClosed = synReplyFrame.last;
     if (stream.closed) {
-        [self _removeStream:stream];
+        [self _closeStream:stream];
     }
 }
 
@@ -644,9 +648,9 @@
     SPDY_DEBUG(@"received RST_STREAM.%u (%u)", streamId, rstStreamFrame.statusCode);
 
     if (stream) {
+        stream.rxBytes += rstStreamFrame.encodedLength;
         // TODO: shouldn't just convert a SPDYStreamStatus to a SPDYStreamError
         [self _closeStream:stream withError:SPDY_STREAM_ERROR((SPDYStreamError)rstStreamFrame.statusCode, @"SPDY stream closed.")];
-        [self _removeStream:stream];
     }
 }
 
@@ -740,6 +744,10 @@
     SPDYStream *stream = _activeStreams[streamId];
     SPDY_DEBUG(@"received HEADERS.%u", streamId);
 
+    if (stream) {
+        stream.rxBytes += headersFrame.encodedLength;
+    }
+
     if (!stream || stream.remoteSideClosed) {
         [self _sendRstStream:SPDY_STREAM_INVALID_STREAM streamId:streamId];
         return;
@@ -747,7 +755,7 @@
 
     stream.remoteSideClosed = headersFrame.last;
     if (stream.closed) {
-        [self _removeStream:stream];
+        [self _closeStream:stream];
     }
 }
 
@@ -848,11 +856,12 @@
     synStreamFrame.headers = stream.protocol.request.allSPDYHeaderFields;
 
     NSError *error;
-    if (![_frameEncoder encodeSynStreamFrame:synStreamFrame error:&error]) {
+    NSInteger result = [_frameEncoder encodeSynStreamFrame:synStreamFrame error:&error];
+    if (result <= 0) {
         [self _closeStream:stream withError:error];
-        [self _removeStream:stream];
         SPDY_ERROR(@"error encoding SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
     } else {
+        stream.txBytes += result;
         SPDY_DEBUG(@"sent SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
     }
 }
@@ -871,9 +880,15 @@
             dataFrame.streamId = streamId;
             dataFrame.data = data;
             dataFrame.last = !stream.hasDataPending;
-            [_frameEncoder encodeDataFrame:dataFrame];
+            NSInteger result = [_frameEncoder encodeDataFrame:dataFrame];
             SPDY_DEBUG(@"sent DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
+            // On-the-wire byte accounting
+            if (result > 0) {
+                stream.txBytes += result;
+            }
+
+            // SPDY window accounting
             uint32_t bytesSent = (uint32_t)data.length;
             sendWindowSize -= bytesSent;
             _sessionSendWindowSize -= bytesSent;
@@ -883,7 +898,7 @@
             if (error) {
                 [self _sendRstStream:SPDY_STREAM_CANCEL streamId:streamId];
                 [self _closeStream:stream withError:error];
-                [self _removeStream:stream];
+                return;
             }
 
             // -[SPDYStream hasDataAvailable] may return true if we need to perform
@@ -898,14 +913,17 @@
         SPDYDataFrame *dataFrame = [[SPDYDataFrame alloc] init];
         dataFrame.streamId = streamId;
         dataFrame.last = YES;
-        [_frameEncoder encodeDataFrame:dataFrame];
+        NSInteger result = [_frameEncoder encodeDataFrame:dataFrame];
         SPDY_DEBUG(@"sent DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
+        if (result > 0) {
+            stream.txBytes += result;
+        }
         stream.localSideClosed = YES;
     }
 
     if (stream.closed) {
-        [self _removeStream:stream];
+        [self _closeStream:stream];
     }
 }
 
@@ -956,14 +974,27 @@
     NSParameterAssert(error != nil);
     NSParameterAssert(stream != nil);
 
+    // Make connection:didFailWithError callback and remove stream.
     SPDY_ERROR(@"closing stream %u with error %@", stream.streamId, error);
     NSMutableDictionary *newUserInfo = [SPDYSession getMetadataForSession:self stream:stream];
     NSError *newError = [SPDYSession addMetadata:newUserInfo toError:error];
     [stream closeWithError:newError];
+    [self _removeStream:stream];
+}
+
+- (void)_closeStream:(SPDYStream *)stream
+{
+    NSParameterAssert(stream != nil);
+
+    // Make connectionDidFinishLoading and requestDidCompleteWithMetadata callbacks and remove stream.
+    SPDY_ERROR(@"completing and removing stream %u", stream.streamId);
+    [stream closeWithMetadata:[SPDYSession getMetadataForSession:self stream:stream]];
+    [self _removeStream:stream];
 }
 
 - (void)_removeStream:(SPDYStream *)stream
 {
+    NSParameterAssert(stream != nil);
     SPDY_ERROR(@"removing stream %u", stream.streamId);
     [_activeStreams removeStreamWithStreamId:stream.streamId];
     [self _issuePendingRequests];

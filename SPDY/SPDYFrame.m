@@ -16,6 +16,16 @@
 #import "SPDYFrame.h"
 
 @implementation SPDYFrame
+
+- (id)initWithLength:(NSUInteger)encodedLength
+{
+    self = [self init];
+    if (self) {
+        _encodedLength = encodedLength;
+    }
+    return self;
+}
+
 @end
 
 @implementation SPDYHeaderBlockFrame

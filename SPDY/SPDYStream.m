@@ -80,6 +80,7 @@
         _remoteSideClosed = NO;
         _receivedReply = NO;
         _dataDelegate = delegate;
+        _extendedDelegate = protocol.request.SPDYDelegate;
     }
     return self;
 }
@@ -146,20 +147,48 @@
     }
 }
 
+- (void)doExtendedCallback:(void (^)(void))block
+{
+    // Custom callback
+    if ([_extendedDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
+        NSAssert(_request.SPDYDelegateRunLoop || _request.SPDYDelegateQueue, @"expected either SPDYDelegateRunLoop or SPDYDeleteQueue to be set");
+        if (_request.SPDYDelegateRunLoop != nil) {
+            CFRunLoopPerformBlock([_request.SPDYDelegateRunLoop getCFRunLoop],
+                    (__bridge CFStringRef)_request.SPDYDelegateRunLoopMode,
+                    block);
+        } else if (_request.SPDYDelegateQueue != nil) {
+            [_request.SPDYDelegateQueue addOperationWithBlock:block];
+        }
+    }
+}
+
+- (void)closeWithMetadata:(NSDictionary *)metadata
+{
+    NSAssert(_localSideClosed, @"stream should already be closed locally");
+    NSAssert(_remoteSideClosed, @"stream should already be closed remotely");
+
+    // Custom callback
+    if (_extendedDelegate && [_extendedDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
+        [self doExtendedCallback:^{
+            if (_extendedDelegate) {
+                [_extendedDelegate requestDidCompleteWithMetadata:metadata];
+            }
+        }];
+    }
+
+    if (_client) {
+        [_client URLProtocolDidFinishLoading:_protocol];
+    }
+}
+
 - (void)setLocalSideClosed:(bool)localSideClosed
 {
     _localSideClosed = localSideClosed;
-    if (_localSideClosed && _remoteSideClosed && _client) {
-        [_client URLProtocolDidFinishLoading:_protocol];
-    }
 }
 
 - (void)setRemoteSideClosed:(bool)remoteSideClosed
 {
     _remoteSideClosed = remoteSideClosed;
-    if (_localSideClosed && _remoteSideClosed && _client) {
-        [_client URLProtocolDidFinishLoading:_protocol];
-    }
 }
 
 - (bool)closed

@@ -87,7 +87,7 @@ uint16_t getUnsignedInt16(uint8_t *buffer) {
 }
 
 uint16_t getUnsignedInt15(uint8_t *buffer) {
-    return getUnsignedInt16(buffer) & 0x7FFF;
+    return getUnsignedInt16(buffer) & (uint16_t)0x7FFF;
 }
 
 SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
@@ -205,14 +205,15 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_SYN_STREAM_FRAME:
             minLength = 10;
             if (minLength <= len) {
-                SPDYSynStreamFrame *frame = [[SPDYSynStreamFrame alloc] init];
+                SPDYSynStreamFrame *frame =
+                    [[SPDYSynStreamFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
 
                 frame.last = _header.flags & SPDY_FLAG_FIN;
                 frame.unidirectional = _header.flags & SPDY_FLAG_UNIDIRECTIONAL;
 
                 frame.streamId = getUnsignedInt31(buffer);
                 frame.associatedToStreamId = getUnsignedInt31(buffer+4);
-                frame.priority = buffer[8] >> 5 & 0x07;
+                frame.priority = buffer[8] >> 5 & (uint8_t)0x07;
 
                 bytesRead = minLength;
 
@@ -224,7 +225,8 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_SYN_REPLY_FRAME:
             minLength = 4;
             if (minLength <= len) {
-                SPDYSynReplyFrame *frame = [[SPDYSynReplyFrame alloc] init];
+                SPDYSynReplyFrame *frame =
+                    [[SPDYSynReplyFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
 
                 frame.last = _header.flags & SPDY_FLAG_FIN;
                 frame.streamId = getUnsignedInt31(buffer);
@@ -238,7 +240,8 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_HEADERS_FRAME:
             minLength = 4;
             if (minLength <= len) {
-                SPDYHeadersFrame *frame = [[SPDYHeadersFrame alloc] init];
+                SPDYHeadersFrame *frame =
+                    [[SPDYHeadersFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
 
                 frame.last = _header.flags & SPDY_FLAG_FIN;
                 frame.streamId = getUnsignedInt31(buffer);
@@ -254,7 +257,8 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_SETTINGS_FRAME:
             minLength = 4;
             if (minLength <= len) {
-                SPDYSettingsFrame *frame = [[SPDYSettingsFrame alloc] init];
+                SPDYSettingsFrame *frame =
+                    [[SPDYSettingsFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
                 frame.clearSettings = _header.flags & SPDY_SETTINGS_FLAG_CLEAR_SETTINGS;
 
                 NSUInteger settingsCount = getUnsignedInt32(buffer);
@@ -279,7 +283,8 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_RST_STREAM_FRAME:
             minLength = 8;
             if (minLength <= len) {
-                SPDYRstStreamFrame *frame = [[SPDYRstStreamFrame alloc] init];
+                SPDYRstStreamFrame *frame =
+                    [[SPDYRstStreamFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
                 frame.streamId = getUnsignedInt31(buffer);
                 frame.statusCode = (SPDYStreamStatus)getUnsignedInt32(buffer+4);
                 bytesRead = minLength;
@@ -291,7 +296,8 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_PING_FRAME:
             minLength = 4;
             if (minLength <= len) {
-                SPDYPingFrame *frame = [[SPDYPingFrame alloc] init];
+                SPDYPingFrame *frame =
+                    [[SPDYPingFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
                 frame.pingId = getUnsignedInt32(buffer);
                 bytesRead = minLength;
                 [_delegate didReadPingFrame:frame frameDecoder:self];
@@ -302,7 +308,8 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_GOAWAY_FRAME:
             minLength = 8;
             if (minLength <= len) {
-                SPDYGoAwayFrame *frame = [[SPDYGoAwayFrame alloc] init];
+                SPDYGoAwayFrame *frame =
+                    [[SPDYGoAwayFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
                 frame.lastGoodStreamId = getUnsignedInt31(buffer);
                 frame.statusCode = (SPDYSessionStatus)getUnsignedInt32(buffer+4);
                 bytesRead = minLength;
@@ -314,7 +321,8 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         case SPDY_WINDOW_UPDATE_FRAME:
             minLength = 8;
             if (minLength <= len) {
-                SPDYWindowUpdateFrame *frame = [[SPDYWindowUpdateFrame alloc] init];
+                SPDYWindowUpdateFrame *frame =
+                    [[SPDYWindowUpdateFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
                 frame.streamId = getUnsignedInt31(buffer);
                 frame.deltaWindowSize = getUnsignedInt31(buffer+4);
                 bytesRead = minLength;

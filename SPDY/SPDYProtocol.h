@@ -26,6 +26,12 @@ extern NSString *const SPDYMetadataVersionKey;
 // SPDY request stream id, e.g. "1"
 extern NSString *const SPDYMetadataStreamIdKey;
 
+// SPDY stream bytes received. Includes all SPDY headers and bodies.
+extern NSString *const SPDYMetadataStreamRxBytesKey;
+
+// SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
+extern NSString *const SPDYMetadataStreamTxBytesKey;
+
 // SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
 extern NSString *const SPDYMetadataSessionLatencyKey;
 
@@ -187,5 +193,23 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
   may be removed in a future version.
  */
 @property BOOL enableTCPNoDelay;
+
+@end
+
+
+/**
+  SPDYExtendedDelegate may optionally be set in the NSURLRequest properties using
+  NSURLRequest+SPDYURLRequest.h category. Doing so is optional. If set, these callbacks
+  will provide additional information and control over the SPDY-specific streams.
+*/
+@protocol SPDYExtendedDelegate <NSObject>
+@optional
+
+/**
+  If set, this will be called immediately prior to NSURLConnectionDataDelegate's
+  connectionDidFinishLoading: callback. It provides additional metadata about the
+  request and session. See the SPDYMetadata keys defined above for additional discussion.
+*/
+- (void)requestDidCompleteWithMetadata:(NSDictionary *)metadata;
 
 @end

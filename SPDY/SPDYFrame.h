@@ -13,6 +13,8 @@
 #import "SPDYDefinitions.h"
 
 @interface SPDYFrame : NSObject
+@property (nonatomic, assign) NSUInteger encodedLength;
+- (id)initWithLength:(NSUInteger)encodedLength;
 @end
 
 @interface SPDYHeaderBlockFrame : SPDYFrame

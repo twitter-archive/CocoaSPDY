@@ -27,13 +27,15 @@
 @interface SPDYFrameEncoder : NSObject
 @property (nonatomic, weak) id<SPDYFrameEncoderDelegate> delegate;
 - (id)initWithDelegate:(id <SPDYFrameEncoderDelegate>)delegate headerCompressionLevel:(NSUInteger)headerCompressionLevel;
-- (bool)encodeDataFrame:(SPDYDataFrame *)dataFrame;
-- (bool)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError**)pError;
-- (bool)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError**)pError;
-- (bool)encodeRstStreamFrame:(SPDYRstStreamFrame *)rstStreamFrame;
-- (bool)encodeSettingsFrame:(SPDYSettingsFrame *)settingsFrame;
-- (bool)encodePingFrame:(SPDYPingFrame *)pingFrame;
-- (bool)encodeGoAwayFrame:(SPDYGoAwayFrame *)goAwayFrame;
-- (bool)encodeHeadersFrame:(SPDYHeadersFrame *)headersFrame error:(NSError**)pError;
-- (bool)encodeWindowUpdateFrame:(SPDYWindowUpdateFrame *)windowUpdateFrame;
+
+// All of the encode methods return the number of bytes encoded, or -1 if an error occurred.
+- (NSInteger)encodeDataFrame:(SPDYDataFrame *)dataFrame;
+- (NSInteger)encodeSynStreamFrame:(SPDYSynStreamFrame *)synStreamFrame error:(NSError**)pError;
+- (NSInteger)encodeSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame error:(NSError**)pError;
+- (NSInteger)encodeRstStreamFrame:(SPDYRstStreamFrame *)rstStreamFrame;
+- (NSInteger)encodeSettingsFrame:(SPDYSettingsFrame *)settingsFrame;
+- (NSInteger)encodePingFrame:(SPDYPingFrame *)pingFrame;
+- (NSInteger)encodeGoAwayFrame:(SPDYGoAwayFrame *)goAwayFrame;
+- (NSInteger)encodeHeadersFrame:(SPDYHeadersFrame *)headersFrame error:(NSError**)pError;
+- (NSInteger)encodeWindowUpdateFrame:(SPDYWindowUpdateFrame *)windowUpdateFrame;
 @end
