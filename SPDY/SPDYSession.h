@@ -11,15 +11,20 @@
 
 #import <Foundation/Foundation.h>
 
-@class SPDYProtocol;
 @class SPDYConfiguration;
 @class SPDYOrigin;
+@class SPDYProtocol;
+@class SPDYStream;
 
 @interface SPDYSession : NSObject
 
 @property (nonatomic, readonly) SPDYOrigin *origin;
 @property (nonatomic, readonly) bool isCellular;
 @property (nonatomic, readonly) bool isOpen;
+@property (nonatomic, readonly) NSInteger latencyMs;
+
++ (NSMutableDictionary *)getMetadataForSession:(SPDYSession *)session stream:(SPDYStream *)stream;
++ (NSError *)addMetadata:(NSMutableDictionary *)metadata toError:(NSError *)error;
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
        configuration:(SPDYConfiguration *)configuration

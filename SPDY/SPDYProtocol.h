@@ -14,6 +14,21 @@
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
 
+/**
+  SPDY metadata is returned in the HTTP response headers, or if those are not available due to an
+  error, then they are returned in the userInfo dictionary in the NSError. Both are NSDictionary
+  objects, and the values are stored under the following keys.
+*/
+
+// SPDY version, e.g. "3.1"
+extern NSString *const SPDYMetadataVersionKey;
+
+// SPDY request stream id, e.g. "1"
+extern NSString *const SPDYMetadataStreamIdKey;
+
+// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
+extern NSString *const SPDYMetadataSessionLatencyKey;
+
 @class SPDYConfiguration;
 
 @protocol SPDYLogger;
@@ -28,6 +43,11 @@ extern NSString *const SPDYOriginUnregisteredNotification;
   Set configuration options to be used for all future SPDY sessions.
 */
 + (void)setConfiguration:(SPDYConfiguration *)configuration;
+
+/**
+  Copy of the current configuration in use by the protocol.
+*/
++ (SPDYConfiguration *)currentConfiguration;
 
 /**
   Register an object that implements @proto(SPDYLogger) to receive log

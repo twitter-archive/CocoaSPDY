@@ -7,16 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0540DAA719CB7FD600673796 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; };
+		0540DAA919CB7FEB00673796 /* SPDYCommonLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 062EA63E175D4CD3003BC1CE /* SPDYCommonLogger.h */; };
+		0540DAAA19CB7FEB00673796 /* SPDYCommonLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 062EA63E175D4CD3003BC1CE /* SPDYCommonLogger.h */; };
+		0540DAAB19CB7FF000673796 /* NSURLRequest+SPDYURLRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 069D0E99168268F10037D8AF /* NSURLRequest+SPDYURLRequest.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		0540DAAC19CB7FF900673796 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; };
+		0540DAAD19CB800C00673796 /* SPDYLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C9A1715DC85000D1677 /* SPDYLogger.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		0540DAAE19CB801900673796 /* SPDYProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = D2CC14C01618CF62002E37CF /* SPDYProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		0540DAAF19CB802600673796 /* SPDYTLSTrustEvaluator.h in Headers */ = {isa = PBXBuildFile; fileRef = 06E7BF111823B74D004DB65D /* SPDYTLSTrustEvaluator.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		05C7CEB919CB456D0032D681 /* NSURLRequest+SPDYURLRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 069D0E99168268F10037D8AF /* NSURLRequest+SPDYURLRequest.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		05C7CEBA19CB45760032D681 /* SPDYLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C9A1715DC85000D1677 /* SPDYLogger.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		05C7CEBB19CB45820032D681 /* SPDYProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = D2CC14C01618CF62002E37CF /* SPDYProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		05C7CEBC19CB458F0032D681 /* SPDYTLSTrustEvaluator.h in Headers */ = {isa = PBXBuildFile; fileRef = 06E7BF111823B74D004DB65D /* SPDYTLSTrustEvaluator.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		060C235E17CE9FCE000B4E9C /* SPDYStreamManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 060C235D17CE9FCE000B4E9C /* SPDYStreamManagerTest.m */; };
 		061C8E9517C5954400D22083 /* SPDYStreamManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 061C8E9317C5954400D22083 /* SPDYStreamManager.m */; };
 		061C8E9617C5954400D22083 /* SPDYStreamManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 061C8E9317C5954400D22083 /* SPDYStreamManager.m */; };
-		061C8E9717C5954400D22083 /* SPDYStreamManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 061C8E9317C5954400D22083 /* SPDYStreamManager.m */; };
 		061C8E9817C5954400D22083 /* SPDYStreamManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 061C8E9317C5954400D22083 /* SPDYStreamManager.m */; };
 		06290995169E4D9700E35A82 /* SPDYHeaderBlockCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 06290993169E4D6000E35A82 /* SPDYHeaderBlockCompressor.m */; };
 		062EA640175D4CD3003BC1CE /* SPDYCommonLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 062EA63E175D4CD3003BC1CE /* SPDYCommonLogger.h */; };
 		062EA642175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 062EA63F175D4CD3003BC1CE /* SPDYCommonLogger.m */; };
 		062EA643175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 062EA63F175D4CD3003BC1CE /* SPDYCommonLogger.m */; };
-		062EA644175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 062EA63F175D4CD3003BC1CE /* SPDYCommonLogger.m */; };
 		062EA645175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 062EA63F175D4CD3003BC1CE /* SPDYCommonLogger.m */; };
 		064A05C716F7C313008C7D08 /* SPDYProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = D2CC14C01618CF62002E37CF /* SPDYProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		064A05D616F8E3AD008C7D08 /* NSURLRequest+SPDYURLRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 069D0E99168268F10037D8AF /* NSURLRequest+SPDYURLRequest.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -25,7 +35,6 @@
 		064EFB1E16715C9F002F0AEC /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 064EFB1C16715C9F002F0AEC /* InfoPlist.strings */; };
 		064EFB2F1671638A002F0AEC /* SPDYMockFrameDecoderDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 064EFB2E1671638A002F0AEC /* SPDYMockFrameDecoderDelegate.m */; };
 		0651EBE916F3F7C800CE44D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14B216179B43002E37CF /* Foundation.framework */; };
-		0651EBF916F3F7DC00CE44D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14B216179B43002E37CF /* Foundation.framework */; };
 		0651EC0916F3F7E500CE44D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14B216179B43002E37CF /* Foundation.framework */; };
 		0651EC1E16F3F92300CE44D2 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
 		0651EC2016F3FA0B00CE44D2 /* SPDYSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14D0161A9EE9002E37CF /* SPDYSocket.m */; };
@@ -40,18 +49,6 @@
 		0651EC2A16F3FA0B00CE44D2 /* SPDYSessionManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CD161A5826002E37CF /* SPDYSessionManager.m */; };
 		0651EC2B16F3FA0B00CE44D2 /* SPDYSettingsStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FC94131694B92400FC95DF /* SPDYSettingsStore.m */; };
 		0651EC2C16F3FA0B00CE44D2 /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E89167F9D010037D8AF /* SPDYStream.m */; };
-		0651EC2D16F3FA1000CE44D2 /* SPDYSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14D0161A9EE9002E37CF /* SPDYSocket.m */; };
-		0651EC2F16F3FA1000CE44D2 /* NSURLRequest+SPDYURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */; };
-		0651EC3016F3FA1000CE44D2 /* SPDYFrame.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CA161A25CC002E37CF /* SPDYFrame.m */; };
-		0651EC3116F3FA1000CE44D2 /* SPDYFrameDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14C7161A1952002E37CF /* SPDYFrameDecoder.m */; };
-		0651EC3216F3FA1000CE44D2 /* SPDYFrameEncoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9516824A910037D8AF /* SPDYFrameEncoder.m */; };
-		0651EC3316F3FA1000CE44D2 /* SPDYHeaderBlockCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 06290993169E4D6000E35A82 /* SPDYHeaderBlockCompressor.m */; };
-		0651EC3416F3FA1000CE44D2 /* SPDYHeaderBlockDecompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE895BE087AC28BBBC857F9 /* SPDYHeaderBlockDecompressor.m */; };
-		0651EC3516F3FA1000CE44D2 /* SPDYProtocol.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14C11618CF62002E37CF /* SPDYProtocol.m */; };
-		0651EC3616F3FA1000CE44D2 /* SPDYSession.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14C41618DBF2002E37CF /* SPDYSession.m */; };
-		0651EC3716F3FA1000CE44D2 /* SPDYSessionManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CD161A5826002E37CF /* SPDYSessionManager.m */; };
-		0651EC3816F3FA1000CE44D2 /* SPDYSettingsStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FC94131694B92400FC95DF /* SPDYSettingsStore.m */; };
-		0651EC3916F3FA1000CE44D2 /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E89167F9D010037D8AF /* SPDYStream.m */; };
 		0651EC3A16F3FA1400CE44D2 /* SPDYSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14D0161A9EE9002E37CF /* SPDYSocket.m */; };
 		0651EC3C16F3FA1400CE44D2 /* NSURLRequest+SPDYURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */; };
 		0651EC3D16F3FA1400CE44D2 /* SPDYFrame.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CA161A25CC002E37CF /* SPDYFrame.m */; };
@@ -64,7 +61,6 @@
 		0651EC4416F3FA1400CE44D2 /* SPDYSessionManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CD161A5826002E37CF /* SPDYSessionManager.m */; };
 		0651EC4516F3FA1400CE44D2 /* SPDYSettingsStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FC94131694B92400FC95DF /* SPDYSettingsStore.m */; };
 		0651EC4616F3FA1400CE44D2 /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E89167F9D010037D8AF /* SPDYStream.m */; };
-		0651EC4716F3FA3A00CE44D2 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
 		0651EC4916F3FA4300CE44D2 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
 		0679F3CF186217FC006F122E /* SPDYOriginTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 0679F3CE186217FC006F122E /* SPDYOriginTest.m */; };
 		067EBFE717418F350029F16C /* SPDYStreamTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 067EBFE617418F350029F16C /* SPDYStreamTest.m */; };
@@ -74,30 +70,10 @@
 		069D0E8B167F9D010037D8AF /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E89167F9D010037D8AF /* SPDYStream.m */; };
 		069D0E9716824A910037D8AF /* SPDYFrameEncoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9516824A910037D8AF /* SPDYFrameEncoder.m */; };
 		069D0E9C168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */; };
-		06A4E502180F21D500A82D93 /* SPDYSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14D0161A9EE9002E37CF /* SPDYSocket.m */; };
-		06A4E504180F21D500A82D93 /* NSURLRequest+SPDYURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */; };
-		06A4E505180F21D500A82D93 /* SPDYFrame.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CA161A25CC002E37CF /* SPDYFrame.m */; };
-		06A4E506180F21D500A82D93 /* SPDYFrameDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14C7161A1952002E37CF /* SPDYFrameDecoder.m */; };
-		06A4E507180F21D500A82D93 /* SPDYFrameEncoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E9516824A910037D8AF /* SPDYFrameEncoder.m */; };
-		06A4E508180F21D500A82D93 /* SPDYHeaderBlockCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 06290993169E4D6000E35A82 /* SPDYHeaderBlockCompressor.m */; };
-		06A4E509180F21D500A82D93 /* SPDYHeaderBlockDecompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE895BE087AC28BBBC857F9 /* SPDYHeaderBlockDecompressor.m */; };
-		06A4E50A180F21D500A82D93 /* SPDYProtocol.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14C11618CF62002E37CF /* SPDYProtocol.m */; };
-		06A4E50B180F21D500A82D93 /* SPDYSession.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14C41618DBF2002E37CF /* SPDYSession.m */; };
-		06A4E50C180F21D500A82D93 /* SPDYSessionManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D2CC14CD161A5826002E37CF /* SPDYSessionManager.m */; };
-		06A4E50D180F21D500A82D93 /* SPDYSettingsStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FC94131694B92400FC95DF /* SPDYSettingsStore.m */; };
-		06A4E50E180F21D500A82D93 /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E89167F9D010037D8AF /* SPDYStream.m */; };
-		06A4E50F180F21D500A82D93 /* SPDYCommonLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 062EA63F175D4CD3003BC1CE /* SPDYCommonLogger.m */; };
-		06A4E510180F21D500A82D93 /* SPDYStreamManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 061C8E9317C5954400D22083 /* SPDYStreamManager.m */; };
-		06A4E512180F21D500A82D93 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14B216179B43002E37CF /* Foundation.framework */; };
-		06A4E513180F21D500A82D93 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
 		06B290CE1861018900540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
 		06B290CF1861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
-		06B290D01861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
-		06B290D11861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
 		06B290D21861018A00540A03 /* SPDYOrigin.m in Sources */ = {isa = PBXBuildFile; fileRef = 06B290CD1861018900540A03 /* SPDYOrigin.m */; };
 		06DFBA3D187CDAD3002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
-		06DFBA44187CDD6B002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
-		06DFBA45187CDD70002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
 		06DFBA46187CDD73002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
 		06DFBA47187CDD78002E6BA1 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */; };
 		06E7BF131824371F004DB65D /* SPDYTLSTrustEvaluator.h in Headers */ = {isa = PBXBuildFile; fileRef = 06E7BF111823B74D004DB65D /* SPDYTLSTrustEvaluator.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -114,37 +90,6 @@
 		25959A3F1937DE3900FC9731 /* SPDYSessionManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25959A3E1937DE3900FC9731 /* SPDYSessionManagerTest.m */; };
 		5C2229591952257800CAF160 /* SPDYURLRequestTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C2229581952257800CAF160 /* SPDYURLRequestTest.m */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		064A05C116F7C2F3008C7D08 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = D2CC14A516179B43002E37CF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0651EBE716F3F7C700CE44D2;
-			remoteInfo = SPDY.iphoneos;
-		};
-		064A05C316F7C2F5008C7D08 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = D2CC14A516179B43002E37CF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0651EBF716F3F7DB00CE44D2;
-			remoteInfo = SPDY.iphonesimulator;
-		};
-		064A05C516F7C2F6008C7D08 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = D2CC14A516179B43002E37CF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0651EC0716F3F7E500CE44D2;
-			remoteInfo = SPDY.macosx;
-		};
-		06D032B4180F2BB500C489A1 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = D2CC14A516179B43002E37CF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 06A4E500180F21D500A82D93;
-			remoteInfo = SPDY.iphoneos.arm64;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		060C235D17CE9FCE000B4E9C /* SPDYStreamManagerTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYStreamManagerTest.m; sourceTree = "<group>"; };
@@ -168,8 +113,6 @@
 		064EFB2E1671638A002F0AEC /* SPDYMockFrameDecoderDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMockFrameDecoderDelegate.m; sourceTree = "<group>"; };
 		0651EBE816F3F7C700CE44D2 /* libSPDY.iphoneos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSPDY.iphoneos.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0651EBEC16F3F7C800CE44D2 /* SPDY.iphoneos-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY.iphoneos-Prefix.pch"; sourceTree = "<group>"; };
-		0651EBF816F3F7DB00CE44D2 /* libSPDY.iphonesimulator.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSPDY.iphonesimulator.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		0651EBFC16F3F7DC00CE44D2 /* SPDY.iphonesimulator-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY.iphonesimulator-Prefix.pch"; sourceTree = "<group>"; };
 		0651EC0816F3F7E500CE44D2 /* libSPDY.macosx.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSPDY.macosx.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0651EC0C16F3F7E500CE44D2 /* SPDY.macosx-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY.macosx-Prefix.pch"; sourceTree = "<group>"; };
 		0652631316F7B6360081868F /* SPDY.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SPDY.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -184,7 +127,6 @@
 		069D0E9516824A910037D8AF /* SPDYFrameEncoder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYFrameEncoder.m; sourceTree = "<group>"; };
 		069D0E99168268F10037D8AF /* NSURLRequest+SPDYURLRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSURLRequest+SPDYURLRequest.h"; sourceTree = "<group>"; };
 		069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSURLRequest+SPDYURLRequest.m"; sourceTree = "<group>"; };
-		06A4E518180F21D500A82D93 /* libSPDY.iphoneos.arm64.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSPDY.iphoneos.arm64.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		06B290CC1861018900540A03 /* SPDYOrigin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYOrigin.h; sourceTree = "<group>"; };
 		06B290CD1861018900540A03 /* SPDYOrigin.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOrigin.m; sourceTree = "<group>"; };
 		06DFBA3C187CDAD3002E6BA1 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
@@ -236,16 +178,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		0651EBF516F3F7DB00CE44D2 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				06DFBA44187CDD6B002E6BA1 /* SystemConfiguration.framework in Frameworks */,
-				0651EBF916F3F7DC00CE44D2 /* Foundation.framework in Frameworks */,
-				0651EC4716F3FA3A00CE44D2 /* CFNetwork.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		0651EC0516F3F7E500CE44D2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -253,16 +185,6 @@
 				06DFBA3D187CDAD3002E6BA1 /* SystemConfiguration.framework in Frameworks */,
 				0651EC0916F3F7E500CE44D2 /* Foundation.framework in Frameworks */,
 				0651EC1E16F3F92300CE44D2 /* CFNetwork.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		06A4E511180F21D500A82D93 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				06DFBA45187CDD70002E6BA1 /* SystemConfiguration.framework in Frameworks */,
-				06A4E512180F21D500A82D93 /* Foundation.framework in Frameworks */,
-				06A4E513180F21D500A82D93 /* CFNetwork.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -314,14 +236,6 @@
 			path = SPDY.iphoneos;
 			sourceTree = "<group>";
 		};
-		0651EBFA16F3F7DC00CE44D2 /* SPDY.iphonesimulator */ = {
-			isa = PBXGroup;
-			children = (
-				0651EBFC16F3F7DC00CE44D2 /* SPDY.iphonesimulator-Prefix.pch */,
-			);
-			path = SPDY.iphonesimulator;
-			sourceTree = "<group>";
-		};
 		0651EC0A16F3F7E500CE44D2 /* SPDY.macosx */ = {
 			isa = PBXGroup;
 			children = (
@@ -337,7 +251,6 @@
 				064EFB1916715C9F002F0AEC /* SPDYUnitTests */,
 				06336DE016F2756A00532180 /* SPDY.framework */,
 				0651EBEA16F3F7C800CE44D2 /* SPDY.iphoneos */,
-				0651EBFA16F3F7DC00CE44D2 /* SPDY.iphonesimulator */,
 				0651EC0A16F3F7E500CE44D2 /* SPDY.macosx */,
 				D2CC14B116179B43002E37CF /* Frameworks */,
 				D2CC14AF16179B43002E37CF /* Products */,
@@ -349,8 +262,6 @@
 			children = (
 				064EFB1316715C9F002F0AEC /* SPDYUnitTests.octest */,
 				0651EBE816F3F7C700CE44D2 /* libSPDY.iphoneos.a */,
-				06A4E518180F21D500A82D93 /* libSPDY.iphoneos.arm64.a */,
-				0651EBF816F3F7DB00CE44D2 /* libSPDY.iphonesimulator.a */,
 				0651EC0816F3F7E500CE44D2 /* libSPDY.macosx.a */,
 				0652631316F7B6360081868F /* SPDY.framework */,
 			);
@@ -415,6 +326,32 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
+		0540DAA819CB7FE100673796 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0540DAAB19CB7FF000673796 /* NSURLRequest+SPDYURLRequest.h in Headers */,
+				0540DAAD19CB800C00673796 /* SPDYLogger.h in Headers */,
+				0540DAAE19CB801900673796 /* SPDYProtocol.h in Headers */,
+				0540DAAF19CB802600673796 /* SPDYTLSTrustEvaluator.h in Headers */,
+				0540DAAC19CB7FF900673796 /* SPDYError.h in Headers */,
+				0540DAA919CB7FEB00673796 /* SPDYCommonLogger.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		05C7CEB019CB45310032D681 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05C7CEB919CB456D0032D681 /* NSURLRequest+SPDYURLRequest.h in Headers */,
+				05C7CEBA19CB45760032D681 /* SPDYLogger.h in Headers */,
+				0540DAA719CB7FD600673796 /* SPDYError.h in Headers */,
+				05C7CEBB19CB45820032D681 /* SPDYProtocol.h in Headers */,
+				05C7CEBC19CB458F0032D681 /* SPDYTLSTrustEvaluator.h in Headers */,
+				0540DAAA19CB7FEB00673796 /* SPDYCommonLogger.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0652631016F7B6360081868F /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -447,12 +384,13 @@
 			name = SPDYUnitTests;
 			productName = SPDYUnitTests;
 			productReference = 064EFB1316715C9F002F0AEC /* SPDYUnitTests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		0651EBE716F3F7C700CE44D2 /* SPDY.iphoneos */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0651EBF316F3F7C800CE44D2 /* Build configuration list for PBXNativeTarget "SPDY.iphoneos" */;
 			buildPhases = (
+				05C7CEB019CB45310032D681 /* Headers */,
 				0651EBE416F3F7C700CE44D2 /* Sources */,
 				0651EBE516F3F7C700CE44D2 /* Frameworks */,
 			);
@@ -465,26 +403,11 @@
 			productReference = 0651EBE816F3F7C700CE44D2 /* libSPDY.iphoneos.a */;
 			productType = "com.apple.product-type.library.static";
 		};
-		0651EBF716F3F7DB00CE44D2 /* SPDY.iphonesimulator */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 0651EC0116F3F7DC00CE44D2 /* Build configuration list for PBXNativeTarget "SPDY.iphonesimulator" */;
-			buildPhases = (
-				0651EBF416F3F7DB00CE44D2 /* Sources */,
-				0651EBF516F3F7DB00CE44D2 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = SPDY.iphonesimulator;
-			productName = SPDY.iphonesimulator;
-			productReference = 0651EBF816F3F7DB00CE44D2 /* libSPDY.iphonesimulator.a */;
-			productType = "com.apple.product-type.library.static";
-		};
 		0651EC0716F3F7E500CE44D2 /* SPDY.macosx */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0651EC1116F3F7E500CE44D2 /* Build configuration list for PBXNativeTarget "SPDY.macosx" */;
 			buildPhases = (
+				0540DAA819CB7FE100673796 /* Headers */,
 				0651EC0416F3F7E500CE44D2 /* Sources */,
 				0651EC0516F3F7E500CE44D2 /* Frameworks */,
 			);
@@ -503,36 +426,17 @@
 			buildPhases = (
 				0652631016F7B6360081868F /* Headers */,
 				0652631116F7B6360081868F /* Resources */,
-				064A05C816F7C3B2008C7D08 /* ShellScript */,
+				054A6C6719CB38D000D283C6 /* Build Static Libraries */,
+				064A05C816F7C3B2008C7D08 /* Lipo Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				064A05C216F7C2F3008C7D08 /* PBXTargetDependency */,
-				06D032B5180F2BB500C489A1 /* PBXTargetDependency */,
-				064A05C416F7C2F5008C7D08 /* PBXTargetDependency */,
-				064A05C616F7C2F6008C7D08 /* PBXTargetDependency */,
 			);
 			name = SPDY;
 			productName = SPDY;
 			productReference = 0652631316F7B6360081868F /* SPDY.framework */;
 			productType = "com.apple.product-type.framework";
-		};
-		06A4E500180F21D500A82D93 /* SPDY.iphoneos.arm64 */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 06A4E515180F21D500A82D93 /* Build configuration list for PBXNativeTarget "SPDY.iphoneos.arm64" */;
-			buildPhases = (
-				06A4E501180F21D500A82D93 /* Sources */,
-				06A4E511180F21D500A82D93 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = SPDY.iphoneos.arm64;
-			productName = SPDY.iphoneos.arm64;
-			productReference = 06A4E518180F21D500A82D93 /* libSPDY.iphoneos.arm64.a */;
-			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
 
@@ -540,7 +444,7 @@
 		D2CC14A516179B43002E37CF /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0510;
+				LastUpgradeCheck = 0600;
 				ORGANIZATIONNAME = Twitter;
 			};
 			buildConfigurationList = D2CC14A816179B43002E37CF /* Build configuration list for PBXProject "SPDY" */;
@@ -557,8 +461,6 @@
 			targets = (
 				064EFB1216715C9F002F0AEC /* SPDYUnitTests */,
 				0651EBE716F3F7C700CE44D2 /* SPDY.iphoneos */,
-				06A4E500180F21D500A82D93 /* SPDY.iphoneos.arm64 */,
-				0651EBF716F3F7DB00CE44D2 /* SPDY.iphonesimulator */,
 				0651EC0716F3F7E500CE44D2 /* SPDY.macosx */,
 				0652631216F7B6360081868F /* SPDY */,
 			);
@@ -584,18 +486,34 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		064A05C816F7C3B2008C7D08 /* ShellScript */ = {
+		054A6C6719CB38D000D283C6 /* Build Static Libraries */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
 			);
+			name = "Build Static Libraries";
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "IOS_ARMV7_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.iphoneos.a\" &&\nIOS_ARM64_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.iphoneos.arm64.a\" &&\nIOS_SIM_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.iphonesimulator.a\" &&\nOSX_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.macosx.a\" &&\nFRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}/${PRODUCT_NAME}.framework\" &&\n\nlipo \"${IOS_ARMV7_LIB_PATH}\" \"${IOS_ARM64_LIB_PATH}\" \"${IOS_SIM_LIB_PATH}\" \"${OSX_LIB_PATH}\" -create -output \"${FRAMEWORK_PATH}/Versions/A/${PRODUCT_NAME}\" &&\nln -fs \"Versions/Current/${PRODUCT_NAME}\" \"${FRAMEWORK_PATH}/${PRODUCT_NAME}\"\n";
+			shellScript = "xcodebuild -configuration \"${CONFIGURATION}\" -project \"${PROJECT_NAME}.xcodeproj\" -target \"SPDY.iphoneos\" -sdk \"iphonesimulator\" ${ACTION} ARCHS=\"i386 x86_64\" BUILD_DIR=\"${BUILD_DIR}\" BUILD_ROOT=\"${BUILD_ROOT}\" SYMROOT=\"${SYMROOT}\"\n\nxcodebuild -configuration \"${CONFIGURATION}\" -project \"${PROJECT_NAME}.xcodeproj\" -target \"SPDY.iphoneos\" -sdk \"iphoneos\" ARCHS=\"armv7 armv7s arm64\" ${ACTION} BUILD_DIR=\"${BUILD_DIR}\" BUILD_ROOT=\"${BUILD_ROOT}\" SYMROOT=\"${SYMROOT}\"\n\nxcodebuild -configuration \"${CONFIGURATION}\" -project \"${PROJECT_NAME}.xcodeproj\" -target \"SPDY.macosx\" -sdk \"macosx\" ARCHS=\"i386 x86_64\" ${ACTION} BUILD_DIR=\"${BUILD_DIR}\" BUILD_ROOT=\"${BUILD_ROOT}\" SYMROOT=\"${SYMROOT}\"\n\n";
+		};
+		064A05C816F7C3B2008C7D08 /* Lipo Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"",
+			);
+			name = "Lipo Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n\n\n#Variables\nIOS_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/lib${PROJECT_NAME}.iphoneos.a\"\nSIM_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphonesimulator/lib${PROJECT_NAME}.iphoneos.a\"\nOSX_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.macosx.a\"\nIOS_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/${PRODUCT_NAME}.framework\"\nOSX_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}/${PRODUCT_NAME}.framework\"\n\nSPDY_CONFIG=\"${BUILD_DIR}/${CONFIGURATION}/spdy_install.config\"\nSPDY_INSTALL_SCRIPT=\"${BUILD_DIR}/${CONFIGURATION}/spdy_install.sh\"\n\n#Install Functions\ninstall_iphoneos(){\n  rm -rf \"${IOS_FRAMEWORK_PATH}\"\n  cp -fR \"${OSX_FRAMEWORK_PATH}\" \"${IOS_FRAMEWORK_PATH}\"\n\n  static_libs=( \"${IOS_LIB_PATH}\" \"${SIM_LIB_PATH}\" )\n  install \"${IOS_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall_macosx(){\n  static_libs=( \"${OSX_LIB_PATH}\" )\n  install \"${OSX_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall() {\n  output_dir=$1\n  shift\n  static_libraries=($@)\n\n  mkdir -p \"${output_dir}\"\n\n  lipo \"${static_libraries[@]}\" -create -output \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n\n  if [[ $CONFIGURATION == \"Release\" ]]; then\n    strip -S \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n  fi\n\n  ln -fs \"${output_dir}/Versions/Current/${PRODUCT_NAME}\" \"${output_dir}/${PRODUCT_NAME}\"\n}\n\n#Script\nif [ -f \"${SPDY_CONFIG}\" ]; then\n  source \"${SPDY_CONFIG}\"\nfi\n\nif [ -n \"${SPDY_INSTALL_SDK}\" ]; then\n  if [[ $SPDY_INSTALL_SDK == \"iphoneos\" ]]; then\n    install_iphoneos\n  elif [[ $SPDY_INSTALL_SDK == \"macosx\" ]]; then\n    install_macosx\n  fi\nelse\n  install_iphoneos\n  install_macosx\nfi\n\nif [ -f \"${SPDY_INSTALL_SCRIPT}\" ]; then\n  source \"${SPDY_INSTALL_SCRIPT}\"\nfi\n";
 		};
 		064EFB1116715C9F002F0AEC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -664,28 +582,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		0651EBF416F3F7DB00CE44D2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0651EC2D16F3FA1000CE44D2 /* SPDYSocket.m in Sources */,
-				0651EC2F16F3FA1000CE44D2 /* NSURLRequest+SPDYURLRequest.m in Sources */,
-				0651EC3016F3FA1000CE44D2 /* SPDYFrame.m in Sources */,
-				0651EC3116F3FA1000CE44D2 /* SPDYFrameDecoder.m in Sources */,
-				0651EC3216F3FA1000CE44D2 /* SPDYFrameEncoder.m in Sources */,
-				0651EC3316F3FA1000CE44D2 /* SPDYHeaderBlockCompressor.m in Sources */,
-				0651EC3416F3FA1000CE44D2 /* SPDYHeaderBlockDecompressor.m in Sources */,
-				0651EC3516F3FA1000CE44D2 /* SPDYProtocol.m in Sources */,
-				0651EC3616F3FA1000CE44D2 /* SPDYSession.m in Sources */,
-				0651EC3716F3FA1000CE44D2 /* SPDYSessionManager.m in Sources */,
-				0651EC3816F3FA1000CE44D2 /* SPDYSettingsStore.m in Sources */,
-				0651EC3916F3FA1000CE44D2 /* SPDYStream.m in Sources */,
-				062EA644175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */,
-				061C8E9717C5954400D22083 /* SPDYStreamManager.m in Sources */,
-				06B290D11861018A00540A03 /* SPDYOrigin.m in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		0651EC0416F3F7E500CE44D2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -708,52 +604,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		06A4E501180F21D500A82D93 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				06A4E502180F21D500A82D93 /* SPDYSocket.m in Sources */,
-				06A4E504180F21D500A82D93 /* NSURLRequest+SPDYURLRequest.m in Sources */,
-				06A4E505180F21D500A82D93 /* SPDYFrame.m in Sources */,
-				06A4E506180F21D500A82D93 /* SPDYFrameDecoder.m in Sources */,
-				06A4E507180F21D500A82D93 /* SPDYFrameEncoder.m in Sources */,
-				06A4E508180F21D500A82D93 /* SPDYHeaderBlockCompressor.m in Sources */,
-				06A4E509180F21D500A82D93 /* SPDYHeaderBlockDecompressor.m in Sources */,
-				06A4E50A180F21D500A82D93 /* SPDYProtocol.m in Sources */,
-				06A4E50B180F21D500A82D93 /* SPDYSession.m in Sources */,
-				06A4E50C180F21D500A82D93 /* SPDYSessionManager.m in Sources */,
-				06A4E50D180F21D500A82D93 /* SPDYSettingsStore.m in Sources */,
-				06A4E50E180F21D500A82D93 /* SPDYStream.m in Sources */,
-				06A4E50F180F21D500A82D93 /* SPDYCommonLogger.m in Sources */,
-				06A4E510180F21D500A82D93 /* SPDYStreamManager.m in Sources */,
-				06B290D01861018A00540A03 /* SPDYOrigin.m in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		064A05C216F7C2F3008C7D08 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0651EBE716F3F7C700CE44D2 /* SPDY.iphoneos */;
-			targetProxy = 064A05C116F7C2F3008C7D08 /* PBXContainerItemProxy */;
-		};
-		064A05C416F7C2F5008C7D08 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0651EBF716F3F7DB00CE44D2 /* SPDY.iphonesimulator */;
-			targetProxy = 064A05C316F7C2F5008C7D08 /* PBXContainerItemProxy */;
-		};
-		064A05C616F7C2F6008C7D08 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0651EC0716F3F7E500CE44D2 /* SPDY.macosx */;
-			targetProxy = 064A05C516F7C2F6008C7D08 /* PBXContainerItemProxy */;
-		};
-		06D032B5180F2BB500C489A1 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 06A4E500180F21D500A82D93 /* SPDY.iphoneos.arm64 */;
-			targetProxy = 06D032B4180F2BB500C489A1 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		06336DE316F2756A00532180 /* InfoPlist.strings */ = {
@@ -813,10 +664,7 @@
 		0651EBF116F3F7C800CE44D2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					armv7,
-					armv7s,
-				);
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
@@ -824,23 +672,20 @@
 				DSTROOT = /tmp/SPDY_iphoneos.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SPDY.iphoneos/SPDY.iphoneos-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PUBLIC_HEADERS_FOLDER_PATH = include/SPDY;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphoneos;
-				VALID_ARCHS = "armv7 armv7s";
+				VALID_ARCHS = "armv7 armv7s arm64 x86_64 i386";
 			};
 			name = Debug;
 		};
 		0651EBF216F3F7C800CE44D2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					armv7,
-					armv7s,
-				);
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
@@ -848,59 +693,14 @@
 				DSTROOT = /tmp/SPDY_iphoneos.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SPDY.iphoneos/SPDY.iphoneos-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PUBLIC_HEADERS_FOLDER_PATH = include/SPDY;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphoneos;
 				VALIDATE_PRODUCT = YES;
-				VALID_ARCHS = "armv7 armv7s";
-			};
-			name = Release;
-		};
-		0651EC0216F3F7DC00CE44D2 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = i386;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				DSTROOT = /tmp/SPDY_iphonesimulator.dst;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SPDY.iphonesimulator/SPDY.iphonesimulator-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphonesimulator;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphonesimulator;
-				VALID_ARCHS = i386;
-			};
-			name = Debug;
-		};
-		0651EC0316F3F7DC00CE44D2 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = i386;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				DSTROOT = /tmp/SPDY_iphonesimulator.dst;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SPDY.iphonesimulator/SPDY.iphonesimulator-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphonesimulator;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphonesimulator;
-				VALIDATE_PRODUCT = YES;
-				VALID_ARCHS = i386;
+				VALID_ARCHS = "armv7 armv7s arm64 x86_64 i386";
 			};
 			name = Release;
 		};
@@ -956,6 +756,8 @@
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)";
+				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -983,6 +785,8 @@
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)";
+				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1001,49 +805,6 @@
 			};
 			name = Release;
 		};
-		06A4E516180F21D500A82D93 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				DSTROOT = /tmp/SPDY_iphoneos.dst;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SPDY.iphoneos/SPDY.iphoneos-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = SPDY.iphoneos.arm64;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphoneos;
-				VALID_ARCHS = arm64;
-			};
-			name = Debug;
-		};
-		06A4E517180F21D500A82D93 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				DSTROOT = /tmp/SPDY_iphoneos.dst;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SPDY.iphoneos/SPDY.iphoneos-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = SPDY.iphoneos.arm64;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphoneos;
-				VALIDATE_PRODUCT = YES;
-				VALID_ARCHS = arm64;
-			};
-			name = Release;
-		};
 		D2CC14BB16179B43002E37CF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1053,8 +814,6 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)";
-				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1084,8 +843,6 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)";
-				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -1120,15 +877,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0651EC0116F3F7DC00CE44D2 /* Build configuration list for PBXNativeTarget "SPDY.iphonesimulator" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				0651EC0216F3F7DC00CE44D2 /* Debug */,
-				0651EC0316F3F7DC00CE44D2 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		0651EC1116F3F7E500CE44D2 /* Build configuration list for PBXNativeTarget "SPDY.macosx" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1143,15 +891,6 @@
 			buildConfigurations = (
 				0652632516F7B6360081868F /* Debug */,
 				0652632616F7B6360081868F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		06A4E515180F21D500A82D93 /* Build configuration list for PBXNativeTarget "SPDY.iphoneos.arm64" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				06A4E516180F21D500A82D93 /* Debug */,
-				06A4E517180F21D500A82D93 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

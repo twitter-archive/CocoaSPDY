@@ -26,7 +26,6 @@
 @end
 
 static NSString *const SPDYSessionManagerKey = @"com.twitter.SPDYSessionManager";
-static SPDYConfiguration *currentConfiguration;
 static volatile bool reachabilityIsWWAN;
 
 #if TARGET_OS_IPHONE
@@ -39,7 +38,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 #endif
 
 @interface SPDYSessionPool : NSObject
-- (id)initWithOrigin:(SPDYOrigin *)origin size:(NSUInteger)size error:(NSError **)pError;
+- (id)initWithOrigin:(SPDYOrigin *)origin error:(NSError **)pError;
 - (NSUInteger)remove:(SPDYSession *)session;
 - (SPDYSession *)next;
 @end
@@ -49,14 +48,16 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     NSMutableArray *_sessions;
 }
 
-- (id)initWithOrigin:(SPDYOrigin *)origin size:(NSUInteger)size error:(NSError **)pError
+- (id)initWithOrigin:(SPDYOrigin *)origin error:(NSError **)pError
 {
     self = [super init];
     if (self) {
+        SPDYConfiguration *configuration = [SPDYProtocol currentConfiguration];
+        NSUInteger size = configuration.sessionPoolSize;
         _sessions = [[NSMutableArray alloc] initWithCapacity:size];
         for (NSUInteger i = 0; i < size; i++) {
             SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin
-                                                         configuration:currentConfiguration
+                                                         configuration:configuration
                                                               cellular:reachabilityIsWWAN
                                                                  error:pError];
             if (!session) {
@@ -87,7 +88,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         session = _sessions[0];
     } while (session && !session.isOpen && [self remove:session] > 0);
     if (!session.isOpen) return nil; // No open sessions in the pool
-    
+
     // Rotate
     if (_sessions.count > 1) {
         [_sessions removeObjectAtIndex:0];
@@ -103,7 +104,6 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 + (void)initialize
 {
-    currentConfiguration = [SPDYConfiguration defaultConfiguration];
     reachabilityIsWWAN = NO;
 
 #if TARGET_OS_IPHONE
@@ -129,11 +129,6 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 #endif
 }
 
-+ (void)setConfiguration:(SPDYConfiguration *)configuration
-{
-    currentConfiguration = [configuration copy];
-}
-
 + (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError
 {
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:url error:pError];
@@ -141,9 +136,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     SPDYSessionPool *pool = poolTable[origin];
     SPDYSession *session = [pool next];
     if (!session) {
-        pool = [[SPDYSessionPool alloc] initWithOrigin:origin
-                                                  size:currentConfiguration.sessionPoolSize
-                                                 error:pError];
+        pool = [[SPDYSessionPool alloc] initWithOrigin:origin error:pError];
         if (pool) {
             poolTable[origin] = pool;
             session = [pool next];

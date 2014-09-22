@@ -45,7 +45,6 @@
 - (void)startWithStreamId:(SPDYStreamId)id sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize;
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;
 - (void)closeWithError:(NSError *)error;
-- (void)closeWithStatus:(SPDYStreamStatus)status;
-- (void)didReceiveResponse:(NSDictionary *)headers;
-- (void)didLoadData:(NSData *)data;
+- (bool)didReceiveResponse:(NSDictionary *)headers error:(NSError **)pError;
+- (bool)didLoadData:(NSData *)data error:(NSError **)pError;
 @end
