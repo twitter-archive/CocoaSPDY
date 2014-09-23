@@ -58,8 +58,11 @@ typedef enum {
 
 - (id)initWithOrigin:(SPDYOrigin *)origin;
 
+- (void)resolveEndpointsAndThen:(void (^)())completionHandler;
+
 - (SPDYOriginEndpoint *)getCurrentEndpoint;
 
-- (bool)moveToNextEndpoint;
+- (BOOL)moveToNextEndpoint;
+
 
 @end
