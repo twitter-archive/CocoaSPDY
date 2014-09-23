@@ -98,8 +98,7 @@
     if (_mockDecoderDelegate.lastFrame != nil) {
         return;
     } else {
-        // TODO: timeout
-        CFRunLoopRun();
+        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 10, false);
     }
 }
 
