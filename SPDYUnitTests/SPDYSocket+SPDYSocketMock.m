@@ -117,9 +117,9 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
     return [[self delegate] socketWillConnect:self];
 }
 
-- (void)performDelegateCall_socketDidConnectToHost:(NSString *)host port:(in_port_t)port
+- (void)performDelegateCall_socketDidConnectToEndpoint:(SPDYOriginEndpoint *)endpoint
 {
-    return [[self delegate] socket:self didConnectToHost:host port:port];
+    return [[self delegate] socket:self didConnectToEndpoint:endpoint];
 }
 
 - (void)performDelegateCall_socketDidReadData:(NSData *)data withTag:(long)tag
@@ -163,3 +163,18 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
 }
 
 @end
+
+@implementation SPDYSession (Private)
+
+- (SPDYSocket *)socket
+{
+    return [self valueForKey:@"_socket"];
+}
+
+- (NSMutableData *)inputBuffer
+{
+    return [self valueForKey:@"_inputBuffer"];
+}
+
+@end
+

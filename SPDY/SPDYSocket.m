@@ -530,8 +530,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     [self _startConnectTimeout:timeout];
     _flags |= kDidStartDelegate;
 
-    // TODO: set it THEN make the call. _endpointManager isn't set in completionHandler!
-    _endpointManager = [[SPDYOriginEndpointManager alloc] initWithOrigin:origin];
+    if (_endpointManager == nil) {
+        _endpointManager = [[SPDYOriginEndpointManager alloc] initWithOrigin:origin];
+    }
+
     [_endpointManager resolveEndpointsAndThen:^{
         CHECK_THREAD_SAFETY();
         NSError *error = nil;
@@ -587,7 +589,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     return YES;
 
     Failed:
-    [self _close];
     return NO;
 }
 

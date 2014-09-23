@@ -32,7 +32,7 @@ extern SPDYFrameDecoder *socketMock_frameDecoder;
 - (void)performDelegateCall_socketDidAcceptNewSocket:(SPDYSocket *)newSocket;
 - (NSRunLoop *)performDelegateCall_socketWantsRunLoopForNewSocket:(SPDYSocket *)newSocket;
 - (bool)performDelegateCall_socketWillConnect;
-- (void)performDelegateCall_socketDidConnectToHost:(NSString *)host port:(in_port_t)port;
+- (void)performDelegateCall_socketDidConnectToEndpoint:(SPDYOriginEndpoint *)endpoint;
 - (void)performDelegateCall_socketDidReadData:(NSData *)data withTag:(long)tag;
 - (void)performDelegateCall_socketDidReadPartialDataOfLength:(NSUInteger)partialLength tag:(long)tag;
 - (void)performDelegateCall_socketDidWriteDataWithTag:(long)tag;
@@ -45,28 +45,6 @@ extern SPDYFrameDecoder *socketMock_frameDecoder;
 
 // Expose some private things in SPDYSession needed by the socket mocker.
 @interface SPDYSession ()
-
 @property (nonatomic, readonly) SPDYSocket *socket;
-
+@property (nonatomic, readonly) NSMutableData *inputBuffer;
 @end
-
-@implementation SPDYSession (Private)
-
-- (SPDYSocket *)socket
-{
-    return [self valueForKey:@"_socket"];
-}
-
-- (NSMutableData *)inputBuffer
-{
-    return [self valueForKey:@"_inputBuffer"];
-}
-
-- (SPDYFrameDecoder *)frameDecoder
-{
-    return [self valueForKey:@"_frameDecoder"];
-}
-
-@end
-
-

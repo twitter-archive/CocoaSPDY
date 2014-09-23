@@ -65,6 +65,8 @@
     __strong void (^_resolveCallback)();
 }
 
+@synthesize remaining = _remaining;
+
 - (id)initWithOrigin:(SPDYOrigin *)origin
 {
     self = [super init];
@@ -78,9 +80,10 @@
     return self;
 }
 
-- (NSUInteger)getRemaining
+- (NSUInteger)remaining
 {
-    return (_endpointIndex >= _endpointList.count) ? 0 : (_endpointList.count - _endpointIndex - 1);
+    NSInteger count = _endpointList.count;
+    return (_endpointIndex >= count) ? 0 : (NSUInteger)(count - _endpointIndex - 1);
 }
 
 - (void)resolveEndpointsAndThen:(void (^)())completionHandler
@@ -209,26 +212,7 @@ void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
             SPDY_INFO(@"Proxy: added direct endpoint %@", _endpointList.lastObject);
         } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL]) {
             NSURL *pacScriptUrl = [proxyDict valueForKey:(__bridge NSString *) kCFProxyAutoConfigurationURLKey];
-            NSURL *originUrl = [self _getOriginUrlForProxy];
-
-            // Work around <rdar://problem/5530166>. This dummy call to
-            // CFNetworkCopyProxiesForURL initializes some state within CFNetwork that is
-            // required by CFNetworkExecuteProxyAutoConfigurationURL.
-            CFArrayRef dummy_result = CFNetworkCopyProxiesForURL(
-                    (__bridge CFURLRef)originUrl,
-                    NULL);
-            if (dummy_result)
-                CFRelease(dummy_result);
-
-            // CFNetworkExecuteProxyAutoConfigurationURL returns a runloop source we need to release.
-            // We'll do that after the callback.
-            CFStreamClientContext context = {0, (__bridge void *) self, nil, nil, nil};
-            _autoConfigRunLoopSource = CFNetworkExecuteProxyAutoConfigurationURL(
-                    (__bridge CFURLRef) pacScriptUrl,
-                    (__bridge CFURLRef) originUrl,
-                    ResultCallback,
-                    &context);
-            CFRunLoopAddSource(CFRunLoopGetCurrent(), _autoConfigRunLoopSource, kCFRunLoopDefaultMode);
+            [self _proxyExecuteAutoConfigURL:pacScriptUrl];
             SPDY_INFO(@"Proxy: executing auto-config url: %@", pacScriptUrl);
         } else {
             SPDY_INFO(@"Proxy: ignoring unsupported endpoint %@:%d (%@)", host, port, proxyType);
@@ -239,6 +223,30 @@ void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
         // things in order.
         break;
     }
+}
+
+- (void)_proxyExecuteAutoConfigURL:(NSURL *)pacScriptUrl
+{
+    NSURL *originUrl = [self _getOriginUrlForProxy];
+
+    // Work around <rdar://problem/5530166>. This dummy call to
+    // CFNetworkCopyProxiesForURL initializes some state within CFNetwork that is
+    // required by CFNetworkExecuteProxyAutoConfigurationURL.
+    CFArrayRef dummy_result = CFNetworkCopyProxiesForURL(
+                    (__bridge CFURLRef)originUrl,
+                    NULL);
+    if (dummy_result)
+                CFRelease(dummy_result);
+
+    // CFNetworkExecuteProxyAutoConfigurationURL returns a runloop source we need to release.
+    // We'll do that after the callback.
+    CFStreamClientContext context = {0, (__bridge void *) self, nil, nil, nil};
+    _autoConfigRunLoopSource = CFNetworkExecuteProxyAutoConfigurationURL(
+                    (__bridge CFURLRef) pacScriptUrl,
+                    (__bridge CFURLRef) originUrl,
+                    ResultCallback,
+                    &context);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), _autoConfigRunLoopSource, kCFRunLoopDefaultMode);
 }
 
 @end

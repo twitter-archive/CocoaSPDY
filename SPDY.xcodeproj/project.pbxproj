@@ -107,7 +107,9 @@
 		5C5549AA19AE523400BAC2B7 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CD094B519A7000B00507D7B /* SPDYOriginEndpoint.m */; };
 		7774C1318AB029C6BCEF84D6 /* SPDYSessionTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774C2026A4DE9957D75F629 /* SPDYSessionTest.m */; };
 		7774C1F1E544793907908882 /* SPDYFrameAccumulators.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774C69089A6978113F0C275 /* SPDYFrameAccumulators.m */; };
+		7774C7E70D651FB67C9739AF /* SPDYMockOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774C5A307892656668BF4AC /* SPDYMockOriginEndpointManager.m */; };
 		7774CA1FA1F4A59CA0906BB7 /* SPDYSocket+SPDYSocketMock.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774C0ECD0C6E5D73FB38752 /* SPDYSocket+SPDYSocketMock.m */; };
+		7774CBF49B24A580B4E6494C /* SPDYSocketTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774CDA33119BA8512D7344A /* SPDYSocketTest.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -191,9 +193,12 @@
 		5CD094B519A7000B00507D7B /* SPDYOriginEndpoint.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOriginEndpoint.m; sourceTree = "<group>"; };
 		7774C0ECD0C6E5D73FB38752 /* SPDYSocket+SPDYSocketMock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "SPDYSocket+SPDYSocketMock.m"; sourceTree = "<group>"; };
 		7774C2026A4DE9957D75F629 /* SPDYSessionTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSessionTest.m; sourceTree = "<group>"; };
+		7774C5A307892656668BF4AC /* SPDYMockOriginEndpointManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMockOriginEndpointManager.m; sourceTree = "<group>"; };
 		7774C69089A6978113F0C275 /* SPDYFrameAccumulators.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYFrameAccumulators.m; sourceTree = "<group>"; };
 		7774C7E1AF717FC36B7F15B6 /* SPDYSocket+SPDYSocketMock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SPDYSocket+SPDYSocketMock.h"; sourceTree = "<group>"; };
+		7774C84AF697A1CF937C5CDD /* SPDYMockOriginEndpointManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYMockOriginEndpointManager.h; sourceTree = "<group>"; };
 		7774CD0A3295C8E314D6E3FF /* SPDYFrameAccumulators.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYFrameAccumulators.h; sourceTree = "<group>"; };
+		7774CDA33119BA8512D7344A /* SPDYSocketTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSocketTest.m; sourceTree = "<group>"; };
 		D2CC14B216179B43002E37CF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		D2CC14B816179B43002E37CF /* SPDY-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY-Prefix.pch"; sourceTree = "<group>"; };
 		D2CC14C01618CF62002E37CF /* SPDYProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYProtocol.h; sourceTree = "<group>"; };
@@ -283,6 +288,7 @@
 				25959A3E1937DE3900FC9731 /* SPDYSessionManagerTest.m */,
 				5C0456F819B03278009E0AC2 /* SPDYSocketOpsTest.m */,
 				5C04570419B043CB009E0AC2 /* SPDYOriginEndpointTest.m */,
+				7774CDA33119BA8512D7344A /* SPDYSocketTest.m */,
 			);
 			path = SPDYUnitTests;
 			sourceTree = "<group>";
@@ -299,6 +305,8 @@
 				7774C69089A6978113F0C275 /* SPDYFrameAccumulators.m */,
 				7774C7E1AF717FC36B7F15B6 /* SPDYSocket+SPDYSocketMock.h */,
 				7774C0ECD0C6E5D73FB38752 /* SPDYSocket+SPDYSocketMock.m */,
+				7774C5A307892656668BF4AC /* SPDYMockOriginEndpointManager.m */,
+				7774C84AF697A1CF937C5CDD /* SPDYMockOriginEndpointManager.h */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -628,6 +636,8 @@
 				7774C1F1E544793907908882 /* SPDYFrameAccumulators.m in Sources */,
 				7774CA1FA1F4A59CA0906BB7 /* SPDYSocket+SPDYSocketMock.m in Sources */,
 				7774C1318AB029C6BCEF84D6 /* SPDYSessionTest.m in Sources */,
+				7774CBF49B24A580B4E6494C /* SPDYSocketTest.m in Sources */,
+				7774C7E70D651FB67C9739AF /* SPDYMockOriginEndpointManager.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
