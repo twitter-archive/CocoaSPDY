@@ -1,5 +1,5 @@
 //
-//  SPDYFrameAccumulators.h
+//  SPDYMockFrameEncoderDelegate.h
 //  SPDY
 //
 //  Created by Kevin Goodier on 9/19/2014.
@@ -13,13 +13,7 @@
 // be provided to the spdy socket. Or, the test can take the last bytes written to the socket
 // and decode them into a frame.
 
-@interface SPDYFrameEncoderAccumulator : SPDYFrameEncoder <SPDYFrameEncoderDelegate>
+@interface SPDYMockFrameEncoderDelegate : NSObject <SPDYFrameEncoderDelegate>
 @property (nonatomic) NSMutableData *lastEncodedData;
 - (void)clear;
 @end
-
-@interface SPDYFrameDecoderAccumulator : SPDYFrameDecoder <SPDYFrameDecoderDelegate>
-@property (nonatomic) SPDYFrame *lastDecodedFrame;
-- (void)clear;
-@end
-

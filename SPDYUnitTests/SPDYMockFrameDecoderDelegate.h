@@ -17,5 +17,6 @@
 @property (nonatomic, strong, readonly) id lastFrame;
 @property (nonatomic, readonly) NSString *lastDelegateMessage;
 @property (nonatomic, readonly) NSUInteger frameCount;
+- (void)clear;
 @end
 

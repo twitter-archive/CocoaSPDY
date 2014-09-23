@@ -47,4 +47,9 @@
     return _framesReceived.count;
 }
 
+- (void)clear
+{
+    [_framesReceived removeAllObjects];
+}
+
 @end

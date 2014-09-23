@@ -1,5 +1,5 @@
 //
-//  SPDYServerPushTest.m
+//  SPDYSessionTest.m
 //  SPDY
 //
 //  Created by Klemen Verdnik on 6/10/14.
@@ -14,9 +14,9 @@
 #import "SPDYSession.h"
 #import "SPDYSocket+SPDYSocketMock.h"
 #import "SPDYFrame.h"
-#import "SPDYFrameAccumulators.h"
+#import "SPDYMockFrameEncoderDelegate.h"
 #import "SPDYProtocol.h"
-#import "SPDYStream.h"
+#import "SPDYMockFrameDecoderDelegate.h"
 #import "NSURLRequest+SPDYURLRequest.h"
 
 @interface SPDYSessionTest : SenTestCase <SPDYExtendedDelegate>
@@ -36,8 +36,9 @@
     SPDYSession *_session;
     NSMutableURLRequest *_URLRequest;
     SPDYProtocol *_protocolRequest;
-    SPDYFrameEncoderAccumulator *_frameEncoder;
-    SPDYFrameDecoderAccumulator *_frameDecoder;
+    SPDYFrameEncoder *_testEncoder;
+    SPDYMockFrameEncoderDelegate *_testEncoderDelegate;
+    SPDYMockFrameDecoderDelegate *_mockDecoderDelegate;
 
     // From SPDYExtendedDelegate callbacks. Reset every test.
     NSDictionary *_lastMetadata;
@@ -54,8 +55,7 @@
 
 #pragma mark Test Helpers
 
-- (void)setUp
-{
+- (void)setUp {
     [super setUp];
     [SPDYSocket performSwizzling:YES];
     _lastMetadata = nil;
@@ -67,9 +67,12 @@
     [_URLRequest setExtendedDelegate:self inRunLoop:nil forMode:nil];
     _protocolRequest = [[SPDYProtocol alloc] initWithRequest:_URLRequest cachedResponse:nil client:nil];
 
-    _frameEncoder = [[SPDYFrameEncoderAccumulator alloc] init];
-    _frameDecoder = [[SPDYFrameDecoderAccumulator alloc] init];
-    socketMock_frameDecoder = _frameDecoder;
+    _testEncoderDelegate = [[SPDYMockFrameEncoderDelegate alloc] init];
+    _testEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:_testEncoderDelegate
+                                       headerCompressionLevel:0];
+
+    _mockDecoderDelegate = [[SPDYMockFrameDecoderDelegate alloc] init];
+    socketMock_frameDecoder = [[SPDYFrameDecoder alloc] initWithDelegate:_mockDecoderDelegate];
 }
 
 - (void)tearDown
@@ -90,7 +93,7 @@
 - (void)waitForExtendedCallbackOrError {
     // Wait for callback via SPDYExtendedDelegate or a RST_STREAM or GOAWAY to be sent.
     // Errors are processed synchronously, but callbacks are async. They will stop the runloop.
-    if (_frameDecoder.lastDecodedFrame != nil) {
+    if (_mockDecoderDelegate.lastFrame != nil) {
         return;
     } else {
         // TODO: timeout
@@ -111,16 +114,16 @@
     // 1.) Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
     // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
     [_session issueRequest:_protocolRequest];
-    STAssertTrue([_frameDecoder.lastDecodedFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
-    [_frameDecoder clear];
+    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    [_mockDecoderDelegate clear];
 
     // 2.) Simulate a server Tx stream SYN reply
-    STAssertTrue([_frameEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0, nil);
-    [self makeSessionReadData:_frameEncoder.lastEncodedData];
-    [_frameEncoder clear];
+    STAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0, nil);
+    [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
+    [_testEncoderDelegate clear];
 
     // 2.1) We should not expect any protocol errors to be issued from the client.
-    STAssertNil(_frameDecoder.lastDecodedFrame, nil);
+    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
 }
 
 #pragma mark Tests
@@ -136,8 +139,8 @@
 
     [self waitForExtendedCallbackOrError];
 
-    STAssertNotNil(_frameDecoder.lastDecodedFrame, nil);
-    STAssertTrue([_frameDecoder.lastDecodedFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
+    STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
+    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
 
     // Note: we should probably check if metadata is present, but we don't actually receive the
     // "didFailWithError" callbacks from NSURLConnectionDataDelegate, since we don't set up
@@ -152,7 +155,7 @@
 
     [self waitForExtendedCallbackOrError];
 
-    STAssertNil(_frameDecoder.lastDecodedFrame, nil);
+    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
     STAssertNotNil(_lastMetadata, nil);
     STAssertEqualObjects(_lastMetadata[SPDYMetadataVersionKey], @"3.1", nil);
     STAssertEqualObjects(_lastMetadata[SPDYMetadataStreamIdKey], @"1", nil);

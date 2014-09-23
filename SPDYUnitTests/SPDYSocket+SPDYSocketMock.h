@@ -68,5 +68,3 @@ extern SPDYFrameDecoder *socketMock_frameDecoder;
 }
 
 @end
-
-
