@@ -18,6 +18,26 @@ NSString * const kSPDYTSTResponseStubs = @"kSPDYTSTResponseStubs";
 NSError *socketMock_lastError = nil;
 SPDYFrameDecoder *socketMock_frameDecoder = nil;
 
+@implementation SPDYSession (Test)
+
+- (SPDYSocket *)socket
+{
+    return [self valueForKey:@"_socket"];
+}
+
+- (NSMutableData *)inputBuffer
+{
+    return [self valueForKey:@"_inputBuffer"];
+}
+
+- (SPDYFrameDecoder *)frameDecoder
+{
+    return [self valueForKey:@"_frameDecoder"];
+}
+
+@end
+
+
 @implementation SPDYSocket (SPDYSocketMock)
 
 + (void)performSwizzling:(BOOL)performSwizzling

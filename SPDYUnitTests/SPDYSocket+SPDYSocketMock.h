@@ -47,27 +47,8 @@ extern SPDYFrameDecoder *socketMock_frameDecoder;
 @end
 
 // Expose some private things in SPDYSession needed by the socket mocker.
-@interface SPDYSession ()
-
+@interface SPDYSession (Test)
 @property (nonatomic, readonly) SPDYSocket *socket;
-
-@end
-
-@implementation SPDYSession (Private)
-
-- (SPDYSocket *)socket
-{
-    return [self valueForKey:@"_socket"];
-}
-
-- (NSMutableData *)inputBuffer
-{
-    return [self valueForKey:@"_inputBuffer"];
-}
-
-- (SPDYFrameDecoder *)frameDecoder
-{
-    return [self valueForKey:@"_frameDecoder"];
-}
-
+@property (nonatomic, readonly) NSMutableData *inputBuffer;
+@property (nonatomic, readonly) SPDYFrameDecoder *frameDecoder;
 @end
