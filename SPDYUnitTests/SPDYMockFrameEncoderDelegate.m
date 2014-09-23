@@ -1,9 +1,12 @@
 //
-//  SPDYMockFrameEncoderDelegate.h
+//  SPDYMockFrameEncoderDelegate.m
 //  SPDY
 //
+//  Copyright (c) 2014 Twitter, Inc. All rights reserved.
+//  Licensed under the Apache License v2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
 //  Created by Kevin Goodier on 9/19/2014.
-//  Copyright (c) 2014 Twitter. All rights reserved.
 //
 
 #import "SPDYMockFrameEncoderDelegate.h"

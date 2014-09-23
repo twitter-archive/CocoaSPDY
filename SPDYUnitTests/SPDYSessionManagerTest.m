@@ -2,8 +2,11 @@
 //  SPDYSessionManagerTest.m
 //  SPDY
 //
+//  Copyright (c) 2014 Twitter, Inc. All rights reserved.
+//  Licensed under the Apache License v2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
 //  Created by Blake Watters on 5/29/14.
-//  Copyright (c) 2014 Twitter. All rights reserved.
 //
 
 #import <SenTestingKit/SenTestingKit.h>
