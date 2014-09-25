@@ -52,6 +52,8 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 */
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
 
++ (NSRunLoop *)requestRunLoop;
+
 @end
 
 /**

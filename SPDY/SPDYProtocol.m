@@ -39,6 +39,7 @@ static char *const SPDYTrustQueue = "com.twitter.SPDYTrustQueue";
 static dispatch_once_t initTrust;
 static dispatch_queue_t trustQueue;
 static id<SPDYTLSTrustEvaluator> trustEvaluator;
+static NSRunLoop *requestRunLoop;
 
 + (void)initialize
 {
@@ -105,8 +106,15 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     return request;
 }
 
++ (NSRunLoop *)requestRunLoop
+{
+    return requestRunLoop;
+}
+
 - (void)startLoading
 {
+    requestRunLoop = [NSRunLoop currentRunLoop];
+    
     NSURLRequest *request = self.request;
     SPDY_INFO(@"start loading %@", request.URL.absoluteString);
 
