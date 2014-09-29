@@ -19,16 +19,4 @@
 
 @implementation SPDYSessionManagerTest
 
-- (void)testSessionManagerWillNotDequeueClosedSession
-{
-    // Get a session into the pool
-    // Close it
-    // Try to dequeue again
-    SPDYSession *session = [SPDYSessionManager sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
-    STAssertNotNil(session, @"session should not be `nil`");
-    [session close];
-    SPDYSession *session2 = [SPDYSessionManager sessionForURL:[NSURL URLWithString:@"http://layer.com"] error:nil];
-    STAssertFalse([session isEqual:session2], @"Should not dequeue closed session");
-}
-
 @end

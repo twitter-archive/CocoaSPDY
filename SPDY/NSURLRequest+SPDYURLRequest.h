@@ -37,10 +37,14 @@
 @property (nonatomic, readonly) NSUInteger SPDYPriority;
 
 /**
-  Specifies whether this request may be deferred until an active session is
-  available. Defaults to false.
+  If set to > 0, indicates the maximum time interval the request dispatch may
+  be deferred to optimize battery/power usage for less time-sensitive
+  requests.
+
+  Note the request's idle timeoutInterval still applies and must be set large
+  enough to allow for both a discretionary delay and normal request transit.
 */
-@property (nonatomic, readonly) BOOL SPDYDiscretionary;
+@property (nonatomic, readonly) NSTimeInterval SPDYDeferrableInterval;
 
 /**
   If set, SPDYProtocol will decline to handle the request and instead pass
@@ -70,8 +74,8 @@
 @interface NSMutableURLRequest (SPDYURLRequest)
 @property (nonatomic) NSInputStream *SPDYBodyStream;
 @property (nonatomic) NSString *SPDYBodyFile;
+@property (nonatomic) NSTimeInterval SPDYDeferrableInterval;
 @property (nonatomic) NSUInteger SPDYPriority;
-@property (nonatomic) BOOL SPDYDiscretionary;
 @property (nonatomic) BOOL SPDYBypass;
 @property (nonatomic, readonly) id<SPDYExtendedDelegate> SPDYDelegate;
 @property (nonatomic, readonly) NSRunLoop *SPDYDelegateRunLoop;

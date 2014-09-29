@@ -14,24 +14,34 @@
 @class SPDYConfiguration;
 @class SPDYOrigin;
 @class SPDYProtocol;
+@class SPDYSessionManager;
+@class SPDYSession;
 @class SPDYStream;
+
+@protocol SPDYSessionDelegate <NSObject>
+- (void)session:(SPDYSession *)session capacityIncreased:(NSUInteger)capacity;
+- (void)session:(SPDYSession *)session connectedToNetwork:(bool)cellular;
+- (void)session:(SPDYSession *)session refusedStream:(SPDYStream *)stream;
+- (void)sessionClosed:(SPDYSession *)session;
+@end
 
 @interface SPDYSession : NSObject
 
+@property (nonatomic, weak) id<SPDYSessionDelegate> delegate;
 @property (nonatomic, readonly) SPDYOrigin *origin;
+@property (nonatomic, assign, readonly) NSUInteger capacity;
+@property (nonatomic, assign, readonly) NSUInteger load;
 @property (nonatomic, readonly) bool isCellular;
+@property (nonatomic, readonly) bool isConnected;
+@property (nonatomic, readonly) bool isEstablished;
 @property (nonatomic, readonly) bool isOpen;
-@property (nonatomic, readonly) NSInteger latencyMs;
-
-+ (NSMutableDictionary *)getMetadataForSession:(SPDYSession *)session stream:(SPDYStream *)stream;
-+ (NSError *)addMetadata:(NSMutableDictionary *)metadata toError:(NSError *)error;
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
+            delegate:(id<SPDYSessionDelegate>)delegate
        configuration:(SPDYConfiguration *)configuration
             cellular:(bool)cellular
                error:(NSError **)pError;
-- (void)issueRequest:(SPDYProtocol *)protocol;
-- (void)cancelRequest:(SPDYProtocol *)protocol;
+- (void)openStream:(SPDYStream *)stream;
 - (void)close;
 
 @end

@@ -275,35 +275,37 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
 
 - (void)testSPDYProperties
 {
-    // Test getters/setters for all custom properties to catch any typos
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+    NSInputStream *stream = [[NSInputStream alloc] initWithData:[NSData new]];
 
-    [request setSPDYPriority:1];
-    STAssertEquals([request SPDYPriority], (NSUInteger)1, nil);
+    request.SPDYPriority = 1;
+    request.SPDYDeferrableInterval = 3.95;
+    request.SPDYBypass = YES;
+    request.SPDYBodyStream = stream;
+    request.SPDYBodyFile = @"Bodyfile.json";
 
-    [request setSPDYDiscretionary:TRUE];
-    STAssertEquals([request SPDYDiscretionary], (BOOL)TRUE, nil);
+    STAssertEquals(request.SPDYPriority, (NSUInteger)1, nil);
+    STAssertEquals(request.SPDYDeferrableInterval, (double)3.95, nil);
+    STAssertEquals(request.SPDYBypass, (BOOL)YES, nil);
+    STAssertEquals(request.SPDYBodyStream, stream, nil);
+    STAssertEquals(request.SPDYBodyFile, @"Bodyfile.json", nil);
 
-    [request setSPDYBypass:TRUE];
-    STAssertEquals([request SPDYBypass], (BOOL)TRUE, nil);
+    NSMutableURLRequest *mutableCopy = [request mutableCopy];
 
-    NSMutableData *data = [[NSMutableData alloc] initWithCapacity:4];
-    NSInputStream *stream = [[NSInputStream alloc] initWithData:data];
-    [request setSPDYBodyStream:stream];
-    STAssertEquals([request SPDYBodyStream], stream, nil);
+    STAssertEquals(mutableCopy.SPDYPriority, (NSUInteger)1, nil);
+    STAssertEquals(mutableCopy.SPDYDeferrableInterval, (double)3.95, nil);
+    STAssertEquals(mutableCopy.SPDYBypass, (BOOL)YES, nil);
+    STAssertEquals(mutableCopy.SPDYBodyStream, stream, nil);
+    STAssertEquals(mutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
 
-    [request setSPDYBodyFile:@"Bodyfile.json"];
-    STAssertEquals([request SPDYBodyFile], @"Bodyfile.json", nil);
+    NSURLRequest *immutableCopy = [request copy];
 
-    // Test the immutable versions
-    NSURLRequest *immutableRequest = request;
-    STAssertEquals([immutableRequest SPDYPriority], (NSUInteger)1, nil);
-    STAssertEquals([immutableRequest SPDYDiscretionary], (BOOL)TRUE, nil);
-    STAssertEquals([immutableRequest SPDYBypass], (BOOL)TRUE, nil);
-    STAssertEquals([immutableRequest SPDYBodyStream], stream, nil);
-    STAssertEquals([immutableRequest SPDYBodyFile], @"Bodyfile.json", nil);
-
+    STAssertEquals(immutableCopy.SPDYPriority, (NSUInteger)1, nil);
+    STAssertEquals(immutableCopy.SPDYDeferrableInterval, (double)3.95, nil);
+    STAssertEquals(immutableCopy.SPDYBypass, (BOOL)TRUE, nil);
+    STAssertEquals(immutableCopy.SPDYBodyStream, stream, nil);
+    STAssertEquals(immutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
 }
 
 - (void)testSPDYDelegateRunLoopProperties

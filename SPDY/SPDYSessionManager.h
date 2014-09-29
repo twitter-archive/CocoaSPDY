@@ -13,10 +13,11 @@
 
 @class SPDYConfiguration;
 @class SPDYSession;
+@class SPDYStreamManager;
 
 @interface SPDYSessionManager : NSObject
 
-+ (SPDYSession *)sessionForURL:(NSURL *)url error:(NSError **)pError;
-+ (void)removeSession:(SPDYSession *)session;
++ (SPDYSessionManager *)localManagerForOrigin:(SPDYOrigin *)origin;
+- (void)queueStream:(SPDYStream *)stream;
 
 @end

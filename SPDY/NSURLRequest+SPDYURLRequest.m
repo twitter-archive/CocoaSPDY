@@ -23,9 +23,9 @@
     return [[SPDYProtocol propertyForKey:@"SPDYPriority" inRequest:self] unsignedIntegerValue];
 }
 
-- (BOOL)SPDYDiscretionary
+- (NSTimeInterval)SPDYDeferrableInterval
 {
-    return [[SPDYProtocol propertyForKey:@"SPDYDiscretionary" inRequest:self] boolValue];
+    return [[SPDYProtocol propertyForKey:@"SPDYDeferrableInterval" inRequest:self] doubleValue];
 }
 
 - (BOOL)SPDYBypass
@@ -66,6 +66,7 @@
 - (NSDictionary *)allSPDYHeaderFields
 {
     NSDictionary *httpHeaders = self.allHTTPHeaderFields;
+    NSURL *url = self.URL;
 
     static NSSet *invalidKeys;
     static NSSet *reservedKeys;
@@ -82,18 +83,18 @@
 
     NSString *escapedPath = CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(
             kCFAllocatorDefault,
-            (CFStringRef)self.URL.path,
+            (__bridge CFStringRef)url.path,
             NULL,
             CFSTR("?"),
             kCFStringEncodingUTF8));
 
     NSMutableString *path = [[NSMutableString alloc] initWithString:escapedPath];
-    NSString *query = self.URL.query;
+    NSString *query = url.query;
     if (query) {
         [path appendFormat:@"?%@", query];
     }
 
-    NSString *fragment = self.URL.fragment;
+    NSString *fragment = url.fragment;
     if (fragment) {
         [path appendFormat:@"#%@", fragment];
     }
@@ -103,8 +104,8 @@
         @":method"  : self.HTTPMethod,
         @":path"    : path,
         @":version" : @"HTTP/1.1",
-        @":host"    : self.URL.host,
-        @":scheme"  : self.URL.scheme
+        @":host"    : url.host,
+        @":scheme"  : url.scheme
     }];
 
     // Add default header values to better match what NSURLRequest will do. All of these default
@@ -159,7 +160,7 @@
     if (self.HTTPShouldHandleCookies) {
         NSString *requestCookies = spdyHeaders[@"cookie"];
         if (!requestCookies || requestCookies.length == 0) {
-            NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:self.URL];
+            NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:url];
             if (cookies.count > 0) {
                 NSDictionary *cookieHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
                 spdyHeaders[@"cookie"] = cookieHeaders[@"Cookie"];
@@ -184,14 +185,14 @@
     [SPDYProtocol setProperty:@(priority) forKey:@"SPDYPriority" inRequest:self];
 }
 
-- (BOOL)SPDYDiscretionary
+- (NSTimeInterval)SPDYDeferrableInterval
 {
-    return [[SPDYProtocol propertyForKey:@"SPDYDiscretionary" inRequest:self] boolValue];
+    return [[SPDYProtocol propertyForKey:@"SPDYDeferrableInterval" inRequest:self] doubleValue];
 }
 
-- (void)setSPDYDiscretionary:(BOOL)Discretionary
+- (void)setSPDYDeferrableInterval:(NSTimeInterval)deferrableInterval
 {
-    [SPDYProtocol setProperty:@(Discretionary) forKey:@"SPDYDiscretionary" inRequest:self];
+    [SPDYProtocol setProperty:@(deferrableInterval) forKey:@"SPDYDeferrableInterval" inRequest:self];
 }
 
 - (BOOL)SPDYBypass

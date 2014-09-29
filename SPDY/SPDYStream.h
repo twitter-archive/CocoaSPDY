@@ -13,18 +13,24 @@
 #import "SPDYDefinitions.h"
 
 @class SPDYProtocol;
+@class SPDYMetadata;
 @class SPDYStream;
+
 @protocol SPDYExtendedDelegate;
 
-@protocol SPDYStreamDataDelegate <NSObject>
+@protocol SPDYStreamDelegate<NSObject>
+- (void)streamCanceled:(SPDYStream *)stream;
+@optional
+- (void)streamClosed:(SPDYStream *)stream;
 - (void)streamDataAvailable:(SPDYStream *)stream;
-- (void)streamFinished:(SPDYStream *)stream;
+- (void)streamDataFinished:(SPDYStream *)stream;
 @end
 
 @interface SPDYStream : NSObject
 @property (nonatomic, weak) id<NSURLProtocolClient> client;
-@property (nonatomic, weak) id<SPDYStreamDataDelegate> dataDelegate;
+@property (nonatomic, weak) id<SPDYStreamDelegate> delegate;
 @property (nonatomic, weak) id<SPDYExtendedDelegate> extendedDelegate;
+@property (nonatomic) SPDYMetadata *metadata;
 @property (nonatomic) NSData *data;
 @property (nonatomic) NSInputStream *dataStream;
 @property (nonatomic, weak) NSURLRequest *request;
@@ -42,14 +48,13 @@
 @property (nonatomic) uint32_t receiveWindowSize;
 @property (nonatomic) uint32_t sendWindowSizeLowerBound;
 @property (nonatomic) uint32_t receiveWindowSizeLowerBound;
-@property (nonatomic) NSUInteger txBytes;
-@property (nonatomic) NSUInteger rxBytes;
 
-- (id)initWithProtocol:(SPDYProtocol *)protocol dataDelegate:(id<SPDYStreamDataDelegate>)delegate;
+- (id)initWithProtocol:(SPDYProtocol *)protocol;
 - (void)startWithStreamId:(SPDYStreamId)id sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize;
+- (bool)reset;
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;
+- (void)cancel;
 - (void)closeWithError:(NSError *)error;
-- (void)closeWithMetadata:(NSDictionary *)metadata;
-- (bool)didReceiveResponse:(NSDictionary *)headers error:(NSError **)pError;
-- (bool)didLoadData:(NSData *)data error:(NSError **)pError;
+- (void)didReceiveResponse:(NSDictionary *)headers;
+- (void)didLoadData:(NSData *)data;
 @end

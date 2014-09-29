@@ -20,6 +20,7 @@
 #import "SPDYProtocol.h"
 #import "SPDYMockFrameDecoderDelegate.h"
 #import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYStream.h"
 
 @interface SPDYSessionTest : SenTestCase <SPDYExtendedDelegate>
 @end
@@ -64,7 +65,11 @@
 
     NSError *error = nil;
     _origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
-    _session = [[SPDYSession alloc] initWithOrigin:_origin configuration:nil cellular:NO error:&error];
+    _session = [[SPDYSession alloc] initWithOrigin:_origin
+                                          delegate:nil
+                                     configuration:nil
+                                          cellular:NO
+                                             error:&error];
     _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
     [_URLRequest setExtendedDelegate:self inRunLoop:nil forMode:nil];
     _protocolRequest = [[SPDYProtocol alloc] initWithRequest:_URLRequest cachedResponse:nil client:nil];
@@ -92,17 +97,18 @@
     [[_session socket] performDelegateCall_socketDidReadData:data withTag:100];
 }
 
-- (void)waitForExtendedCallbackOrError {
+- (void)waitForExtendedCallbackOrError
+{
     // Wait for callback via SPDYExtendedDelegate or a RST_STREAM or GOAWAY to be sent.
     // Errors are processed synchronously, but callbacks are async. They will stop the runloop.
     if (_mockDecoderDelegate.lastFrame != nil) {
         return;
     } else {
-        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 10, false);
+        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 10, NO);
     }
 }
 
-- (void)mockSynStreamAndReplyWithId:(uint32_t)streamId last:(BOOL)last
+- (void)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last
 {
     // Prepare the synReplyFrame. The SYN_STREAM will use stream-id 1 since it is the first
     // request sent by the client. We can't control that without mocking, so we have to hard-code
@@ -114,7 +120,7 @@
 
     // 1.) Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
     // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
-    [_session issueRequest:_protocolRequest];
+    [_session openStream:[[SPDYStream alloc] initWithProtocol:_protocolRequest]];
     STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
     [_mockDecoderDelegate clear];
 
