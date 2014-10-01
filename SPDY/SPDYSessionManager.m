@@ -165,7 +165,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     NSMutableDictionary *threadDictionary = [NSThread currentThread].threadDictionary;
     NSMutableDictionary *originDictionary = threadDictionary[SPDYSessionManagerKey];
     if (!originDictionary) {
-        threadDictionary[SPDYSessionManagerKey] = [NSMutableDictionary new];
+        originDictionary = [NSMutableDictionary new];
+        threadDictionary[SPDYSessionManagerKey] = originDictionary;
     }
 
     SPDYSessionManager *manager = originDictionary[origin];
@@ -276,8 +277,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     }
 
     SPDYSession *session;
-    double holdback = 1.0 / ((*activePool).pendingCount + 1);
-    double allocation = 1.0 - holdback;
+    double allocation = 1.0 / ((*activePool).pendingCount + 1);
+    double holdback = 1.0 - allocation;
 
     for (int i = 0; _pendingStreams.count > 0 && i < (*activePool).count; i++) {
         session = [*activePool nextSession];

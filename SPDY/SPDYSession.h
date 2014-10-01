@@ -29,11 +29,35 @@
 
 @property (nonatomic, weak) id<SPDYSessionDelegate> delegate;
 @property (nonatomic, readonly) SPDYOrigin *origin;
+
+/**
+  @return available capacity for new local streams
+*/
 @property (nonatomic, assign, readonly) NSUInteger capacity;
+
+/**
+  @return number of in-flight, local streams
+*/
 @property (nonatomic, assign, readonly) NSUInteger load;
+
+/**
+  @return YES if the session is associated with a cellular network interface
+*/
 @property (nonatomic, readonly) bool isCellular;
+
+/**
+  @return whether the session has a connected socket
+*/
 @property (nonatomic, readonly) bool isConnected;
+
+/**
+  @return YES after the session has successfully handled at least one request
+*/
 @property (nonatomic, readonly) bool isEstablished;
+
+/**
+  @return YES until the session has received a GOAWAY or been disconnected
+*/
 @property (nonatomic, readonly) bool isOpen;
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
