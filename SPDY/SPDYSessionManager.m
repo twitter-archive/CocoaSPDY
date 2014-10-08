@@ -26,16 +26,14 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 
 static NSString *const SPDYSessionManagerKey = @"com.twitter.SPDYSessionManager";
-static volatile bool reachabilityIsWWAN;
+static volatile bool __cellular;
 
-#if TARGET_OS_IPHONE
 static char *const SPDYReachabilityQueue = "com.twitter.SPDYReachabilityQueue";
 
 static SCNetworkReachabilityRef reachabilityRef;
 static dispatch_queue_t reachabilityQueue;
 
 static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
-#endif
 
 @interface SPDYSessionPool : NSObject
 @property (nonatomic, assign, readonly) NSUInteger count;
@@ -46,6 +44,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 @end
 
 @interface SPDYSessionManager () <SPDYSessionDelegate, SPDYStreamDelegate>
+@property (nonatomic) NSArray *runLoopModes;
+@property (nonatomic) NSRunLoop *runLoop;
 - (void)session:(SPDYSession *)session capacityIncreased:(NSUInteger)capacity;
 - (void)session:(SPDYSession *)session connectedToNetwork:(bool)cellular;
 - (void)sessionClosed:(SPDYSession *)session;
@@ -69,7 +69,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
             SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin
                                                               delegate:manager
                                                          configuration:configuration
-                                                              cellular:reachabilityIsWWAN
+                                                              cellular:__cellular
                                                                  error:pError];
             if (!session) {
                 return nil;
@@ -130,14 +130,15 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     SPDYSessionPool *_wwanPool;
     SPDYStreamManager *_pendingStreams;
     NSArray *_runLoopModes;
+    NSRunLoop *_runLoop;
     NSTimer *_dispatchTimer;
+    SCNetworkReachabilityRef _rRef;
 }
 
 + (void)initialize
 {
-    reachabilityIsWWAN = NO;
+    __cellular = NO;
 
-#if TARGET_OS_IPHONE
     struct sockaddr_in zeroAddress;
     bzero(&zeroAddress, sizeof(zeroAddress));
     zeroAddress.sin_len = (uint8_t)sizeof(zeroAddress);
@@ -157,7 +158,6 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
             SPDYReachabilityCallback(reachabilityRef, flags, NULL);
         }
     });
-#endif
 }
 
 + (SPDYSessionManager *)localManagerForOrigin:(SPDYOrigin *)origin
@@ -184,14 +184,31 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if (self) {
         _origin = origin;
         _pendingStreams = [[SPDYStreamManager alloc] init];
-        NSString *currentMode = [[NSRunLoop currentRunLoop] currentMode];
+        _runLoop = [NSRunLoop currentRunLoop];
+
+        NSString *currentMode = [_runLoop currentMode];
         if ([currentMode isEqual:NSDefaultRunLoopMode]) {
             _runLoopModes = @[NSDefaultRunLoopMode];
         } else {
             _runLoopModes = @[NSDefaultRunLoopMode, currentMode];
         }
+
+        SCNetworkReachabilityContext context = {0, (__bridge void *)self, NULL, NULL, NULL};
+        _rRef = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, origin.host.UTF8String);
+
+        if (SCNetworkReachabilitySetCallback(reachabilityRef, SPDYReachabilityCallback, &context)) {
+            SCNetworkReachabilitySetDispatchQueue(reachabilityRef, reachabilityQueue);
+        }
     }
     return self;
+}
+
+- (void)dealloc
+{
+    if (_rRef) {
+        SCNetworkReachabilitySetDispatchQueue(_rRef, NULL);
+        CFRelease(_rRef);
+    }
 }
 
 - (void)queueStream:(SPDYStream *)stream
@@ -260,7 +277,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if (_dispatchTimer) _dispatchTimer = nil;
     if (_pendingStreams.count == 0) return;
 
-    SPDYSessionPool * __strong *activePool = reachabilityIsWWAN ? &_wwanPool : &_basePool;
+    SPDYSessionPool * __strong *activePool = __cellular ? &_wwanPool : &_basePool;
 
     if (!*activePool || (*activePool).count == 0) {
         NSError *pError;
@@ -343,13 +360,25 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 @end
 
-#if TARGET_OS_IPHONE
-static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info)
+
+static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *pManager)
 {
-    // Only update if the network is actually reachable
-    if (flags & kSCNetworkReachabilityFlagsReachable) {
-        reachabilityIsWWAN = (flags & kSCNetworkReachabilityFlagsIsWWAN) != 0;
-        SPDY_DEBUG(@"reachability updated: %@", reachabilityIsWWAN ? @"WWAN" : @"WLAN");
+    if ((flags & kSCNetworkReachabilityFlagsReachable) == 0) {
+        SPDY_DEBUG(@"reachability updated: offline");
+        return;
+    }
+
+    __cellular = (flags & kSCNetworkReachabilityFlagsIsWWAN) != 0;
+    SPDY_DEBUG(@"reachability updated: %@", __cellular ? @"WWAN" : @"WLAN");
+
+    if (pManager) {
+        @autoreleasepool {
+            SPDYSessionManager * volatile manager = (__bridge SPDYSessionManager *)pManager;
+            [manager.runLoop performSelector:@selector(_dispatch)
+                                      target:manager
+                                    argument:nil
+                                       order:0
+                                       modes:manager.runLoopModes];
+        }
     }
 }
-#endif
