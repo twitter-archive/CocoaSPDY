@@ -59,7 +59,6 @@
     NSMutableData *_inputBuffer;
 
     SPDYStreamId _lastGoodStreamId;
-    SPDYStreamId _nextStreamId;
     CFAbsoluteTime _lastSocketActivity;
     CFAbsoluteTime _sessionPingOut;
     CFTimeInterval _sessionLatency;
@@ -184,7 +183,8 @@
 {
 //    NSAssert(_connected, @"Cannot open stream prior to connecting.");
 
-    SPDYStreamId streamId = [self nextStreamId];
+    SPDYStreamId streamId = _nextStreamId;
+    _nextStreamId += 2;
     stream.delegate = self;
 
     if (_sessionLatency >= 0) {
@@ -831,13 +831,6 @@
 }
 
 #pragma mark private methods
-
-- (SPDYStreamId)nextStreamId
-{
-    SPDYStreamId streamId = _nextStreamId;
-    _nextStreamId += 2;
-    return streamId;
-}
 
 - (void)_sendServerPersistedSettings:(SPDYSettings *)persistedSettings
 {
