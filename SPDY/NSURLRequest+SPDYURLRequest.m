@@ -258,7 +258,7 @@
     [SPDYProtocol setProperty:delegate forKey:@"SPDYDelegate" inRequest:self];
     [SPDYProtocol setProperty:runloop forKey:@"SPDYDelegateRunLoop" inRequest:self];
     [SPDYProtocol setProperty:mode forKey:@"SPDYDelegateRunLoopMode" inRequest:self];
-    [SPDYProtocol setProperty:nil forKey:@"SPDYDelegateQueue" inRequest:self];
+    [SPDYProtocol removePropertyForKey:@"SPDYDelegateQueue" inRequest:self];
 }
 
 - (void)setExtendedDelegate:(id<SPDYExtendedDelegate>)delegate queue:(NSOperationQueue *)queue
@@ -268,8 +268,8 @@
     }
 
     [SPDYProtocol setProperty:delegate forKey:@"SPDYDelegate" inRequest:self];
-    [SPDYProtocol setProperty:nil forKey:@"SPDYDelegateRunLoop" inRequest:self];
-    [SPDYProtocol setProperty:nil forKey:@"SPDYDelegateRunLoopMode" inRequest:self];
+    [SPDYProtocol removePropertyForKey:@"SPDYDelegateRunLoop" inRequest:self];
+    [SPDYProtocol removePropertyForKey:@"SPDYDelegateRunLoopMode" inRequest:self];
     [SPDYProtocol setProperty:queue forKey:@"SPDYDelegateQueue" inRequest:self];
 }
 
