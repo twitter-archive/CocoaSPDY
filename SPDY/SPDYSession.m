@@ -245,6 +245,11 @@
     return _cellular;
 }
 
+- (SPDYSocket *)socket
+{
+    return _socket;
+}
+
 - (bool)isOpen
 {
     return (!_closing && !_receivedGoAwayFrame && !_sentGoAwayFrame);
@@ -351,6 +356,7 @@
         [stream closeWithError:error];
     }
     [_activeStreams removeAllStreams];
+    [self.delegate session:self willCloseWithError:error];
 }
 
 - (void)socketDidDisconnect:(SPDYSocket *)socket

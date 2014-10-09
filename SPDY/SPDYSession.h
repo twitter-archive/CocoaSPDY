@@ -15,6 +15,7 @@
 @class SPDYProtocol;
 @class SPDYConfiguration;
 @class SPDYOrigin;
+@class SPDYSocket;
 @protocol SPDYSessionDelegate;
 
 @interface SPDYSession : NSObject <SPDYStreamPushClient>
@@ -23,6 +24,7 @@
 @property (nonatomic, readonly) bool isCellular;
 @property (nonatomic, readonly) bool isOpen;
 @property (nonatomic, weak) id<SPDYSessionDelegate> delegate;
+@property (nonatomic, readonly) SPDYSocket *socket;
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
        configuration:(SPDYConfiguration *)configuration
@@ -37,5 +39,6 @@
 @protocol SPDYSessionDelegate <NSObject>
 
 - (void)session:(SPDYSession *)session didReceivePushResponse:(NSURLResponse *)response data:(NSData *)data;
+- (void)session:(SPDYSession *)session willCloseWithError:(NSError *)error;
 
 @end
