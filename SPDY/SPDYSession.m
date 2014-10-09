@@ -594,7 +594,17 @@
         return;
     }
 
-    [stream didReceiveResponse:synReplyFrame.headers];
+    // Add some of the metadata as headers, to ease the transition to the new delegate way.
+    // This should be removed in the future.
+    NSMutableDictionary *headers = [synReplyFrame.headers mutableCopy];
+    headers[SPDYMetadataVersionKey] = @"3.1";
+    headers[SPDYMetadataStreamIdKey] = [[NSString alloc] initWithFormat:@"%u", streamId];
+    if (_sessionLatency > -1) {
+        NSString *sessionLatencyMs = [@((int)(_sessionLatency * 1000)) stringValue];
+        headers[SPDYMetadataSessionLatencyKey] = sessionLatencyMs;
+    }
+
+    [stream didReceiveResponse:headers];
 
     if (!stream.closed) {
         stream.remoteSideClosed = synReplyFrame.last;
