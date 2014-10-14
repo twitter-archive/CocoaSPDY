@@ -300,12 +300,16 @@
         if (![self _writeString:headerValue error:pError]) return NO;
     }
 
+    NSError *error = nil;
     _compressedLength = [_compressor deflate:_encodedHeaders
                                      availIn:_encodedHeadersLength
                                 outputBuffer:_compressed
                                     availOut:MAX_COMPRESSED_HEADER_BLOCK_LENGTH
-                                       error:pError];
-    return (pError == nil || *pError == nil);
+                                       error:&error];
+    if (pError) {
+        *pError = error;
+    }
+    return !error;
 }
 
 - (bool)_writeUInt32:(uint32_t)value error:(NSError **)pError
