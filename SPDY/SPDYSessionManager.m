@@ -38,7 +38,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 @interface SPDYSessionPool : NSObject
 @property (nonatomic, assign, readonly) NSUInteger count;
 @property (nonatomic, assign) NSUInteger pendingCount;
-- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager error:(NSError **)pError;
+- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager cellular:(bool)cellular error:(NSError **)pError;
 - (NSUInteger)remove:(SPDYSession *)session;
 - (SPDYSession *)nextSession;
 @end
@@ -57,7 +57,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     NSMutableArray *_sessions;
 }
 
-- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager error:(NSError **)pError
+- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager cellular:(bool)cellular error:(NSError **)pError
 {
     self = [super init];
     if (self) {
@@ -69,7 +69,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
             SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin
                                                               delegate:manager
                                                          configuration:configuration
-                                                              cellular:__cellular
+                                                              cellular:cellular
                                                                  error:pError];
             if (!session) {
                 return nil;
@@ -110,6 +110,13 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     }
 
     session = _sessions[0];
+    NSAssert(session.isOpen, @"Should never contain closed sessions.");
+
+    // TODO: clean this up
+    while (!session.isOpen) {
+        if ([self remove:session] == 0) return nil;
+        session = _sessions[0];
+    }
 
     // Rotate
     if (_sessions.count > 1) {
@@ -117,7 +124,6 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         [_sessions addObject:session];
     }
 
-    NSAssert(session.isOpen, @"Should never return closed sessions.");
     return session;
 }
 
@@ -277,11 +283,12 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if (_dispatchTimer) _dispatchTimer = nil;
     if (_pendingStreams.count == 0) return;
 
-    SPDYSessionPool * __strong *activePool = __cellular ? &_wwanPool : &_basePool;
+    bool cellular = __cellular;
+    SPDYSessionPool * __strong *activePool = cellular ? &_wwanPool : &_basePool;
 
     if (!*activePool || (*activePool).count == 0) {
         NSError *pError;
-        *activePool = [[SPDYSessionPool alloc] initWithOrigin:_origin manager:self error:&pError];
+        *activePool = [[SPDYSessionPool alloc] initWithOrigin:_origin manager:self cellular:cellular error:&pError];
         if (pError) {
             for (SPDYStream *stream in _pendingStreams) {
                 SPDYProtocol *protocol = stream.protocol;
@@ -299,6 +306,14 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
     for (int i = 0; _pendingStreams.count > 0 && i < (*activePool).count; i++) {
         session = [*activePool nextSession];
+
+        // TODO: clean this up
+        if (!session) {
+            *activePool = nil;
+            [self _dispatch];
+            return;
+        }
+
         if (!session.isConnected) continue;
 
         NSUInteger count = MIN(session.capacity, _pendingStreams.count);
@@ -346,10 +361,21 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 - (void)sessionClosed:(SPDYSession *)session
 {
     SPDY_DEBUG(@"session closed: %@", session);
-    SPDYSessionPool * __strong *pool = session.isCellular ? &_wwanPool : &_basePool;
-    if (*pool && [*pool remove:session] == 0) {
-        *pool = nil;
+
+    if ([_basePool contains:session]) {
+        if ([_basePool remove:session] == 0) {
+            _basePool = nil;
+        }
+    } else if ([_wwanPool contains:session]) {
+        if ([_wwanPool remove:session] == 0) {
+            _wwanPool = nil;
+        }
     }
+
+//    SPDYSessionPool * __strong *pool = session.isCellular ? &_wwanPool : &_basePool;
+//    if (*pool && [*pool remove:session] == 0) {
+//        *pool = nil;
+//    }
 }
 
 - (void)session:(SPDYSession *)session refusedStream:(SPDYStream *)stream
