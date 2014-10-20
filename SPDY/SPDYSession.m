@@ -724,10 +724,12 @@
 
     _receivedGoAwayFrame = YES;
 
+    NSMutableArray *unhandledStreams = [[NSMutableArray alloc] initWithCapacity:_activeStreams.localCount];
     for (SPDYStream *stream in _activeStreams) {
         SPDYStreamId streamId = stream.streamId;
         if (stream.local && streamId > goAwayFrame.lastGoodStreamId) {
-            [_activeStreams removeStreamWithStreamId:streamId];
+            [unhandledStreams addObject:stream];
+            stream.delegate = nil;
 
             if ([stream reset]) {
                 [_delegate session:self refusedStream:stream];
@@ -735,6 +737,10 @@
                 [stream closeWithError:SPDY_SESSION_ERROR(goAwayFrame.statusCode, @"SPDY session closed")];
             }
         }
+    }
+
+    for (SPDYStream *stream in unhandledStreams) {
+        [_activeStreams removeStreamWithStreamId:stream.streamId];
     }
 
     [_delegate sessionClosed:self];

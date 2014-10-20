@@ -382,6 +382,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 {
     SPDY_INFO(@"re-queueing request: %@", stream.protocol.request.URL);
     [_pendingStreams addStream:stream];
+    stream.delegate = self;
 }
 
 @end
