@@ -33,7 +33,7 @@ static char *const SPDYReachabilityQueue = "com.twitter.SPDYReachabilityQueue";
 static SCNetworkReachabilityRef reachabilityRef;
 static dispatch_queue_t reachabilityQueue;
 
-static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
+void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
 
 @interface SPDYSessionPool : NSObject
 @property (nonatomic, assign, readonly) NSUInteger count;
@@ -193,7 +193,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         _runLoop = [NSRunLoop currentRunLoop];
 
         NSString *currentMode = [_runLoop currentMode];
-        if ([currentMode isEqual:NSDefaultRunLoopMode]) {
+        if (currentMode == nil || [currentMode isEqual:NSDefaultRunLoopMode]) {
             _runLoopModes = @[NSDefaultRunLoopMode];
         } else {
             _runLoopModes = @[NSDefaultRunLoopMode, currentMode];
@@ -259,6 +259,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     NSAssert(_pendingStreams[stream.protocol], @"stream delegate must be managing stream");
 
     [_pendingStreams removeStreamForProtocol:stream.protocol];
+    stream.delegate = nil;
 }
 
 - (void)streamClosed:(SPDYStream *)stream
@@ -291,6 +292,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         *activePool = [[SPDYSessionPool alloc] initWithOrigin:_origin manager:self cellular:cellular error:&pError];
         if (pError) {
             for (SPDYStream *stream in _pendingStreams) {
+                stream.delegate = nil;
                 SPDYProtocol *protocol = stream.protocol;
                 [protocol.client URLProtocol:protocol didFailWithError:pError];
             }
@@ -326,6 +328,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
             for (int j = 0; j < count; j++) {
                 SPDYStream *stream = [_pendingStreams nextPriorityStream];
                 [_pendingStreams removeStreamForProtocol:stream.protocol];
+                stream.delegate = nil;
                 [session openStream:stream];
             }
         }
@@ -388,7 +391,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 @end
 
 
-static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *pManager)
+void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *pManager)
 {
     if ((flags & kSCNetworkReachabilityFlagsReachable) == 0) {
         SPDY_DEBUG(@"reachability updated: offline");

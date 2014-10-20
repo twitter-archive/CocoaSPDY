@@ -13,6 +13,7 @@
 #import "SPDYSession.h"
 
 @class SPDYFrameDecoder;
+@class SPDYStreamManager;
 
 // Note: these are exposed as globals only because we don't control the creation of the
 // SPDYSocket inside CocoaSPDY, and we cannot add ivars in a category. This is the best
@@ -51,4 +52,6 @@ extern SPDYFrameDecoder *socketMock_frameDecoder;
 @property (nonatomic, readonly) SPDYSocket *socket;
 @property (nonatomic, readonly) NSMutableData *inputBuffer;
 @property (nonatomic, readonly) SPDYFrameDecoder *frameDecoder;
+@property (nonatomic, readonly) SPDYStreamManager *activeStreams;
+- (void)setCellular:(bool)cellular;
 @end

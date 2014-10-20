@@ -827,12 +827,14 @@
 
     [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
     stream.client = nil;
+    stream.delegate = nil;
     [_activeStreams removeStreamForProtocol:stream.protocol];
     [_delegate session:self capacityIncreased:1];
 }
 
 - (void)streamClosed:(SPDYStream *)stream
 {
+    stream.delegate = nil;
     [_activeStreams removeStreamWithStreamId:stream.streamId];
     [_delegate session:self capacityIncreased:1];
 }
