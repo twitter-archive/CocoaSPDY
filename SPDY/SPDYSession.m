@@ -731,6 +731,8 @@
             [unhandledStreams addObject:stream];
             stream.delegate = nil;
 
+            // Note: be careful of how reset mutates a stream. We need to be able to remove
+            // the stream from _activeStreams down below.
             if ([stream reset]) {
                 [_delegate session:self refusedStream:stream];
             } else {
@@ -740,7 +742,8 @@
     }
 
     for (SPDYStream *stream in unhandledStreams) {
-        [_activeStreams removeStreamWithStreamId:stream.streamId];
+        NSAssert(stream.protocol, @"expect protocol to be non-nil");
+        [_activeStreams removeStreamForProtocol:stream.protocol];
     }
 
     [_delegate sessionClosed:self];
