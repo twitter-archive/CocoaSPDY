@@ -14,6 +14,7 @@
 #endif
 
 #import <zlib.h>
+#import <objc/runtime.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYError.h"
@@ -293,7 +294,9 @@
         if (length == 0) return nil;
 
         uint8_t *bytes = ((uint8_t *)_data.bytes + _writeDataIndex);
-        NSData *writeData = [[NSData alloc] initWithBytes:bytes length:length];
+        NSData *writeData = [[NSData alloc] initWithBytesNoCopy:bytes length:length freeWhenDone:NO];
+        // When the 'writeData' is dealloc'd the parent data (_data) will have its retain count decremented
+        objc_setAssociatedObject(writeData, _cmd, _data, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         _writeDataIndex += length;
 
         return writeData;
