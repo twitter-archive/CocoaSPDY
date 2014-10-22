@@ -1419,7 +1419,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         NSUInteger bufferSize = _currentReadOp->_buffer.length;
         NSUInteger bufferSpace = bufferSize - _currentReadOp->_startOffset - _currentReadOp->_bytesRead;
 
-        if (bytesToRead > bufferSpace) {
+        if (bytesToRead == 0) {
+            readComplete = YES;
+            break;
+        } else  if (bytesToRead > bufferSpace) {
             [_currentReadOp->_buffer increaseLengthBy:(bytesToRead - bufferSpace)];
         }
 
@@ -1432,6 +1435,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
         if (bytesRead < 0) {
             readError = [self streamError];
+        } else if (bytesRead == 0) {
+            bool readStreamReady = [self _readStreamReady];
+            NSAssert(!readStreamReady, @"no bytes read, stream should not be ready");
+            if (readStreamReady) {
+                readError = [self streamError];
+            }
         } else {
             _currentReadOp->_bytesRead += bytesRead;
             newBytesRead += bytesRead;
@@ -1616,12 +1625,25 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         NSUInteger bytesToWrite = (bytesRemaining < WRITE_CHUNK_SIZE) ? bytesRemaining : WRITE_CHUNK_SIZE;
         uint8_t *writeIndex = (uint8_t *)(_currentWriteOp->_buffer.bytes + _currentWriteOp->_bytesWritten);
 
+        if (bytesRemaining == 0) {
+            writeComplete = YES;
+            break;
+        }
+
         CFIndex bytesWritten = CFWriteStreamWrite(_writeStream, writeIndex, bytesToWrite);
         _flags &= ~kSocketCanAcceptBytes;
 
-        if (bytesWritten < 0) {
+        if (bytesWritten <= 0) {
+            NSAssert(![self _writeStreamReady], @"no bytes written, stream should not be ready");
             [self _closeWithError:[self streamError]];
             return;
+        } else if (bytesWritten == 0) {
+            bool writeStreamReady = [self _writeStreamReady];
+            NSAssert(!writeStreamReady, @"no bytes written, stream should not be ready");
+            if (writeStreamReady) {
+                [self _closeWithError:[self streamError]];
+                return;
+            }
         } else {
             _currentWriteOp->_bytesWritten += bytesWritten;
             newBytesWritten += bytesWritten;
