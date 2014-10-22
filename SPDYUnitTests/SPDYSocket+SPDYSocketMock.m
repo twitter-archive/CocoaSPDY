@@ -16,6 +16,7 @@
 NSString * const kSPDYTSTResponseStubs = @"kSPDYTSTResponseStubs";
 
 NSError *socketMock_lastError = nil;
+SPDYSocketWriteOp *socketMock_lastWriteOp = nil;
 SPDYFrameDecoder *socketMock_frameDecoder = nil;
 
 @implementation SPDYSession (Test)
@@ -36,7 +37,6 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
 }
 
 @end
-
 
 @implementation SPDYSocket (SPDYSocketMock)
 
@@ -94,6 +94,10 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
 - (void)swizzled_writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
     NSLog(@"SPDYSocketMock::writeData %@", data);
+
+    // Simulate buffering the write op. We'll only keep the last one around.
+    socketMock_lastWriteOp = [[SPDYSocketWriteOp alloc] initWithData:data timeout:timeout tag:tag];
+
     if (socketMock_frameDecoder) {
         NSError *error = nil;
         [socketMock_frameDecoder decode:(uint8_t *)data.bytes length:data.length error:&error];

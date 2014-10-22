@@ -293,7 +293,7 @@
         if (length == 0) return nil;
 
         uint8_t *bytes = ((uint8_t *)_data.bytes + _writeDataIndex);
-        NSData *writeData = [[NSData alloc] initWithBytesNoCopy:bytes length:length freeWhenDone:NO];
+        NSData *writeData = [[NSData alloc] initWithBytes:bytes length:length];
         _writeDataIndex += length;
 
         return writeData;
