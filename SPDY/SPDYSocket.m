@@ -1412,12 +1412,15 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     NSError *readError = nil;
     NSUInteger newBytesRead = 0;
     bool readComplete = NO;
+    bool endOfStream = NO;
 
     while(!readComplete && !readError && [self _readStreamReady]) {
 
         NSUInteger bytesToRead = [_currentReadOp safeReadLength];
         NSUInteger bufferSize = _currentReadOp->_buffer.length;
         NSUInteger bufferSpace = bufferSize - _currentReadOp->_startOffset - _currentReadOp->_bytesRead;
+
+        NSAssert(bytesToRead > 0, @"can't read 0 bytes");
 
         if (bytesToRead > bufferSpace) {
             [_currentReadOp->_buffer increaseLengthBy:(bytesToRead - bufferSpace)];
@@ -1432,6 +1435,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
         if (bytesRead < 0) {
             readError = [self streamError];
+        } else if (bytesRead == 0) {
+            endOfStream = YES;
+            break;
         } else {
             _currentReadOp->_bytesRead += bytesRead;
             newBytesRead += bytesRead;
@@ -1459,6 +1465,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     if (readError) {
         [self _closeWithError:readError];
+    } else if (endOfStream) {
+        // ERROR level because this is unexpected
+        SPDY_ERROR(@"SPDYSocket: end of read stream");
+        [self _close];
     }
 }
 
@@ -1541,6 +1551,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
     CHECK_THREAD_SAFETY();
 
+    NSParameterAssert(data.length > 0);
+
     if (data == nil || data.length == 0) return;
     if (_flags & kForbidReadsWrites) return;
 
@@ -1616,8 +1628,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         NSUInteger bytesToWrite = (bytesRemaining < WRITE_CHUNK_SIZE) ? bytesRemaining : WRITE_CHUNK_SIZE;
         uint8_t *writeIndex = (uint8_t *)(_currentWriteOp->_buffer.bytes + _currentWriteOp->_bytesWritten);
 
+        NSAssert(bytesToWrite > 0, @"can't write 0 bytes");
+
         CFIndex bytesWritten = CFWriteStreamWrite(_writeStream, writeIndex, bytesToWrite);
         _flags &= ~kSocketCanAcceptBytes;
+
+        NSAssert(bytesWritten != 0, @"expected error or progress");
 
         if (bytesWritten < 0) {
             [self _closeWithError:[self streamError]];
