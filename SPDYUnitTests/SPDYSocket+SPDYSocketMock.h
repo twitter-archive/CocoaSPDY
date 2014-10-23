@@ -14,11 +14,25 @@
 
 @class SPDYFrameDecoder;
 
+// TODO: remove this once the proxy fork has been merged and the socket op structures are in
+// their own header file that can be imported here.
+@interface SPDYSocketWriteOp : NSObject {
+@public
+    NSData *_buffer;
+    NSUInteger _bytesWritten;
+    NSTimeInterval _timeout;
+    long _tag;
+}
+
+- (id)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag;
+@end
+
 // Note: these are exposed as globals only because we don't control the creation of the
 // SPDYSocket inside CocoaSPDY, and we cannot add ivars in a category. This is the best
 // I could do without a proper mocking library. Since these are only used by the unit
 // tests, it's a (barely) acceptable solution.
 extern NSError *socketMock_lastError;
+extern SPDYSocketWriteOp *socketMock_lastWriteOp;
 extern SPDYFrameDecoder *socketMock_frameDecoder;
 
 // Swizzles functions that connection/read/write data and allows the tests to call the delegate

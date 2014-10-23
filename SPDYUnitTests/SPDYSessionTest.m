@@ -238,5 +238,95 @@
     // TODO: verify these streams were sent back to the session manager
 }
 
+- (void)testSendDATABufferRemainsValidAfterRequestIsDone
+{
+    NSMutableData * __weak weakData = nil;
+    @autoreleasepool {
+        @autoreleasepool {
+            NSMutableData *data = [NSMutableData dataWithLength:16];
+            ((uint8_t *)data.bytes)[0] = 1;
+            weakData = data;
+            NSMutableURLRequest *urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
+            [urlRequest setExtendedDelegate:self inRunLoop:nil forMode:nil];
+            urlRequest.HTTPBody = data;
+            SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:urlRequest cachedResponse:nil client:nil];
+
+            // Copy of:
+            // [self mockSynStreamAndReplyWithId:1 last:NO];
+
+            // Prepare the synReplyFrame. The SYN_STREAM will use stream-id 1 since it is the first
+            // request sent by the client. We can't control that without mocking, so we have to hard-code
+            // the SYN_REPLY stream id.
+            SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
+            synReplyFrame.headers = @{@":version" : @"3.1", @":status" : @"200"};
+            synReplyFrame.streamId = 1;
+            synReplyFrame.last = YES;
+
+            // 1.) Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
+            // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
+            [_session openStream:[[SPDYStream alloc] initWithProtocol:protocolRequest]];
+            STAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]], nil);
+            STAssertTrue([_mockDecoderDelegate.framesReceived[1] isKindOfClass:[SPDYDataFrame class]], nil);
+            STAssertTrue(((SPDYDataFrame *)_mockDecoderDelegate.framesReceived[1]).last, nil);
+            STAssertNotNil(socketMock_lastWriteOp, nil);
+            STAssertEquals(socketMock_lastWriteOp->_buffer.length, data.length, nil);
+            [_mockDecoderDelegate clear];
+
+            // 1 active stream
+            STAssertEquals(_session.load, (NSUInteger)1, nil);
+
+            // 2.) Simulate a server Tx stream SYN reply
+            STAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0, nil);
+            [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
+            [_testEncoderDelegate clear];
+
+            // 2.1) We should not expect any protocol errors to be issued from the client.
+            STAssertNil(_mockDecoderDelegate.lastFrame, nil);
+
+            // Ensure completion callback (our custom one) was called to verify request is actually
+            // finished.
+            [self waitForExtendedCallbackOrError];
+            STAssertNotNil(_lastMetadata, nil);
+
+            // At this point, socketMock_lastWriteOp is holding a pointer to our data. That simulates
+            // what happens deep inside SPDYSocket if, for instance, other operations are queued
+            // in front of ours or the full buffer cannot be written to the stream just yet.
+            // Eventually the operation will be released, but we want to test the case where it
+            // is still in progress and the stream goes away.
+
+            // No more active streams
+            STAssertEquals(_session.load, (NSUInteger)0, nil);
+
+            // Need to test that the write op's buffered data isn't our data pointer, since it is
+            // about to go away. I'd like to do that without crashing the unit test, so we'll
+            // mutate the original buffer and verify our hypothesis after releasing the request.
+            // Lots of sanity checks here on out.
+            STAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 1, nil);
+            ((uint8_t *)data.bytes)[0] = 2;
+            STAssertTrue(((uint8_t *)weakData.bytes)[0] == 2, nil);
+        }  // <<< this releases the request
+
+        STAssertNotNil(socketMock_lastWriteOp, nil);  // sanity
+        if (weakData == nil) {
+            // Buffer expected to have been copied since original is released. Data should be
+            // original non-mutated value.
+            STAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 1,
+                    @"socket still references original buffer which has been released");
+        } else {
+            // Buffer expected to have been retained by the socket since the original has not been
+            // released yet. It would be dumb to retain it but still make a data copy, so let's
+            // verify the socket's buffer still points to the original which was mutated.
+            STAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 2,
+                    @"socket should still point to the original buffer which has not been released yet");
+        }
+
+        // Dequeue
+        socketMock_lastWriteOp = nil;
+    }  // <<< this releases the "queued" write
+
+    // And verify original buffer is now gone
+    STAssertNil(weakData, nil);
+}
+
 @end
 
