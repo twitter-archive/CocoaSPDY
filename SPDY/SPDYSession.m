@@ -714,8 +714,8 @@
             _established = YES;
         }
     } else {
-        [self _sendPingResponse:pingFrame];
         SPDY_DEBUG(@"received PING.%u", pingId);
+        [self _sendPingResponse:pingFrame];
     }
 }
 
