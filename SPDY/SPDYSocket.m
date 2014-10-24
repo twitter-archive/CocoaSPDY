@@ -314,7 +314,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     SPDYSocketWriteOp *_currentWriteOp;
     NSTimer *_writeTimer;
 
-    __weak id<SPDYSocketDelegate> _delegate;
+    id<SPDYSocketDelegate> _delegate;
     uint16_t _flags;
 }
 
