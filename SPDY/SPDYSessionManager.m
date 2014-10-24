@@ -259,6 +259,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     NSAssert(_pendingStreams[stream.protocol], @"stream delegate must be managing stream");
 
     [_pendingStreams removeStreamForProtocol:stream.protocol];
+    stream.delegate = nil;
 }
 
 - (void)streamClosed:(SPDYStream *)stream
@@ -291,6 +292,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         *activePool = [[SPDYSessionPool alloc] initWithOrigin:_origin manager:self cellular:cellular error:&pError];
         if (pError) {
             for (SPDYStream *stream in _pendingStreams) {
+                stream.delegate = nil;
                 SPDYProtocol *protocol = stream.protocol;
                 [protocol.client URLProtocol:protocol didFailWithError:pError];
             }
@@ -326,6 +328,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
             for (int j = 0; j < count; j++) {
                 SPDYStream *stream = [_pendingStreams nextPriorityStream];
                 [_pendingStreams removeStreamForProtocol:stream.protocol];
+                stream.delegate = nil;
                 [session openStream:stream];
             }
         }
