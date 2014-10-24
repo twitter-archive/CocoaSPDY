@@ -28,7 +28,7 @@
 
 @interface SPDYStream : NSObject
 @property (nonatomic, weak) id<NSURLProtocolClient> client;
-@property (nonatomic, weak) id<SPDYStreamDelegate> delegate;
+@property (nonatomic) id<SPDYStreamDelegate> delegate;
 @property (nonatomic, weak) id<SPDYExtendedDelegate> extendedDelegate;
 @property (nonatomic) SPDYMetadata *metadata;
 @property (nonatomic) NSData *data;

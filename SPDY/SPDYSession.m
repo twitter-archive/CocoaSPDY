@@ -373,8 +373,11 @@
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_INFO(@"session connection closed");
+
     _connected = NO;
     _disconnected = YES;
+    _socket = nil;
+
     [_delegate sessionClosed:self];
     _delegate = nil;
 }
@@ -750,7 +753,7 @@
     _delegate = nil;
 
     if (_activeStreams.count == 0) {
-        [_socket disconnect];
+        [self close];
     }
 }
 
@@ -836,7 +839,11 @@
 {
     stream.delegate = nil;
     [_activeStreams removeStreamWithStreamId:stream.streamId];
-    [_delegate session:self capacityIncreased:1];
+    if (!_receivedGoAwayFrame) {
+        [_delegate session:self capacityIncreased:1];
+    } else if (_activeStreams.count == 0) {
+        [self close];
+    }
 }
 
 - (void)streamDataAvailable:(SPDYStream *)stream
