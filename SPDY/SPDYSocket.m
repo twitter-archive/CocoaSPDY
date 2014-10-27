@@ -1412,7 +1412,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     NSError *readError = nil;
     NSUInteger newBytesRead = 0;
     bool readComplete = NO;
-    bool endOfStream = NO;
 
     while(!readComplete && !readError && [self _readStreamReady]) {
 
@@ -1436,8 +1435,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         if (bytesRead < 0) {
             readError = [self streamError];
         } else if (bytesRead == 0) {
-            endOfStream = YES;
-            break;
+            SPDY_INFO(@"socket at end of read stream");
         } else {
             _currentReadOp->_bytesRead += bytesRead;
             newBytesRead += bytesRead;
@@ -1465,10 +1463,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     if (readError) {
         [self _closeWithError:readError];
-    } else if (endOfStream) {
-        // ERROR level because this is unexpected
-        SPDY_ERROR(@"SPDYSocket: end of read stream");
-        [self _close];
     }
 }
 
@@ -1633,11 +1627,11 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         CFIndex bytesWritten = CFWriteStreamWrite(_writeStream, writeIndex, bytesToWrite);
         _flags &= ~kSocketCanAcceptBytes;
 
-        NSAssert(bytesWritten != 0, @"expected error or progress");
-
         if (bytesWritten < 0) {
             [self _closeWithError:[self streamError]];
             return;
+        } else if (bytesWritten == 0) {
+            SPDY_INFO(@"socket at end of write stream");
         } else {
             _currentWriteOp->_bytesWritten += bytesWritten;
             newBytesWritten += bytesWritten;
