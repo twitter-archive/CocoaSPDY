@@ -13,6 +13,7 @@
 #import "SPDYSession.h"
 
 @class SPDYFrameDecoder;
+@class SPDYStreamManager;
 
 // TODO: remove this once the proxy fork has been merged and the socket op structures are in
 // their own header file that can be imported here.
@@ -65,4 +66,6 @@ extern SPDYFrameDecoder *socketMock_frameDecoder;
 @property (nonatomic, readonly) SPDYSocket *socket;
 @property (nonatomic, readonly) NSMutableData *inputBuffer;
 @property (nonatomic, readonly) SPDYFrameDecoder *frameDecoder;
+@property (nonatomic, readonly) SPDYStreamManager *activeStreams;
+- (void)setCellular:(bool)cellular;
 @end

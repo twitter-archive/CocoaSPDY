@@ -11,6 +11,7 @@
 
 #import "SPDYSocket+SPDYSocketMock.h"
 #import "SPDYFrameDecoder.h"
+#import "SPDYStreamManager.h"
 #import <objc/runtime.h>
 
 NSString * const kSPDYTSTResponseStubs = @"kSPDYTSTResponseStubs";
@@ -34,6 +35,16 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
 - (SPDYFrameDecoder *)frameDecoder
 {
     return [self valueForKey:@"_frameDecoder"];
+}
+
+- (SPDYStreamManager *)activeStreams
+{
+    return [self valueForKey:@"_activeStreams"];
+}
+
+- (void)setCellular:(bool)cellular
+{
+    [self setValue:@(cellular) forKey:@"_cellular"];
 }
 
 @end

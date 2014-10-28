@@ -33,7 +33,7 @@ static char *const SPDYReachabilityQueue = "com.twitter.SPDYReachabilityQueue";
 static SCNetworkReachabilityRef reachabilityRef;
 static dispatch_queue_t reachabilityQueue;
 
-static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
+void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
 
 @interface SPDYSessionPool : NSObject
 @property (nonatomic, assign, readonly) NSUInteger count;
@@ -193,7 +193,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         _runLoop = [NSRunLoop currentRunLoop];
 
         NSString *currentMode = [_runLoop currentMode];
-        if ([currentMode isEqual:NSDefaultRunLoopMode]) {
+        if (currentMode == nil || [currentMode isEqual:NSDefaultRunLoopMode]) {
             _runLoopModes = @[NSDefaultRunLoopMode];
         } else {
             _runLoopModes = @[NSDefaultRunLoopMode, currentMode];
@@ -391,7 +391,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 @end
 
 
-static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *pManager)
+void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *pManager)
 {
     if ((flags & kSCNetworkReachabilityFlagsReachable) == 0) {
         SPDY_DEBUG(@"reachability updated: offline");
