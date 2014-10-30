@@ -15,30 +15,48 @@
 
 #import "SPDYCommonLogger.h"
 
-#ifdef DEBUG
-#define SPDY_DEBUG_LOGGING 1
-#endif
-
 static const NSString *logLevels[4] = { @"ERROR", @"WARNING", @"INFO", @"DEBUG" };
 
 @implementation SPDYCommonLogger
 
-static dispatch_once_t initialized;
-static dispatch_queue_t loggerQueue;
-static id<SPDYLogger> sharedLogger;
+static dispatch_once_t __initialized;
+static dispatch_queue_t __loggerQueue;
+static id<SPDYLogger> __sharedLogger;
+static dispatch_queue_t __defaultLoggerQueue;
+volatile SPDYLogLevel __sharedLoggerLevel;
 
 + (void)initialize
 {
-    dispatch_once(&initialized, ^{
-        loggerQueue = dispatch_queue_create("com.twitter.SPDYProtocolLoggerQueue", DISPATCH_QUEUE_SERIAL);
+    dispatch_once(&__initialized, ^{
+        __defaultLoggerQueue = dispatch_queue_create("com.twitter.SPDYProtocolLoggerQueue", DISPATCH_QUEUE_SERIAL);
+        __loggerQueue = __defaultLoggerQueue;
+        __sharedLogger = nil;
+#ifdef DEBUG
+        __sharedLoggerLevel = SPDYLogLevelDebug;
+#else
+        __sharedLoggerLevel = SPDYLogLevelError;
+#endif
     });
 }
 
-+ (void)setLogger:(id<SPDYLogger>)logger
++ (void)setLogger:(id<SPDYLogger>)logger queue:(dispatch_queue_t)queue
 {
-    dispatch_async(loggerQueue, ^{
-        sharedLogger = logger;
+    if (queue == nil) {
+        queue = __defaultLoggerQueue;
+    }
+
+    dispatch_queue_t strongQueue = __loggerQueue;
+    (void)strongQueue;
+
+    dispatch_sync(__loggerQueue, ^{
+        __loggerQueue = queue;
+        __sharedLogger = logger;
     });
+}
+
++ (void)setLoggerLevel:(SPDYLogLevel)level
+{
+    __sharedLoggerLevel = level;
 }
 
 + (void)log:(NSString *)format atLevel:(SPDYLogLevel)level, ... NS_FORMAT_FUNCTION(1,3)
@@ -48,15 +66,16 @@ static id<SPDYLogger> sharedLogger;
     NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
     va_end(args);
 
-#if SPDY_DEBUG_LOGGING
-    NSLog(@"SPDY [%@] %@", logLevels[level], message);
-#else
-    dispatch_async(loggerQueue, ^{
-        if (sharedLogger) {
-            [sharedLogger log:message atLevel:level];
+    dispatch_async(__loggerQueue, ^{
+        if (__sharedLogger) {
+            [__sharedLogger log:message atLevel:level];
         }
-    });
+#ifdef DEBUG
+        else {
+            NSLog(@"SPDY [%@] %@", logLevels[level], message);
+        }
 #endif
+    });
 }
 
 @end

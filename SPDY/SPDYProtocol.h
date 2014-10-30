@@ -10,6 +10,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "SPDYLogger.h"
 
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
@@ -37,7 +38,6 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
 
 @class SPDYConfiguration;
 
-@protocol SPDYLogger;
 @protocol SPDYTLSTrustEvaluator;
 
 /**
@@ -59,9 +59,17 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
   Register an object that implements @proto(SPDYLogger) to receive log
   output.
 
-  Note that log messages are dispatched asynchronously.
+  Note that log messages are dispatched asynchronously using the provided
+  queue. If queue is nil, then an internal one is used.
  */
-+ (void)setLogger:(id<SPDYLogger>)logger;
+
++ (void)setLogger:(id<SPDYLogger>)logger __deprecated;
++ (void)setLogger:(id<SPDYLogger>)logger queue:(dispatch_queue_t)queue;
+
+/**
+  Set minimum logging level.
+*/
++ (void)setLoggerLevel:(SPDYLogLevel)level;
 
 /**
   Register an object to perform additional evaluation of TLS certificates.
