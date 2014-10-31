@@ -76,7 +76,17 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 + (void)setLogger:(id<SPDYLogger>)logger
 {
-    [SPDYCommonLogger setLogger:logger];
+    [SPDYCommonLogger setLogger:logger queue:nil];
+}
+
++ (void)setLogger:(id<SPDYLogger>)logger queue:(dispatch_queue_t)queue
+{
+    [SPDYCommonLogger setLogger:logger queue:queue];
+}
+
++ (void)setLoggerLevel:(SPDYLogLevel)level
+{
+    [SPDYCommonLogger setLoggerLevel:level];
 }
 
 + (void)setTLSTrustEvaluator:(id<SPDYTLSTrustEvaluator>)evaluator
