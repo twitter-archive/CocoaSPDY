@@ -45,10 +45,7 @@ volatile SPDYLogLevel __sharedLoggerLevel;
         queue = __defaultLoggerQueue;
     }
 
-    dispatch_queue_t strongQueue = __loggerQueue;
-    (void)strongQueue;
-
-    dispatch_sync(__loggerQueue, ^{
+    dispatch_sync(__defaultLoggerQueue, ^{
         __loggerQueue = queue;
         __sharedLogger = logger;
     });
@@ -67,8 +64,9 @@ volatile SPDYLogLevel __sharedLoggerLevel;
     va_end(args);
 
     dispatch_async(__loggerQueue, ^{
-        if (__sharedLogger) {
-            [__sharedLogger log:message atLevel:level];
+        id<SPDYLogger> logger = __sharedLogger;
+        if (logger) {
+            [logger log:message atLevel:level];
         }
 #ifdef DEBUG
         else {

@@ -25,8 +25,13 @@
 
 - (void)log:(NSString *)message atLevel:(SPDYLogLevel)logLevel
 {
+    NSLog(@"Got log message: %@", message);
     _lastMessage = message;
     _lastLevel = logLevel;
+
+    if ([message rangeOfString:@"delay"].length != 0) {
+        sleep(1);
+    }
 }
 
 - (void)setUp
@@ -188,14 +193,59 @@
 
     [SPDYCommonLogger setLogger:self queue:newQueue];
 
-    dispatch_async(_loggerQueue, ^{
+    dispatch_sync(_loggerQueue, ^{
         STAssertEqualObjects(_lastMessage, @"error 2", nil);
-        sleep(1);
     });
 
     SPDY_ERROR(@"error %d", 3);
 
     dispatch_sync(newQueue, ^{
+        STAssertEqualObjects(_lastMessage, @"error 3", nil);
+    });
+}
+
+- (void)testLoggingQueueRelease
+{
+    dispatch_queue_t __weak weakNewQueue = nil;
+    BOOL __block done = NO;
+    @autoreleasepool {
+        dispatch_queue_t newQueue = dispatch_queue_create("spdy.unittest.logqueue2", DISPATCH_QUEUE_SERIAL);
+        weakNewQueue = newQueue;
+
+        [SPDYCommonLogger setLogger:self queue:newQueue];
+        [SPDYCommonLogger setLoggerLevel:SPDYLogLevelError];
+
+        SPDY_ERROR(@"delay error %d", 1);
+
+        dispatch_async(newQueue, ^{
+            STAssertEqualObjects(_lastMessage, @"delay error 1", nil);
+        });
+
+        SPDY_ERROR(@"error %d", 2);
+
+        dispatch_async(newQueue, ^{
+            STAssertEqualObjects(_lastMessage, @"error 2", nil);
+            done = YES;
+        });
+
+        newQueue = nil;
+        [SPDYCommonLogger setLogger:self queue:_loggerQueue];
+    }
+
+    // Wait for it to finish
+    for (int i = 0; i < 20; i++) {
+        if (done) {
+            break;
+        }
+        usleep(100 * 1000);
+    }
+    STAssertTrue(done, nil);
+    STAssertNil(weakNewQueue, nil);
+    STAssertEqualObjects(_lastMessage, @"error 2", nil);
+
+    SPDY_ERROR(@"error %d", 3);
+
+    dispatch_sync(_loggerQueue, ^{
         STAssertEqualObjects(_lastMessage, @"error 3", nil);
     });
 }
