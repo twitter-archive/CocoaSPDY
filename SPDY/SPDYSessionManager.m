@@ -398,8 +398,10 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         return;
     }
 
+#if TARGET_OS_IPHONE
     __cellular = (flags & kSCNetworkReachabilityFlagsIsWWAN) != 0;
     SPDY_DEBUG(@"reachability updated: %@", __cellular ? @"WWAN" : @"WLAN");
+#endif
 
     if (pManager) {
         @autoreleasepool {

@@ -170,7 +170,14 @@
         if (!error) {
             error = SPDY_SOCKET_ERROR(SPDYSocketTransportError, @"Unknown socket error.");
         }
-        [_client URLProtocol:_protocol didFailWithError:error];
+
+        NSMutableDictionary *userInfo = [[error userInfo] mutableCopy];
+        [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:userInfo];
+        NSError *errorWithMetadata = [[NSError alloc] initWithDomain:error.domain
+                                                                code:error.code
+                                                            userInfo:userInfo];
+
+        [_client URLProtocol:_protocol didFailWithError:errorWithMetadata];
     };
 
     if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
@@ -368,6 +375,8 @@
         bzero(&_zlibStream, sizeof(_zlibStream));
         _zlibStreamStatus = inflateInit2(&_zlibStream, MAX_WBITS + 32);
     }
+
+    [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:allHTTPHeaders];
 
     NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:requestURL
                                                               statusCode:statusCode

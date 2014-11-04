@@ -76,6 +76,17 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
 */
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
 
+/**
+  Retrieve the SPDY metadata after receiving either the connection:didReceiveResponse
+  or connection:didFailWithError delegate calls. The response, response headers,
+  or error may be stored and used for the any of the following calls until and
+  including the connectionDidFinishLoading delegate call. The metadata will no
+  longer be available after that.
+*/
++ (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders;
++ (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
++ (NSDictionary *)metadataForError:(NSError *)error;
+
 @end
 
 /**
