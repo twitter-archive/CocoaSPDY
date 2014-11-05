@@ -79,6 +79,11 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     [SPDYCommonLogger setLogger:logger];
 }
 
++ (void)setLoggerLevel:(SPDYLogLevel)level
+{
+    [SPDYCommonLogger setLoggerLevel:level];
+}
+
 + (void)setTLSTrustEvaluator:(id<SPDYTLSTrustEvaluator>)evaluator
 {
     SPDY_INFO(@"register trust evaluator: %@", evaluator);

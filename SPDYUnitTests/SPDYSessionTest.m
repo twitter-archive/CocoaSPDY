@@ -88,7 +88,7 @@
     [super tearDown];
 }
 
-- (SPDYProtocol *)newProtocol
+- (SPDYProtocol *)createProtocol
 {
     SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:_URLRequest cachedResponse:nil client:nil];
     [_protocolList addObject:protocolRequest];
@@ -127,7 +127,7 @@
 
     // 1.) Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
     // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
-    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self newProtocol]]];
+    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
     STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
     [_mockDecoderDelegate clear];
 
@@ -223,11 +223,11 @@
     [self mockSynStreamAndReplyWithId:1 last:YES];
 
     // Send two SYN_STREAMs only, no reply
-    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self newProtocol]]];
+    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
     STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
     [_mockDecoderDelegate clear];
 
-    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self newProtocol]]];
+    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
     STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
     [_mockDecoderDelegate clear];
 
