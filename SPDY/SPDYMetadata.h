@@ -22,4 +22,8 @@
 @property (assign) bool cellular;
 
 - (NSDictionary *)dictionary;
+
++ (void)setMetadata:(SPDYMetadata *)metadata forAssociatedDictionary:(NSMutableDictionary *)dictionary;
++ (SPDYMetadata *)metadataForAssociatedDictionary:(NSDictionary *)dictionary;
+
 @end

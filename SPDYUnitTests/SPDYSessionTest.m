@@ -21,8 +21,9 @@
 #import "SPDYMockFrameDecoderDelegate.h"
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYStream.h"
+#import "SPDYMockURLProtocolClient.h"
 
-@interface SPDYSessionTest : SenTestCase <SPDYExtendedDelegate>
+@interface SPDYSessionTest : SenTestCase
 @end
 
 @implementation SPDYSessionTest
@@ -42,18 +43,10 @@
     SPDYFrameEncoder *_testEncoder;
     SPDYMockFrameEncoderDelegate *_testEncoderDelegate;
     SPDYMockFrameDecoderDelegate *_mockDecoderDelegate;
+    SPDYMockURLProtocolClient *_mockURLProtocolClient;
 
     // From SPDYExtendedDelegate callbacks. Reset every test.
     NSDictionary *_lastMetadata;
-
-}
-
-#pragma mark SPDYExtendedDelegate overrides
-
-- (void)requestDidCompleteWithMetadata:(NSDictionary *)metadata
-{
-    _lastMetadata = metadata;
-    CFRunLoopStop(CFRunLoopGetCurrent());
 }
 
 #pragma mark Test Helpers
@@ -72,13 +65,13 @@
                                           cellular:NO
                                              error:&error];
     _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
-    [_URLRequest setExtendedDelegate:self inRunLoop:nil forMode:nil];
 
     _testEncoderDelegate = [[SPDYMockFrameEncoderDelegate alloc] init];
     _testEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:_testEncoderDelegate
                                        headerCompressionLevel:0];
 
     _mockDecoderDelegate = [[SPDYMockFrameDecoderDelegate alloc] init];
+    _mockURLProtocolClient = [[SPDYMockURLProtocolClient alloc] init];
     socketMock_frameDecoder = [[SPDYFrameDecoder alloc] initWithDelegate:_mockDecoderDelegate];
 }
 
@@ -90,7 +83,7 @@
 
 - (SPDYProtocol *)newProtocol
 {
-    SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:_URLRequest cachedResponse:nil client:nil];
+    SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:_URLRequest cachedResponse:nil client:_mockURLProtocolClient];
     [_protocolList addObject:protocolRequest];
     return protocolRequest;
 }
@@ -102,17 +95,6 @@
     // delegate call, that notifies the _session about the newly received data.
     [[_session inputBuffer] setData:data];
     [[_session socket] performDelegateCall_socketDidReadData:data withTag:100];
-}
-
-- (void)waitForExtendedCallbackOrError
-{
-    // Wait for callback via SPDYExtendedDelegate or a RST_STREAM or GOAWAY to be sent.
-    // Errors are processed synchronously, but callbacks are async. They will stop the runloop.
-    if (_mockDecoderDelegate.lastFrame != nil) {
-        return;
-    } else {
-        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 10, NO);
-    }
 }
 
 - (void)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last
@@ -162,15 +144,18 @@
     [self mockSynStreamAndReplyWithId:3 last:NO];
     [_session close];
 
-    [self waitForExtendedCallbackOrError];
-
+    // Was a RST_STREAM sent?
     STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
     STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
 
-    // Note: we should probably check if metadata is present, but we don't actually receive the
-    // "didFailWithError" callbacks from NSURLConnectionDataDelegate, since we don't set up
-    // anything related to the URL loading system. So we can't see it.
-    // Need OCMock to do that.
+    // Was connection:didFailWithError called?
+    STAssertTrue(_mockURLProtocolClient.calledDidFailWithError, nil);
+    STAssertNotNil(_mockURLProtocolClient.lastError, nil);
+
+    // Was metadata populated for the error?
+    NSDictionary *metadata = [SPDYProtocol metadataForError:_mockURLProtocolClient.lastError];
+    STAssertEqualObjects(metadata[SPDYMetadataVersionKey], @"3.1", nil);
+    STAssertEqualObjects(metadata[SPDYMetadataStreamIdKey], @"3", nil);
 }
 
 - (void)testReceivedMetadataForSingleShortRequest
@@ -178,14 +163,15 @@
     // Exchange initial SYN_STREAM and SYN_REPLY
     [self mockSynStreamAndReplyWithId:1 last:YES];
 
-    [self waitForExtendedCallbackOrError];
-
     STAssertNil(_mockDecoderDelegate.lastFrame, nil);
-    STAssertNotNil(_lastMetadata, nil);
-    STAssertEqualObjects(_lastMetadata[SPDYMetadataVersionKey], @"3.1", nil);
-    STAssertEqualObjects(_lastMetadata[SPDYMetadataStreamIdKey], @"1", nil);
-    STAssertTrue([_lastMetadata[SPDYMetadataStreamRxBytesKey] integerValue] > 0, nil);
-    STAssertTrue([_lastMetadata[SPDYMetadataStreamTxBytesKey] integerValue] > 0, nil);
+    STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
+    STAssertNotNil(_mockURLProtocolClient.lastResponse, nil);
+
+    NSDictionary *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
+    STAssertEqualObjects(metadata[SPDYMetadataVersionKey], @"3.1", nil);
+    STAssertEqualObjects(metadata[SPDYMetadataStreamIdKey], @"1", nil);
+    STAssertTrue([metadata[SPDYMetadataStreamRxBytesKey] integerValue] > 0, nil);
+    STAssertTrue([metadata[SPDYMetadataStreamTxBytesKey] integerValue] > 0, nil);
 }
 
 - (void)testReceiveGOAWAYAfterStreamsClosedDoesCloseSession
@@ -247,9 +233,8 @@
             ((uint8_t *)data.bytes)[0] = 1;
             weakData = data;
             NSMutableURLRequest *urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
-            [urlRequest setExtendedDelegate:self inRunLoop:nil forMode:nil];
             urlRequest.HTTPBody = data;
-            SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:urlRequest cachedResponse:nil client:nil];
+            SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:urlRequest cachedResponse:nil client:_mockURLProtocolClient];
 
             // Copy of:
             // [self mockSynStreamAndReplyWithId:1 last:NO];
@@ -285,8 +270,7 @@
 
             // Ensure completion callback (our custom one) was called to verify request is actually
             // finished.
-            [self waitForExtendedCallbackOrError];
-            STAssertNotNil(_lastMetadata, nil);
+            STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
 
             // At this point, socketMock_lastWriteOp is holding a pointer to our data. That simulates
             // what happens deep inside SPDYSocket if, for instance, other operations are queued

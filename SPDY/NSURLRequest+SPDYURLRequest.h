@@ -53,19 +53,6 @@
 @property (nonatomic, readonly) BOOL SPDYBypass;
 
 /**
-  If set, SPDYProtocol will make callbacks during request events that are specific
-  to the SPDY protocol using the supplied queue. Specifying the delegate is optional.
-*/
-@property (nonatomic, readonly) id<SPDYExtendedDelegate> SPDYDelegate;
-
-/**
-  A delegate will be scheduled on either an NSRunLoop or an NSOperationQueue, but not both.
-*/
-@property (nonatomic, readonly) NSRunLoop *SPDYDelegateRunLoop;
-@property (nonatomic, readonly) NSString *SPDYDelegateRunLoopMode;
-@property (nonatomic, readonly) NSOperationQueue *SPDYDelegateQueue;
-
-/**
   Request header fields canonicalized to SPDY format.
 */
 - (NSDictionary *)allSPDYHeaderFields;
@@ -77,21 +64,4 @@
 @property (nonatomic) NSTimeInterval SPDYDeferrableInterval;
 @property (nonatomic) NSUInteger SPDYPriority;
 @property (nonatomic) BOOL SPDYBypass;
-@property (nonatomic, readonly) id<SPDYExtendedDelegate> SPDYDelegate;
-@property (nonatomic, readonly) NSRunLoop *SPDYDelegateRunLoop;
-@property (nonatomic, readonly) NSString *SPDYDelegateRunLoopMode;
-@property (nonatomic, readonly) NSOperationQueue *SPDYDelegateQueue;
-
-/**
-  Set an extended delegate and schedule it on the runloop. If runloop is nil, the current runloop
-  will be used in the default mode. This removes any previous NSOperationQueue that was set.
-*/
-- (void)setExtendedDelegate:(id<SPDYExtendedDelegate>)delegate inRunLoop:(NSRunLoop *)runloop forMode:(NSString *)mode;
-
-/**
-  Set an extended delegate and schedule it on the queue. If queue is nil, the current operation queue
-  will be used. This removes any previous NSRunLoop and mode that was set.
-*/
-- (void)setExtendedDelegate:(id<SPDYExtendedDelegate>)delegate queue:(NSOperationQueue *)queue;
-
 @end

@@ -21,6 +21,7 @@
 #import "SPDYTLSTrustEvaluator.h"
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYStream.h"
+#import "SPDYMetadata.h"
 
 NSString *const SPDYStreamErrorDomain = @"SPDYStreamErrorDomain";
 NSString *const SPDYSessionErrorDomain = @"SPDYSessionErrorDomain";
@@ -94,6 +95,24 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         evaluator = trustEvaluator;
     });
     return evaluator;
+}
+
++ (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders
+{
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:responseHeaders];
+    return (metadata != nil) ? [metadata dictionary] : @{};
+}
+
++ (NSDictionary *)metadataForResponse:(NSURLResponse *)response
+{
+    NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+    return [self metadataForResponseHeaders:httpResponse.allHeaderFields];
+}
+
++ (NSDictionary *)metadataForError:(NSError *)error
+{
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:error.userInfo];
+    return (metadata != nil) ? [metadata dictionary] : @{};
 }
 
 #pragma mark NSURLProtocol implementation

@@ -76,6 +76,17 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
 */
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
 
+/**
+  Retrieve the SPDY metadata after receiving either the connection:didReceiveResponse
+  or connection:didFailWithError delegate calls. The response, response headers,
+  or error may be stored and used for the any of the following calls until and
+  including the connectionDidFinishLoading delegate call. The metadata will no
+  longer be available after that.
+*/
++ (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders;
++ (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
++ (NSDictionary *)metadataForError:(NSError *)error;
+
 @end
 
 /**
@@ -193,23 +204,5 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
   may be removed in a future version.
  */
 @property BOOL enableTCPNoDelay;
-
-@end
-
-
-/**
-  SPDYExtendedDelegate may optionally be set in the NSURLRequest properties using
-  NSURLRequest+SPDYURLRequest.h category. Doing so is optional. If set, these callbacks
-  will provide additional information and control over the SPDY-specific streams.
-*/
-@protocol SPDYExtendedDelegate <NSObject>
-@optional
-
-/**
-  If set, this will be called immediately prior to NSURLConnectionDataDelegate's
-  connectionDidFinishLoading: callback. It provides additional metadata about the
-  request and session. See the SPDYMetadata keys defined above for additional discussion.
-*/
-- (void)requestDidCompleteWithMetadata:(NSDictionary *)metadata;
 
 @end
