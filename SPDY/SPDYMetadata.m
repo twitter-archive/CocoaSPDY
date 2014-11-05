@@ -15,7 +15,7 @@
 
 @implementation SPDYMetadata
 {
-    CFAbsoluteTime _timestamp;
+    NSString *_identifier;
 }
 
 /**
@@ -32,8 +32,8 @@
 
   Lifetime of the SPDYMetadata is guaranteed by SPDYStream holding a strong reference to the
   SPDYMetadata, and an instance of SPDYProtocol (created by the URL loading system) holding
-  a strong reference to the SPDYStream. As long as the URL loading system is being used, as
-  for the NSURLProtocolClient delegate calls, the SPDYMetadata will be alive. It's after the
+  a strong reference to the SPDYStream. As long as the URL loading system is being used for
+  the NSURLProtocolClient delegate calls, the SPDYMetadata will be alive. It's after the
   last delegate call returns and everything is shutting down that the metadata will be released.
 
   We prevent such bad behavior by using the dictionary with weak object references, and extra
@@ -66,10 +66,12 @@ static NSMapTable *__identifiers;
         _txBytes = 0;
         _rxBytes = 0;
 
-        _timestamp = CFAbsoluteTimeGetCurrent();
+        NSUInteger ptr = (NSUInteger)self;
+        CFAbsoluteTime timestamp = CFAbsoluteTimeGetCurrent();
+        _identifier = [NSString stringWithFormat:@"%f/%tx", timestamp, ptr];
 
         dispatch_barrier_sync(__queueIdentifiers, ^{
-            [__identifiers setObject:self forKey:[self identifier]];
+            [__identifiers setObject:self forKey:_identifier];
         });
     }
     return self;
@@ -78,14 +80,13 @@ static NSMapTable *__identifiers;
 - (void)dealloc
 {
     dispatch_barrier_sync(__queueIdentifiers, ^{
-        [__identifiers removeObjectForKey:[self identifier]];
+        [__identifiers removeObjectForKey:_identifier];
     });
 }
 
 - (NSString *)identifier
 {
-    NSUInteger ptr = (NSUInteger)self;
-    return [NSString stringWithFormat:@"%f/%tx", _timestamp, ptr];
+    return _identifier;
 }
 
 - (NSDictionary *)dictionary
