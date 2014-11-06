@@ -474,6 +474,7 @@
     if (stream.local && !stream.receivedReply) {
         SPDY_WARNING(@"received data before SYN_REPLY");
         [self _sendRstStream:SPDY_STREAM_PROTOCOL_ERROR streamId:streamId];
+        stream.remoteSideClosed = YES;
         return;
     }
 
@@ -489,8 +490,10 @@
     // This difference is stored for the session when writing the SETTINGS frame
     // and is cleared once we send a WINDOW_UPDATE frame.
     // Note this can't currently happen in this implementation.
+    // TODO: all of these variables are unsigned, how can this statement ever work?
     if (stream.receiveWindowSize - dataFrame.data.length < stream.receiveWindowSizeLowerBound) {
         [self _sendRstStream:SPDY_STREAM_FLOW_CONTROL_ERROR streamId:streamId];
+        stream.remoteSideClosed = YES;
         return;
     }
 
@@ -600,7 +603,9 @@
 
     // Check if we have received multiple frames for the same Stream-ID
     if (stream.receivedReply) {
+        SPDY_WARNING(@"received duplicate SYN_REPLY");
         [self _sendRstStream:SPDY_STREAM_STREAM_IN_USE streamId:streamId];
+        stream.remoteSideClosed = YES;
         return;
     }
 
@@ -822,6 +827,7 @@
     // Check for numerical overflow
     if (stream.sendWindowSize > INT32_MAX - windowUpdateFrame.deltaWindowSize) {
         [self _sendRstStream:SPDY_STREAM_FLOW_CONTROL_ERROR streamId:streamId];
+        stream.remoteSideClosed = YES;
         return;
     }
 
@@ -833,13 +839,16 @@
 
 - (void)streamCanceled:(SPDYStream *)stream
 {
+    SPDY_INFO(@"stream %u canceled", stream.streamId);
     NSAssert(_activeStreams[stream.streamId], @"stream delegate must be managing stream");
 
     [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
+
+    // closeWithError will end up calling back into streamClosed below. It will also call out to
+    // the app via connection:didFailWithError, but Apple states that after stopLoading is called,
+    // we must stop making delegate calls out to the app.
     stream.client = nil;
-    stream.delegate = nil;
-    [_activeStreams removeStreamForProtocol:stream.protocol];
-    [_delegate session:self capacityIncreased:1];
+    [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamCancel, @"stream canceled")];
 }
 
 - (void)streamClosed:(SPDYStream *)stream
@@ -1012,7 +1021,7 @@
     rstStreamFrame.streamId = streamId;
     rstStreamFrame.statusCode = status;
     [_frameEncoder encodeRstStreamFrame:rstStreamFrame];
-    SPDY_DEBUG(@"sent RST_STREAM.%u", streamId);
+    SPDY_DEBUG(@"sent RST_STREAM.%u (%u)", streamId, status);
 }
 
 - (void)_sendGoAway:(SPDYSessionStatus)status
@@ -1021,7 +1030,7 @@
     goAwayFrame.lastGoodStreamId = _lastGoodStreamId;
     goAwayFrame.statusCode = status;
     [_frameEncoder encodeGoAwayFrame:goAwayFrame];
-    SPDY_DEBUG(@"sent GO_AWAY");
+    SPDY_DEBUG(@"sent GO_AWAY (%u)", status);
     _sentGoAwayFrame = YES;
 }
 

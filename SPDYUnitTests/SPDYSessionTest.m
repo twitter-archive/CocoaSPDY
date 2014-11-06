@@ -61,7 +61,7 @@
     _origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
     _session = [[SPDYSession alloc] initWithOrigin:_origin
                                           delegate:nil
-                                     configuration:nil
+                                     configuration:[SPDYConfiguration defaultConfiguration]
                                           cellular:NO
                                              error:&error];
     _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
@@ -97,29 +97,33 @@
     [[_session socket] performDelegateCall_socketDidReadData:data withTag:100];
 }
 
-- (void)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last
+- (SPDYStream *)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last
 {
-    // Prepare the synReplyFrame. The SYN_STREAM will use stream-id 1 since it is the first
-    // request sent by the client. We can't control that without mocking, so we have to hard-code
-    // the SYN_REPLY stream id.
+    // Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
+    // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    [_session openStream:stream];
+    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    [_mockDecoderDelegate clear];
+
+    [self mockServerSynReplyWithId:streamId last:last];
+
+    // 2.1) We should not expect any protocol errors to be issued from the client.
+    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
+
+    return stream;
+}
+
+- (void)mockServerSynReplyWithId:(SPDYStreamId)streamId last:(BOOL)last
+{
     SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
     synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
     synReplyFrame.streamId = streamId;
     synReplyFrame.last = last;
 
-    // 1.) Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
-    // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
-    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
-    [_mockDecoderDelegate clear];
-
-    // 2.) Simulate a server Tx stream SYN reply
     STAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0, nil);
     [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
     [_testEncoderDelegate clear];
-
-    // 2.1) We should not expect any protocol errors to be issued from the client.
-    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
 }
 
 - (void)mockServerGoAwayWithLastGoodId:(SPDYStreamId)lastGoodStreamId statusCode:(SPDYSessionStatus)statusCode
@@ -129,6 +133,18 @@
     frame.statusCode = statusCode;
 
     STAssertTrue([_testEncoder encodeGoAwayFrame:frame] > 0, nil);
+    [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
+    [_testEncoderDelegate clear];
+}
+
+- (void)mockServerDataWithId:(SPDYStreamId)streamId data:(NSData *)data last:(BOOL)last
+{
+    SPDYDataFrame *frame = [[SPDYDataFrame alloc] init];
+    frame.data = data;
+    frame.streamId = streamId;
+    frame.last = last;
+
+    STAssertTrue([_testEncoder encodeDataFrame:frame] > 0, nil);
     [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
     [_testEncoderDelegate clear];
 }
@@ -310,6 +326,57 @@
 
     // And verify original buffer is now gone
     STAssertNil(weakData, nil);
+}
+
+- (void)testCancelStreamDoesSendResetAndCloseStream
+{
+    SPDYStream * __weak weakStream = nil;
+    @autoreleasepool {
+        SPDYStream *stream = [self mockSynStreamAndReplyWithId:1 last:NO];
+        weakStream = stream;
+        [stream cancel];
+
+        STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
+        STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
+        STAssertEquals(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_CANCEL, nil);
+        STAssertTrue(_session.isOpen, nil);
+        STAssertEquals(_session.load, (NSUInteger)0, nil);
+    }
+    // Ensure stream was released as well
+    STAssertNil(weakStream, nil);
+}
+
+- (void)testReceiveDATABeforeSYNREPLYDoesResetAndCloseStream
+{
+    NSMutableData *data = [NSMutableData dataWithLength:1];
+
+    // Send a SYN_STREAM, no reply
+    [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
+    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    [_mockDecoderDelegate clear];
+
+    // Reply with DATA
+    [self mockServerDataWithId:1 data:data last:NO];
+
+    // Ensure RST_STREAM was sent
+    STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
+    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
+    STAssertEquals(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_PROTOCOL_ERROR, nil);
+    STAssertTrue(_session.isOpen, nil);
+    STAssertEquals(_session.load, (NSUInteger)0, nil);
+}
+
+- (void)testReceiveMultipleSYNREPLYDoesResetAndCloseStream
+{
+    [self mockSynStreamAndReplyWithId:1 last:NO];
+    [self mockServerSynReplyWithId:1 last:NO];
+
+    // Ensure RST_STREAM was sent
+    STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
+    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
+    STAssertEquals(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_STREAM_IN_USE, nil);
+    STAssertTrue(_session.isOpen, nil);
+    STAssertEquals(_session.load, (NSUInteger)0, nil);
 }
 
 @end

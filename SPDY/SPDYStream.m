@@ -275,10 +275,7 @@
             } else if (bytesRead < 0) {
                 SPDY_DEBUG(@"SPDY stream read error");
                 if (pError) {
-                    NSDictionary *info = @{ NSLocalizedDescriptionKey: @"Unable to read request body stream" };
-                    *pError = [[NSError alloc] initWithDomain:SPDYStreamErrorDomain
-                                                         code:SPDYStreamCancel
-                                                     userInfo:info];
+                    *pError = SPDY_STREAM_ERROR(SPDYStreamCancel, @"Unable to read request body stream");
                 }
                 _data = nil;
             }
