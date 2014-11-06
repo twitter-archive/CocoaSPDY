@@ -54,4 +54,6 @@
 - (void)closeWithError:(NSError *)error;
 - (void)didReceiveResponse:(NSDictionary *)headers;
 - (void)didLoadData:(NSData *)data;
+- (void)markBlocked;
+- (void)markUnblocked;
 @end

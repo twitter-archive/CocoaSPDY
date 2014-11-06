@@ -59,6 +59,9 @@
     bool _compressedResponse;
     bool _writeStreamOpened;
     int _zlibStreamStatus;
+    CFAbsoluteTime _blockedStartTime;
+    CFTimeInterval _blockedElapsed;
+    bool _blocked;
 }
 
 - (id)initWithProtocol:(SPDYProtocol *)protocol
@@ -76,12 +79,16 @@
         _compressedResponse = NO;
         _receivedReply = NO;
         _metadata = [[SPDYMetadata alloc] init];
+
+        [self markBlocked];
     }
     return self;
 }
 
 - (void)startWithStreamId:(SPDYStreamId)streamId sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize
 {
+    [self markUnblocked];
+
     _streamId = streamId;
     _metadata.streamId = streamId;
     _sendWindowSize = sendWindowSize;
@@ -159,6 +166,9 @@
     _localSideClosed = YES;
     _remoteSideClosed = YES;
 
+    [self markUnblocked];  // just in case. safe if already blocked.
+    _metadata.blockedMs = _blockedElapsed * 1000;
+
     if (_client) {
         // Failing to pass an error leads to null pointer exception
         if (!error) {
@@ -181,6 +191,11 @@
 
 - (void)setLocalSideClosed:(bool)localSideClosed
 {
+    // Transitioning from open to close?
+    if (!_localSideClosed && localSideClosed) {
+        [self markUnblocked];
+    }
+
     _localSideClosed = localSideClosed;
 
     if (_localSideClosed && _remoteSideClosed) {
@@ -199,6 +214,9 @@
 
 - (void)_close
 {
+    [self markUnblocked];  // just in case. safe if already blocked.
+    _metadata.blockedMs = _blockedElapsed * 1000;
+
     if (_client) {
         [_client URLProtocolDidFinishLoading:_protocol];
     }
@@ -540,6 +558,23 @@ static void SPDYStreamCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
     [_dataStream close];
     _dataStream.delegate = nil;
     _runLoop = nil;
+}
+
+- (void)markBlocked
+{
+    if (!_blocked) {
+        _blocked = YES;
+        _blockedStartTime = CFAbsoluteTimeGetCurrent();
+    }
+}
+
+- (void)markUnblocked
+{
+    if (_blocked) {
+        _blocked = NO;
+        CFTimeInterval elapsed = (CFAbsoluteTimeGetCurrent() - _blockedStartTime);
+        _blockedElapsed += elapsed;
+    }
 }
 
 @end

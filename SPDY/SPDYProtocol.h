@@ -24,6 +24,21 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 // SPDY version, e.g. "3.1"
 extern NSString *const SPDYMetadataVersionKey;
 
+// SPDY session host address, as raw IP address
+extern NSString *const SPDYMetadataSessionHostAddressKey;
+
+// SPDY session host port
+extern NSString *const SPDYMetadataSessionHostPortKey;
+
+// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
+extern NSString *const SPDYMetadataSessionLatencyKey;
+
+// SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
+extern NSString *const SPDYMetadataStreamBlockedMsKey;
+
+// SPDY stream creation time relative to session connection time.
+extern NSString *const SPDYMetadataStreamConnectedMsKey;
+
 // SPDY request stream id, e.g. "1"
 extern NSString *const SPDYMetadataStreamIdKey;
 
@@ -32,9 +47,6 @@ extern NSString *const SPDYMetadataStreamRxBytesKey;
 
 // SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
 extern NSString *const SPDYMetadataStreamTxBytesKey;
-
-// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
-extern NSString *const SPDYMetadataSessionLatencyKey;
 
 @class SPDYConfiguration;
 

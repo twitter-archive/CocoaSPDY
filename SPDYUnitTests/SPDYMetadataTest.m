@@ -36,6 +36,10 @@
     metadata.txBytes = 200;
     metadata.rxBytes = 300;
     metadata.cellular = YES;
+    metadata.blockedMs = 400;
+    metadata.connectedMs = 500;
+    metadata.hostAddress = @"1.2.3.4";
+    metadata.hostPort = 1;
 
     return metadata;
 }
@@ -52,6 +56,10 @@
     STAssertNil(dict[SPDYMetadataSessionLatencyKey], nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamTxBytesKey], @"0", nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamRxBytesKey], @"0", nil);
+    STAssertEqualObjects(dict[SPDYMetadataStreamBlockedMsKey], @"0", nil);
+    STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"0", nil);
+    STAssertNil(dict[SPDYMetadataSessionHostAddressKey], nil);
+    STAssertNil(dict[SPDYMetadataSessionHostPortKey], nil);
 }
 
 - (void)testSerializeToDictionary
@@ -64,6 +72,10 @@
     STAssertEqualObjects(dict[SPDYMetadataSessionLatencyKey], @"100", nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamTxBytesKey], @"200", nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamRxBytesKey], @"300", nil);
+    STAssertEqualObjects(dict[SPDYMetadataStreamBlockedMsKey], @"400", nil);
+    STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"500", nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionHostAddressKey], @"1.2.3.4", nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionHostPortKey], @"1", nil);
 }
 
 - (void)testAssociatedDictionary

@@ -78,6 +78,9 @@
     bool _established;
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
+    CFAbsoluteTime _connectedTime;
+    NSString *_connectedHost;
+    in_port_t _connectedPort;
 }
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
@@ -190,6 +193,9 @@
     if (_sessionLatency >= 0) {
         stream.metadata.latencyMs = (NSInteger)(_sessionLatency * 1000);
     }
+    stream.metadata.connectedMs = (CFAbsoluteTimeGetCurrent() - _connectedTime) * 1000;
+    stream.metadata.hostAddress = _connectedHost;
+    stream.metadata.hostPort = _connectedPort;
 
     [stream startWithStreamId:streamId
                sendWindowSize:_initialSendWindowSize
@@ -286,9 +292,12 @@
 - (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
+    _connectedTime = _lastSocketActivity;
     SPDY_INFO(@"session connected to %@ (%@:%u)", _origin, host, port);
 
     _connected = YES;
+    _connectedHost = host;
+    _connectedPort = port;
     [_delegate session:self connectedToNetwork:_cellular];
 
     if(_enableTCPNoDelay){
@@ -913,6 +922,14 @@
 {
     SPDYStreamId streamId = stream.streamId;
     uint32_t sendWindowSize = MIN(_sessionSendWindowSize, stream.sendWindowSize);
+
+    if (!stream.localSideClosed) {
+        if (stream.hasDataAvailable && sendWindowSize > 0) {
+            [stream markUnblocked];
+        } else {
+            [stream markBlocked];
+        }
+    }
 
     while (!stream.localSideClosed && stream.hasDataAvailable && sendWindowSize > 0) {
         NSError *error;

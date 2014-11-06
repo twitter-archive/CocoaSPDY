@@ -30,10 +30,14 @@ NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
 NSString *const SPDYMetadataVersionKey = @"x-spdy-version";
+NSString *const SPDYMetadataSessionHostAddressKey = @"x-spdy-session-host-address";
+NSString *const SPDYMetadataSessionHostPortKey = @"x-spdy-session-host-port";
+NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
+NSString *const SPDYMetadataStreamBlockedMsKey = @"x-spdy-stream-blocked-ms";
+NSString *const SPDYMetadataStreamConnectedMsKey = @"x-spdy-stream-connected-ms";
 NSString *const SPDYMetadataStreamIdKey = @"x-spdy-stream-id";
 NSString *const SPDYMetadataStreamRxBytesKey = @"x-spdy-stream-rx-bytes";
 NSString *const SPDYMetadataStreamTxBytesKey = @"x-spdy-stream-tx-bytes";
-NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
 
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
 static dispatch_once_t initConfig;

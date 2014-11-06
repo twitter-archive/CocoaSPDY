@@ -65,6 +65,10 @@ static NSMapTable *__identifiers;
         _latencyMs = -1;
         _txBytes = 0;
         _rxBytes = 0;
+        _connectedMs = 0;
+        _blockedMs = 0;
+        _hostAddress = nil;
+        _hostPort = 0;
 
         NSUInteger ptr = (NSUInteger)self;
         CFAbsoluteTime timestamp = CFAbsoluteTimeGetCurrent();
@@ -95,6 +99,8 @@ static NSMapTable *__identifiers;
         SPDYMetadataVersionKey : _version,
         SPDYMetadataStreamTxBytesKey : [@(_txBytes) stringValue],
         SPDYMetadataStreamRxBytesKey : [@(_rxBytes) stringValue],
+        SPDYMetadataStreamConnectedMsKey : [@(_connectedMs) stringValue],
+        SPDYMetadataStreamBlockedMsKey : [@(_blockedMs) stringValue],
     }];
 
     if (_streamId > 0) {
@@ -103,6 +109,11 @@ static NSMapTable *__identifiers;
 
     if (_latencyMs > -1) {
         dict[SPDYMetadataSessionLatencyKey] = [@(_latencyMs) stringValue];
+    }
+
+    if ([_hostAddress length] > 0) {
+        dict[SPDYMetadataSessionHostAddressKey] = _hostAddress;
+        dict[SPDYMetadataSessionHostPortKey] = [@(_hostPort) stringValue];
     }
 
     return dict;
