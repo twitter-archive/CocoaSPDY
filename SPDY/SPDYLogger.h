@@ -10,6 +10,7 @@
 //
 
 typedef enum {
+    SPDYLogLevelDisabled = -1,
     SPDYLogLevelError = 0,
     SPDYLogLevelWarning,
     SPDYLogLevelInfo,
