@@ -45,13 +45,13 @@
 static NSString * const SPDYMetadataIdentifierKey = @"x-spdy-metadata-identifier";
 
 static dispatch_once_t __initIdentifiers;
-static dispatch_queue_t __queueIdentifiers;
+static dispatch_queue_t __identifiersQueue;
 static NSMapTable *__identifiers;
 
 + (void)initialize
 {
     dispatch_once(&__initIdentifiers, ^{
-        __queueIdentifiers = dispatch_queue_create("com.twitter.SPDYMetadataQueue", DISPATCH_QUEUE_CONCURRENT);
+        __identifiersQueue = dispatch_queue_create("com.twitter.SPDYMetadataQueue", DISPATCH_QUEUE_CONCURRENT);
         __identifiers = [NSMapTable strongToWeakObjectsMapTable];
     });
 }
@@ -74,7 +74,7 @@ static NSMapTable *__identifiers;
         CFAbsoluteTime timestamp = CFAbsoluteTimeGetCurrent();
         _identifier = [NSString stringWithFormat:@"%f/%tx", timestamp, ptr];
 
-        dispatch_barrier_sync(__queueIdentifiers, ^{
+        dispatch_barrier_async(__identifiersQueue, ^{
             [__identifiers setObject:self forKey:_identifier];
         });
     }
@@ -83,8 +83,9 @@ static NSMapTable *__identifiers;
 
 - (void)dealloc
 {
-    dispatch_barrier_sync(__queueIdentifiers, ^{
-        [__identifiers removeObjectForKey:_identifier];
+    NSString *identifier = _identifier;
+    dispatch_barrier_async(__identifiersQueue, ^{
+        [__identifiers removeObjectForKey:identifier];
     });
 }
 
@@ -112,8 +113,8 @@ static NSMapTable *__identifiers;
     }
 
     if ([_hostAddress length] > 0) {
-        dict[SPDYMetadataSessionHostAddressKey] = _hostAddress;
-        dict[SPDYMetadataSessionHostPortKey] = [@(_hostPort) stringValue];
+        dict[SPDYMetadataSessionRemoteAddressKey] = _hostAddress;
+        dict[SPDYMetadataSessionRemotePortKey] = [@(_hostPort) stringValue];
     }
 
     return dict;
@@ -131,7 +132,7 @@ static NSMapTable *__identifiers;
     SPDYMetadata __block *metadata = nil;
 
     if (identifier.length > 0) {
-        dispatch_sync(__queueIdentifiers, ^{
+        dispatch_sync(__identifiersQueue, ^{
             metadata = [__identifiers objectForKey:identifier];
         });
     }

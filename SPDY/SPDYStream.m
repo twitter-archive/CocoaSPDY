@@ -79,16 +79,12 @@
         _compressedResponse = NO;
         _receivedReply = NO;
         _metadata = [[SPDYMetadata alloc] init];
-
-        [self markBlocked];
     }
     return self;
 }
 
 - (void)startWithStreamId:(SPDYStreamId)streamId sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize
 {
-    [self markUnblocked];
-
     _streamId = streamId;
     _metadata.streamId = streamId;
     _sendWindowSize = sendWindowSize;
@@ -97,6 +93,7 @@
     _receiveWindowSizeLowerBound = 0;
     _writeDataIndex = 0;
     _writeStreamChunkLength = MIN_WRITE_CHUNK_LENGTH;
+    _blocked = NO;
 
     if (_request.HTTPBody) {
         _data = _request.HTTPBody;
@@ -166,7 +163,7 @@
     _localSideClosed = YES;
     _remoteSideClosed = YES;
 
-    [self markUnblocked];  // just in case. safe if already blocked.
+    [self markUnblocked];  // just in case. safe if already unblocked.
     _metadata.blockedMs = _blockedElapsed * 1000;
 
     if (_client) {
@@ -214,7 +211,7 @@
 
 - (void)_close
 {
-    [self markUnblocked];  // just in case. safe if already blocked.
+    [self markUnblocked];  // just in case. safe if already unblocked.
     _metadata.blockedMs = _blockedElapsed * 1000;
 
     if (_client) {

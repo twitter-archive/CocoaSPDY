@@ -474,7 +474,7 @@
     if (stream.local && !stream.receivedReply) {
         SPDY_WARNING(@"received data before SYN_REPLY");
         [self _sendRstStream:SPDY_STREAM_PROTOCOL_ERROR streamId:streamId];
-        stream.remoteSideClosed = YES;
+        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"received data before syn reply")];
         return;
     }
 
@@ -493,7 +493,7 @@
     // TODO: all of these variables are unsigned, how can this statement ever work?
     if (stream.receiveWindowSize - dataFrame.data.length < stream.receiveWindowSizeLowerBound) {
         [self _sendRstStream:SPDY_STREAM_FLOW_CONTROL_ERROR streamId:streamId];
-        stream.remoteSideClosed = YES;
+        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"flow control window error")];
         return;
     }
 
@@ -605,7 +605,7 @@
     if (stream.receivedReply) {
         SPDY_WARNING(@"received duplicate SYN_REPLY");
         [self _sendRstStream:SPDY_STREAM_STREAM_IN_USE streamId:streamId];
-        stream.remoteSideClosed = YES;
+        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamStreamInUse, @"duplicate syn reply stream id")];
         return;
     }
 
@@ -932,12 +932,11 @@
     SPDYStreamId streamId = stream.streamId;
     uint32_t sendWindowSize = MIN(_sessionSendWindowSize, stream.sendWindowSize);
 
-    if (!stream.localSideClosed) {
-        if (stream.hasDataAvailable && sendWindowSize > 0) {
-            [stream markUnblocked];
-        } else {
-            [stream markBlocked];
-        }
+    // Only track flow control blocks
+    if (stream.localSideClosed || !stream.hasDataAvailable || sendWindowSize > 0) {
+        [stream markUnblocked];
+    } else {
+        [stream markBlocked];
     }
 
     while (!stream.localSideClosed && stream.hasDataAvailable && sendWindowSize > 0) {

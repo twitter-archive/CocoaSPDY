@@ -24,11 +24,11 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 // SPDY version, e.g. "3.1"
 extern NSString *const SPDYMetadataVersionKey;
 
-// SPDY session host address, as raw IP address
-extern NSString *const SPDYMetadataSessionHostAddressKey;
+// IP address of remote side
+extern NSString *const SPDYMetadataSessionRemoteAddressKey;
 
-// SPDY session host port
-extern NSString *const SPDYMetadataSessionHostPortKey;
+// TCP port of remote side
+extern NSString *const SPDYMetadataSessionRemotePortKey;
 
 // SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
 extern NSString *const SPDYMetadataSessionLatencyKey;
@@ -93,15 +93,18 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 */
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
 
-/**
-  Retrieve the SPDY metadata after receiving either the connection:didReceiveResponse
-  or connection:didFailWithError delegate calls. The response, response headers,
-  or error may be stored and used for the any of the following calls until and
-  including the connectionDidFinishLoading delegate call. The metadata will no
-  longer be available after that.
+/*
+  Retrieve the SPDY metadata from either the response or the response headers returned in
+  connection:didReceiveResponse. Should be called during the connectionDidFinishLoading
+  callback only, and use at any other time is undefined.
 */
 + (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders;
 + (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
+
+/*
+  Retrieve the SPDY metadata from the error returned in connection:didFailWithError. Should be
+  called during that callback only, and use at any other time is undefined.
+ */
 + (NSDictionary *)metadataForError:(NSError *)error;
 
 @end

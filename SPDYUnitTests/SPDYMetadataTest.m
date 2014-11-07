@@ -58,8 +58,8 @@
     STAssertEqualObjects(dict[SPDYMetadataStreamRxBytesKey], @"0", nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamBlockedMsKey], @"0", nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"0", nil);
-    STAssertNil(dict[SPDYMetadataSessionHostAddressKey], nil);
-    STAssertNil(dict[SPDYMetadataSessionHostPortKey], nil);
+    STAssertNil(dict[SPDYMetadataSessionRemoteAddressKey], nil);
+    STAssertNil(dict[SPDYMetadataSessionRemotePortKey], nil);
 }
 
 - (void)testSerializeToDictionary
@@ -74,8 +74,8 @@
     STAssertEqualObjects(dict[SPDYMetadataStreamRxBytesKey], @"300", nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamBlockedMsKey], @"400", nil);
     STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"500", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionHostAddressKey], @"1.2.3.4", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionHostPortKey], @"1", nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionRemoteAddressKey], @"1.2.3.4", nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionRemotePortKey], @"1", nil);
 }
 
 - (void)testAssociatedDictionary
