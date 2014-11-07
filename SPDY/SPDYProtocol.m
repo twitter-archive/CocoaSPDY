@@ -118,16 +118,11 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     return [evaluator evaluateServerTrust:trust forHost:host];
 }
 
-+ (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders
-{
-    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:responseHeaders];
-    return (metadata != nil) ? [metadata dictionary] : @{};
-}
-
 + (NSDictionary *)metadataForResponse:(NSURLResponse *)response
 {
     NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-    return [self metadataForResponseHeaders:httpResponse.allHeaderFields];
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:httpResponse.allHeaderFields];
+    return (metadata != nil) ? [metadata dictionary] : @{};
 }
 
 + (NSDictionary *)metadataForError:(NSError *)error

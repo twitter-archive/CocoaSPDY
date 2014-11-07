@@ -121,7 +121,7 @@
     STAssertNil(metadata, nil);
 }
 
-- (void)testAssociatedDictionaryAfterDealloc
+- (void)testMetadataAfterReleaseShouldNotBeNil
 {
     NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
     SPDYMetadata * __weak weakOriginalMetadata = nil;
@@ -133,8 +133,22 @@
 
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
 
+    // Since the identifier maintains a reference, these will be alive
+    STAssertNotNil(weakOriginalMetadata, nil);
+    STAssertNotNil(metadata, nil);
+}
+
+- (void)testMetadataAfterAssociatedDictionaryDeallocShouldBeNil
+{
+    SPDYMetadata * __weak weakOriginalMetadata = nil;
+    @autoreleasepool {
+        SPDYMetadata *originalMetadata = [self createTestMetadata];
+        weakOriginalMetadata = originalMetadata;
+        NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
+        [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
+    }
+
     STAssertNil(weakOriginalMetadata, nil);
-    STAssertNil(metadata, nil);
 }
 
 - (void)testAssociatedDictionarySameRef
