@@ -12,38 +12,39 @@
 #import <Foundation/Foundation.h>
 #import "SPDYLogger.h"
 
-#ifdef DEBUG
-#define SPDY_LOG_LEVEL 4
-#else
-#define SPDY_LOG_LEVEL 0
-#endif
+extern volatile SPDYLogLevel __sharedLoggerLevel;
 
-#define SPDY_DEBUG(message, ...)
-#define SPDY_INFO(message, ...)
-#define SPDY_WARNING(message, ...)
-#define SPDY_ERROR(message, ...)
+// Only needed in tests and maybe debugging
+extern dispatch_queue_t __sharedLoggerQueue;
 
-#if SPDY_LOG_LEVEL >= 3
-#undef SPDY_DEBUG
-#define SPDY_DEBUG(message, ...) [SPDYCommonLogger log:message atLevel:SPDYLogLevelDebug, ##__VA_ARGS__]
-#endif
+#define LOG_LEVEL_ENABLED(l) ((l) <= __sharedLoggerLevel)
 
-#if SPDY_LOG_LEVEL >= 2
-#undef SPDY_INFO
-#define SPDY_INFO(message, ...) [SPDYCommonLogger log:message atLevel:SPDYLogLevelInfo, ##__VA_ARGS__]
-#endif
+#define SPDY_DEBUG(message, ...) do { \
+    if (LOG_LEVEL_ENABLED(SPDYLogLevelDebug)) { \
+       [SPDYCommonLogger log:message atLevel:SPDYLogLevelDebug, ##__VA_ARGS__]; \
+    } \
+} while (0)
 
-#if SPDY_LOG_LEVEL >= 1
-#undef SPDY_WARNING
-#define SPDY_WARNING(message, ...) [SPDYCommonLogger log:message atLevel:SPDYLogLevelWarning, ##__VA_ARGS__]
-#endif
+#define SPDY_INFO(message, ...) do { \
+    if (LOG_LEVEL_ENABLED(SPDYLogLevelInfo)) { \
+       [SPDYCommonLogger log:message atLevel:SPDYLogLevelInfo, ##__VA_ARGS__]; \
+    } \
+} while (0)
 
-#if SPDY_LOG_LEVEL >= 0
-#undef SPDY_ERROR
-#define SPDY_ERROR(message, ...) [SPDYCommonLogger log:message atLevel:SPDYLogLevelError, ##__VA_ARGS__]
-#endif
+#define SPDY_WARNING(message, ...) do { \
+    if (LOG_LEVEL_ENABLED(SPDYLogLevelWarning)) { \
+       [SPDYCommonLogger log:message atLevel:SPDYLogLevelWarning, ##__VA_ARGS__]; \
+    } \
+} while (0)
+
+#define SPDY_ERROR(message, ...) do { \
+    if (LOG_LEVEL_ENABLED(SPDYLogLevelError)) { \
+       [SPDYCommonLogger log:message atLevel:SPDYLogLevelError, ##__VA_ARGS__]; \
+    } \
+} while (0)
 
 @interface SPDYCommonLogger : NSObject
 + (void)setLogger:(id<SPDYLogger>)logger;
++ (void)setLoggerLevel:(SPDYLogLevel)level;
 + (void)log:(NSString *)format atLevel:(SPDYLogLevel)level, ... NS_FORMAT_FUNCTION(1,3);
 @end

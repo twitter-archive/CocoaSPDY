@@ -78,6 +78,9 @@
     bool _established;
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
+    CFAbsoluteTime _connectedTime;
+    NSString *_connectedHost;
+    in_port_t _connectedPort;
 }
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
@@ -190,6 +193,9 @@
     if (_sessionLatency >= 0) {
         stream.metadata.latencyMs = (NSInteger)(_sessionLatency * 1000);
     }
+    stream.metadata.connectedMs = (CFAbsoluteTimeGetCurrent() - _connectedTime) * 1000;
+    stream.metadata.hostAddress = _connectedHost;
+    stream.metadata.hostPort = _connectedPort;
 
     [stream startWithStreamId:streamId
                sendWindowSize:_initialSendWindowSize
@@ -286,9 +292,12 @@
 - (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
+    _connectedTime = _lastSocketActivity;
     SPDY_INFO(@"session connected to %@ (%@:%u)", _origin, host, port);
 
     _connected = YES;
+    _connectedHost = host;
+    _connectedPort = port;
     [_delegate session:self connectedToNetwork:_cellular];
 
     if(_enableTCPNoDelay){
@@ -465,6 +474,7 @@
     if (stream.local && !stream.receivedReply) {
         SPDY_WARNING(@"received data before SYN_REPLY");
         [self _sendRstStream:SPDY_STREAM_PROTOCOL_ERROR streamId:streamId];
+        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"received data before syn reply")];
         return;
     }
 
@@ -480,8 +490,10 @@
     // This difference is stored for the session when writing the SETTINGS frame
     // and is cleared once we send a WINDOW_UPDATE frame.
     // Note this can't currently happen in this implementation.
+    // TODO: all of these variables are unsigned, how can this statement ever work?
     if (stream.receiveWindowSize - dataFrame.data.length < stream.receiveWindowSizeLowerBound) {
         [self _sendRstStream:SPDY_STREAM_FLOW_CONTROL_ERROR streamId:streamId];
+        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"flow control window error")];
         return;
     }
 
@@ -591,7 +603,9 @@
 
     // Check if we have received multiple frames for the same Stream-ID
     if (stream.receivedReply) {
+        SPDY_WARNING(@"received duplicate SYN_REPLY");
         [self _sendRstStream:SPDY_STREAM_STREAM_IN_USE streamId:streamId];
+        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamStreamInUse, @"duplicate syn reply stream id")];
         return;
     }
 
@@ -813,6 +827,7 @@
     // Check for numerical overflow
     if (stream.sendWindowSize > INT32_MAX - windowUpdateFrame.deltaWindowSize) {
         [self _sendRstStream:SPDY_STREAM_FLOW_CONTROL_ERROR streamId:streamId];
+        stream.remoteSideClosed = YES;
         return;
     }
 
@@ -824,13 +839,16 @@
 
 - (void)streamCanceled:(SPDYStream *)stream
 {
+    SPDY_INFO(@"stream %u canceled", stream.streamId);
     NSAssert(_activeStreams[stream.streamId], @"stream delegate must be managing stream");
 
     [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
+
+    // closeWithError will end up calling back into streamClosed below. It will also call out to
+    // the app via connection:didFailWithError, but Apple states that after stopLoading is called,
+    // we must stop making delegate calls out to the app.
     stream.client = nil;
-    stream.delegate = nil;
-    [_activeStreams removeStreamForProtocol:stream.protocol];
-    [_delegate session:self capacityIncreased:1];
+    [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamCancel, @"stream canceled")];
 }
 
 - (void)streamClosed:(SPDYStream *)stream
@@ -914,6 +932,13 @@
     SPDYStreamId streamId = stream.streamId;
     uint32_t sendWindowSize = MIN(_sessionSendWindowSize, stream.sendWindowSize);
 
+    // Only track flow control blocks
+    if (stream.localSideClosed || !stream.hasDataAvailable || sendWindowSize > 0) {
+        [stream markUnblocked];
+    } else {
+        [stream markBlocked];
+    }
+
     while (!stream.localSideClosed && stream.hasDataAvailable && sendWindowSize > 0) {
         NSError *error;
         NSData *data = [stream readData:sendWindowSize error:&error];
@@ -995,7 +1020,7 @@
     rstStreamFrame.streamId = streamId;
     rstStreamFrame.statusCode = status;
     [_frameEncoder encodeRstStreamFrame:rstStreamFrame];
-    SPDY_DEBUG(@"sent RST_STREAM.%u", streamId);
+    SPDY_DEBUG(@"sent RST_STREAM.%u (%u)", streamId, status);
 }
 
 - (void)_sendGoAway:(SPDYSessionStatus)status
@@ -1004,7 +1029,7 @@
     goAwayFrame.lastGoodStreamId = _lastGoodStreamId;
     goAwayFrame.statusCode = status;
     [_frameEncoder encodeGoAwayFrame:goAwayFrame];
-    SPDY_DEBUG(@"sent GO_AWAY");
+    SPDY_DEBUG(@"sent GO_AWAY (%u)", status);
     _sentGoAwayFrame = YES;
 }
 

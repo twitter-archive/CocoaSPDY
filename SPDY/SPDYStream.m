@@ -59,6 +59,9 @@
     bool _compressedResponse;
     bool _writeStreamOpened;
     int _zlibStreamStatus;
+    CFAbsoluteTime _blockedStartTime;
+    CFTimeInterval _blockedElapsed;
+    bool _blocked;
 }
 
 - (id)initWithProtocol:(SPDYProtocol *)protocol
@@ -75,7 +78,6 @@
         _remoteSideClosed = NO;
         _compressedResponse = NO;
         _receivedReply = NO;
-        _extendedDelegate = _request.SPDYDelegate;
         _metadata = [[SPDYMetadata alloc] init];
     }
     return self;
@@ -91,6 +93,7 @@
     _receiveWindowSizeLowerBound = 0;
     _writeDataIndex = 0;
     _writeStreamChunkLength = MIN_WRITE_CHUNK_LENGTH;
+    _blocked = NO;
 
     if (_request.HTTPBody) {
         _data = _request.HTTPBody;
@@ -160,17 +163,22 @@
     _localSideClosed = YES;
     _remoteSideClosed = YES;
 
-    if (_extendedDelegate &&
-        [_extendedDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
-        [self _fireMetadataCallback];
-    }
+    [self markUnblocked];  // just in case. safe if already unblocked.
+    _metadata.blockedMs = _blockedElapsed * 1000;
 
     if (_client) {
         // Failing to pass an error leads to null pointer exception
         if (!error) {
             error = SPDY_SOCKET_ERROR(SPDYSocketTransportError, @"Unknown socket error.");
         }
-        [_client URLProtocol:_protocol didFailWithError:error];
+
+        NSMutableDictionary *userInfo = [[error userInfo] mutableCopy];
+        [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:userInfo];
+        NSError *errorWithMetadata = [[NSError alloc] initWithDomain:error.domain
+                                                                code:error.code
+                                                            userInfo:userInfo];
+
+        [_client URLProtocol:_protocol didFailWithError:errorWithMetadata];
     };
 
     if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
@@ -180,6 +188,11 @@
 
 - (void)setLocalSideClosed:(bool)localSideClosed
 {
+    // Transitioning from open to close?
+    if (!_localSideClosed && localSideClosed) {
+        [self markUnblocked];
+    }
+
     _localSideClosed = localSideClosed;
 
     if (_localSideClosed && _remoteSideClosed) {
@@ -198,10 +211,8 @@
 
 - (void)_close
 {
-    if (_extendedDelegate &&
-        [_extendedDelegate respondsToSelector:@selector(requestDidCompleteWithMetadata:)]) {
-        [self _fireMetadataCallback];
-    }
+    [self markUnblocked];  // just in case. safe if already unblocked.
+    _metadata.blockedMs = _blockedElapsed * 1000;
 
     if (_client) {
         [_client URLProtocolDidFinishLoading:_protocol];
@@ -210,26 +221,6 @@
     if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
         [_delegate streamClosed:self];
     }
-}
-
-- (void)_fireMetadataCallback
-{
-    NSAssert(_request.SPDYDelegateRunLoop || _request.SPDYDelegateQueue,
-             @"callback requires SPDYDelegateRunLoop or SPDYDelegateQueue to be set");
-
-        void (^callback)(void) = ^{
-            [_extendedDelegate requestDidCompleteWithMetadata:[_metadata dictionary]];
-        };
-
-        if (_request.SPDYDelegateRunLoop != nil) {
-            CFRunLoopPerformBlock(
-                [_request.SPDYDelegateRunLoop getCFRunLoop],
-                (__bridge CFStringRef)_request.SPDYDelegateRunLoopMode,
-                callback
-            );
-        } else if (_request.SPDYDelegateQueue != nil) {
-            [_request.SPDYDelegateQueue addOperationWithBlock:callback];
-        }
 }
 
 - (bool)closed
@@ -281,10 +272,7 @@
             } else if (bytesRead < 0) {
                 SPDY_DEBUG(@"SPDY stream read error");
                 if (pError) {
-                    NSDictionary *info = @{ NSLocalizedDescriptionKey: @"Unable to read request body stream" };
-                    *pError = [[NSError alloc] initWithDomain:SPDYStreamErrorDomain
-                                                         code:SPDYStreamCancel
-                                                     userInfo:info];
+                    *pError = SPDY_STREAM_ERROR(SPDYStreamCancel, @"Unable to read request body stream");
                 }
                 _data = nil;
             }
@@ -368,6 +356,8 @@
         bzero(&_zlibStream, sizeof(_zlibStream));
         _zlibStreamStatus = inflateInit2(&_zlibStream, MAX_WBITS + 32);
     }
+
+    [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:allHTTPHeaders];
 
     NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:requestURL
                                                               statusCode:statusCode
@@ -562,6 +552,23 @@ static void SPDYStreamCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
     [_dataStream close];
     _dataStream.delegate = nil;
     _runLoop = nil;
+}
+
+- (void)markBlocked
+{
+    if (!_blocked) {
+        _blocked = YES;
+        _blockedStartTime = CFAbsoluteTimeGetCurrent();
+    }
+}
+
+- (void)markUnblocked
+{
+    if (_blocked) {
+        _blocked = NO;
+        CFTimeInterval elapsed = (CFAbsoluteTimeGetCurrent() - _blockedStartTime);
+        _blockedElapsed += elapsed;
+    }
 }
 
 @end

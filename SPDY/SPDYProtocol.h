@@ -10,6 +10,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "SPDYLogger.h"
 
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
@@ -23,6 +24,21 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 // SPDY version, e.g. "3.1"
 extern NSString *const SPDYMetadataVersionKey;
 
+// IP address of remote side
+extern NSString *const SPDYMetadataSessionRemoteAddressKey;
+
+// TCP port of remote side
+extern NSString *const SPDYMetadataSessionRemotePortKey;
+
+// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
+extern NSString *const SPDYMetadataSessionLatencyKey;
+
+// SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
+extern NSString *const SPDYMetadataStreamBlockedMsKey;
+
+// SPDY stream creation time relative to session connection time.
+extern NSString *const SPDYMetadataStreamConnectedMsKey;
+
 // SPDY request stream id, e.g. "1"
 extern NSString *const SPDYMetadataStreamIdKey;
 
@@ -32,12 +48,8 @@ extern NSString *const SPDYMetadataStreamRxBytesKey;
 // SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
 extern NSString *const SPDYMetadataStreamTxBytesKey;
 
-// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
-extern NSString *const SPDYMetadataSessionLatencyKey;
-
 @class SPDYConfiguration;
 
-@protocol SPDYLogger;
 @protocol SPDYTLSTrustEvaluator;
 
 /**
@@ -64,6 +76,11 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
 + (void)setLogger:(id<SPDYLogger>)logger;
 
 /**
+  Set minimum logging level.
+*/
++ (void)setLoggerLevel:(SPDYLogLevel)level;
+
+/**
   Register an object to perform additional evaluation of TLS certificates.
 
   Methods on this object will be called from socket threads and should,
@@ -75,6 +92,20 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
   Accessor for current TLS trust evaluation object.
 */
 + (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
+
+/*
+  Retrieve the SPDY metadata from either the response or the response headers returned in
+  connection:didReceiveResponse. Should be called during the connectionDidFinishLoading
+  callback only, and use at any other time is undefined.
+*/
++ (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders;
++ (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
+
+/*
+  Retrieve the SPDY metadata from the error returned in connection:didFailWithError. Should be
+  called during that callback only, and use at any other time is undefined.
+ */
++ (NSDictionary *)metadataForError:(NSError *)error;
 
 @end
 
@@ -193,23 +224,5 @@ extern NSString *const SPDYMetadataSessionLatencyKey;
   may be removed in a future version.
  */
 @property BOOL enableTCPNoDelay;
-
-@end
-
-
-/**
-  SPDYExtendedDelegate may optionally be set in the NSURLRequest properties using
-  NSURLRequest+SPDYURLRequest.h category. Doing so is optional. If set, these callbacks
-  will provide additional information and control over the SPDY-specific streams.
-*/
-@protocol SPDYExtendedDelegate <NSObject>
-@optional
-
-/**
-  If set, this will be called immediately prior to NSURLConnectionDataDelegate's
-  connectionDidFinishLoading: callback. It provides additional metadata about the
-  request and session. See the SPDYMetadata keys defined above for additional discussion.
-*/
-- (void)requestDidCompleteWithMetadata:(NSDictionary *)metadata;
 
 @end

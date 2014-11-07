@@ -20,6 +20,14 @@
 @property (assign) NSUInteger txBytes;
 @property (assign) NSUInteger rxBytes;
 @property (assign) bool cellular;
+@property (assign) NSUInteger connectedMs;
+@property (assign) NSUInteger blockedMs;
+@property (assign) NSString *hostAddress;
+@property (assign) NSUInteger hostPort;
 
 - (NSDictionary *)dictionary;
+
++ (void)setMetadata:(SPDYMetadata *)metadata forAssociatedDictionary:(NSMutableDictionary *)dictionary;
++ (SPDYMetadata *)metadataForAssociatedDictionary:(NSDictionary *)dictionary;
+
 @end

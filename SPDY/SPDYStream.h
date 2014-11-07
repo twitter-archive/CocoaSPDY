@@ -16,8 +16,6 @@
 @class SPDYMetadata;
 @class SPDYStream;
 
-@protocol SPDYExtendedDelegate;
-
 @protocol SPDYStreamDelegate<NSObject>
 - (void)streamCanceled:(SPDYStream *)stream;
 @optional
@@ -29,7 +27,6 @@
 @interface SPDYStream : NSObject
 @property (nonatomic, weak) id<NSURLProtocolClient> client;
 @property (nonatomic, weak) id<SPDYStreamDelegate> delegate;
-@property (nonatomic, weak) id<SPDYExtendedDelegate> extendedDelegate;
 @property (nonatomic) SPDYMetadata *metadata;
 @property (nonatomic) NSData *data;
 @property (nonatomic) NSInputStream *dataStream;
@@ -57,4 +54,6 @@
 - (void)closeWithError:(NSError *)error;
 - (void)didReceiveResponse:(NSDictionary *)headers;
 - (void)didLoadData:(NSData *)data;
+- (void)markBlocked;
+- (void)markUnblocked;
 @end

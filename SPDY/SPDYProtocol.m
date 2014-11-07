@@ -21,6 +21,7 @@
 #import "SPDYTLSTrustEvaluator.h"
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYStream.h"
+#import "SPDYMetadata.h"
 
 NSString *const SPDYStreamErrorDomain = @"SPDYStreamErrorDomain";
 NSString *const SPDYSessionErrorDomain = @"SPDYSessionErrorDomain";
@@ -29,10 +30,14 @@ NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
 NSString *const SPDYMetadataVersionKey = @"x-spdy-version";
+NSString *const SPDYMetadataSessionRemoteAddressKey = @"x-spdy-session-remote-address";
+NSString *const SPDYMetadataSessionRemotePortKey = @"x-spdy-session-remote-port";
+NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
+NSString *const SPDYMetadataStreamBlockedMsKey = @"x-spdy-stream-blocked-ms";
+NSString *const SPDYMetadataStreamConnectedMsKey = @"x-spdy-stream-connected-ms";
 NSString *const SPDYMetadataStreamIdKey = @"x-spdy-stream-id";
 NSString *const SPDYMetadataStreamRxBytesKey = @"x-spdy-stream-rx-bytes";
 NSString *const SPDYMetadataStreamTxBytesKey = @"x-spdy-stream-tx-bytes";
-NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
 
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
 static dispatch_once_t initConfig;
@@ -79,6 +84,11 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     [SPDYCommonLogger setLogger:logger];
 }
 
++ (void)setLoggerLevel:(SPDYLogLevel)level
+{
+    [SPDYCommonLogger setLoggerLevel:level];
+}
+
 + (void)setTLSTrustEvaluator:(id<SPDYTLSTrustEvaluator>)evaluator
 {
     SPDY_INFO(@"register trust evaluator: %@", evaluator);
@@ -94,6 +104,24 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         evaluator = trustEvaluator;
     });
     return evaluator;
+}
+
++ (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders
+{
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:responseHeaders];
+    return (metadata != nil) ? [metadata dictionary] : @{};
+}
+
++ (NSDictionary *)metadataForResponse:(NSURLResponse *)response
+{
+    NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+    return [self metadataForResponseHeaders:httpResponse.allHeaderFields];
+}
+
++ (NSDictionary *)metadataForError:(NSError *)error
+{
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:error.userInfo];
+    return (metadata != nil) ? [metadata dictionary] : @{};
 }
 
 #pragma mark NSURLProtocol implementation
