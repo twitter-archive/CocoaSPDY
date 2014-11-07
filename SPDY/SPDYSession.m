@@ -285,8 +285,7 @@
 - (bool)socket:(SPDYSocket *)socket securedWithTrust:(SecTrustRef)trust
 {
     _lastSocketActivity = CFAbsoluteTimeGetCurrent();
-    id<SPDYTLSTrustEvaluator> evaluator = [SPDYProtocol sharedTLSTrustEvaluator];
-    return evaluator == nil || [evaluator evaluateServerTrust:trust forHost:_origin.host];
+    return [SPDYProtocol evaluateServerTrust:trust forHost:_origin.host];
 }
 
 - (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port

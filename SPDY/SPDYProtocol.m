@@ -13,6 +13,7 @@
 #error "This file requires ARC support."
 #endif
 
+#import <arpa/inet.h>
 #import "SPDYProtocol.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYOrigin.h"
@@ -42,6 +43,7 @@ NSString *const SPDYMetadataStreamTxBytesKey = @"x-spdy-stream-tx-bytes";
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
 
 static NSMutableDictionary *aliases;
+static NSMutableDictionary *certificates;
 static dispatch_queue_t configQueue;
 static dispatch_once_t initConfig;
 
@@ -57,6 +59,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 {
     dispatch_once(&initConfig, ^{
         aliases = [[NSMutableDictionary alloc] init];
+        certificates = [[NSMutableDictionary alloc] init];
         configQueue = dispatch_queue_create(SPDYConfigQueue, DISPATCH_QUEUE_CONCURRENT);
         currentConfiguration = [SPDYConfiguration defaultConfiguration];
     });
@@ -100,13 +103,19 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     });
 }
 
-+ (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator
-{
++ (bool)evaluateServerTrust:(SecTrustRef)trust forHost:(NSString *)host {
     __block id<SPDYTLSTrustEvaluator> evaluator;
+    __block NSString *namedHost;
+
     dispatch_sync(configQueue, ^{
         evaluator = trustEvaluator;
+        namedHost = certificates[host];
     });
-    return evaluator;
+
+    if (evaluator == nil) return YES;
+    if (namedHost != nil) host = namedHost;
+
+    return [evaluator evaluateServerTrust:trust forHost:host];
 }
 
 + (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders
@@ -144,6 +153,13 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     SPDY_INFO(@"register alias: %@", aliasString);
     dispatch_barrier_async(configQueue, ^{
         aliases[alias] = origin;
+
+        // Use the alias hostname for TLS validation if the aliased origin contains a bare IP address
+        struct in_addr ipTest;
+        if (inet_pton(AF_INET, [origin.host cStringUsingEncoding:NSUTF8StringEncoding], &ipTest)) {
+            certificates[origin.host] = alias.host;
+        }
+
         NSDictionary *info = @{ @"origin": originString, @"alias": aliasString };
         [[NSNotificationCenter defaultCenter] postNotificationName:SPDYOriginRegisteredNotification
                                                             object:nil
@@ -161,8 +177,10 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     }
 
     dispatch_barrier_async(configQueue, ^{
-        if (aliases[alias]) {
+        SPDYOrigin *origin = aliases[alias];
+        if (origin) {
             [aliases removeObjectForKey:alias];
+            [certificates removeObjectForKey:origin.host];
             [[NSNotificationCenter defaultCenter] postNotificationName:SPDYOriginUnregisteredNotification
                                                                 object:nil
                                                               userInfo:@{ @"alias": aliasString }];

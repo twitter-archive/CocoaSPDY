@@ -89,9 +89,9 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 + (void)setTLSTrustEvaluator:(id<SPDYTLSTrustEvaluator>)evaluator;
 
 /**
-  Accessor for current TLS trust evaluation object.
+  Internal hook for evaluating server trust.
 */
-+ (id<SPDYTLSTrustEvaluator>)sharedTLSTrustEvaluator;
++ (bool)evaluateServerTrust:(SecTrustRef)trust forHost:(NSString *)host;
 
 /*
   Retrieve the SPDY metadata from either the response or the response headers returned in
@@ -120,7 +120,6 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
   Unregister an origin alias.
 */
 + (void)unregisterAlias:(NSString *)aliasString;
-
 @end
 
 /**
