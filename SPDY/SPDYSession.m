@@ -840,7 +840,6 @@
 
             uint32_t bytesSent = (uint32_t)data.length;
             sendWindowSize -= bytesSent;
-            _sessionSendWindowSize -= bytesSent;
             stream.sendWindowSize -= bytesSent;
             stream.localSideClosed = dataFrame.last;
         } else {
