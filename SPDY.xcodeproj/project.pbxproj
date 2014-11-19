@@ -113,6 +113,7 @@
 		06FDA21716717F5E00137DBD /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2CC14D2161B608C002E37CF /* CFNetwork.framework */; };
 		25959A3F1937DE3900FC9731 /* SPDYSessionManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 25959A3E1937DE3900FC9731 /* SPDYSessionManagerTest.m */; };
 		5C2229591952257800CAF160 /* SPDYURLRequestTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C2229581952257800CAF160 /* SPDYURLRequestTest.m */; };
+		5C427F0F1A1C7C4D0072403D /* SPDYSenTestLog.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C427F0E1A1C7C4D0072403D /* SPDYSenTestLog.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -196,6 +197,7 @@
 		4FE891C7065B348CC7EF4BFC /* SPDYHeaderBlockDecompressor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYHeaderBlockDecompressor.h; sourceTree = "<group>"; };
 		4FE895BE087AC28BBBC857F9 /* SPDYHeaderBlockDecompressor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYHeaderBlockDecompressor.m; sourceTree = "<group>"; };
 		5C2229581952257800CAF160 /* SPDYURLRequestTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYURLRequestTest.m; sourceTree = "<group>"; };
+		5C427F0E1A1C7C4D0072403D /* SPDYSenTestLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSenTestLog.m; sourceTree = "<group>"; };
 		D2CC14B216179B43002E37CF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		D2CC14B816179B43002E37CF /* SPDY-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY-Prefix.pch"; sourceTree = "<group>"; };
 		D2CC14C01618CF62002E37CF /* SPDYProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYProtocol.h; sourceTree = "<group>"; };
@@ -302,6 +304,7 @@
 				064EFB2216715C9F002F0AEC /* SPDYUnitTests-Prefix.pch */,
 				064EFB2D16716389002F0AEC /* SPDYMockFrameDecoderDelegate.h */,
 				064EFB2E1671638A002F0AEC /* SPDYMockFrameDecoderDelegate.m */,
+				5C427F0E1A1C7C4D0072403D /* SPDYSenTestLog.m */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -639,6 +642,7 @@
 				25959A3F1937DE3900FC9731 /* SPDYSessionManagerTest.m in Sources */,
 				061C8E9517C5954400D22083 /* SPDYStreamManager.m in Sources */,
 				06B290CE1861018900540A03 /* SPDYOrigin.m in Sources */,
+				5C427F0F1A1C7C4D0072403D /* SPDYSenTestLog.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1001,48 +1005,133 @@
 			};
 			name = Release;
 		};
-		06A4E516180F21D500A82D93 /* Debug */ = {
+		5C427F091A1C08D40072403D /* Coverage */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				DSTROOT = /tmp/SPDY_iphoneos.dst;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SPDY.iphoneos/SPDY.iphoneos-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = SPDY.iphoneos.arm64;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphoneos;
-				VALID_ARCHS = arm64;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"COVERAGE=1",
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
 			};
-			name = Debug;
+			name = Coverage;
 		};
-		06A4E517180F21D500A82D93 /* Release */ = {
+		5C427F0A1A1C08D40072403D /* Coverage */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SDKROOT)/Developer/Library/Frameworks",
+					"$(inherited)",
+				);
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SPDYUnitTests/SPDYUnitTests-Prefix.pch";
+				INFOPLIST_FILE = "SPDYUnitTests/SPDYUnitTests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = octest;
+			};
+			name = Coverage;
+		};
+		5C427F0B1A1C08D40072403D /* Coverage */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				DSTROOT = /tmp/SPDY_iphoneos.dst;
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SPDY.iphoneos/SPDY.iphoneos-Prefix.pch";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = SPDY.iphoneos.arm64;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PUBLIC_HEADERS_FOLDER_PATH = include/SPDY;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = iphoneos;
-				VALIDATE_PRODUCT = YES;
-				VALID_ARCHS = arm64;
+				VALID_ARCHS = "armv7 armv7s arm64 x86_64 i386";
 			};
-			name = Release;
+			name = Coverage;
+		};
+		5C427F0C1A1C08D40072403D /* Coverage */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				DSTROOT = /tmp/SPDY_macosx.dst;
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SPDY.macosx/SPDY.macosx-Prefix.pch";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VALID_ARCHS = x86_64;
+			};
+			name = Coverage;
+		};
+		5C427F0D1A1C08D40072403D /* Coverage */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)";
+				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SYSTEM_APPS_DIR)/Xcode.app/Contents/Developer/Library/Frameworks\"",
+				);
+				FRAMEWORK_VERSION = A;
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SPDY/SPDY-Prefix.pch";
+				INFOPLIST_FILE = "SPDY/SPDY-Info.plist";
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				WRAPPER_EXTENSION = framework;
+			};
+			name = Coverage;
 		};
 		D2CC14BB16179B43002E37CF /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1106,6 +1195,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				064EFB2416715C9F002F0AEC /* Debug */,
+				5C427F0A1A1C08D40072403D /* Coverage */,
 				064EFB2516715C9F002F0AEC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1115,6 +1205,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0651EBF116F3F7C800CE44D2 /* Debug */,
+				5C427F0B1A1C08D40072403D /* Coverage */,
 				0651EBF216F3F7C800CE44D2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1133,6 +1224,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0651EC1216F3F7E500CE44D2 /* Debug */,
+				5C427F0C1A1C08D40072403D /* Coverage */,
 				0651EC1316F3F7E500CE44D2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1142,6 +1234,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0652632516F7B6360081868F /* Debug */,
+				5C427F0D1A1C08D40072403D /* Coverage */,
 				0652632616F7B6360081868F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1160,6 +1253,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D2CC14BB16179B43002E37CF /* Debug */,
+				5C427F091A1C08D40072403D /* Coverage */,
 				D2CC14BC16179B43002E37CF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
