@@ -9,9 +9,9 @@
 //  Created by Michael Schore
 //
 
-#import "SPDYCommonLogger.h"
 #import "SPDYMetadata.h"
 #import "SPDYProtocol.h"
+#import "SPDYStopwatch.h"
 
 @implementation SPDYMetadata
 {
@@ -71,7 +71,7 @@ static NSMapTable *__identifiers;
         _hostPort = 0;
 
         NSUInteger ptr = (NSUInteger)self;
-        CFAbsoluteTime timestamp = CFAbsoluteTimeGetCurrent();
+        SPDYTimeInterval timestamp = [SPDYStopwatch currentSystemTime];
         _identifier = [NSString stringWithFormat:@"%f/%tx", timestamp, ptr];
 
         dispatch_barrier_async(__identifiersQueue, ^{
