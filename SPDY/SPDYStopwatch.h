@@ -13,6 +13,7 @@ typedef double SPDYTimeInterval;
 
 @interface SPDYStopwatch : NSObject
 + (SPDYTimeInterval)currentSystemTime;
++ (SPDYTimeInterval)currentAbsoluteTime;
 - (id)init;
 - (void)reset;
 - (SPDYTimeInterval)elapsedSeconds;

@@ -27,11 +27,20 @@
 #define INTERVAL_SEC    0.1
 #define UPPER_BOUND_SEC (INTERVAL_SEC * 100)
 
-- (void)testTimeDoesMarchForward
+- (void)testSystemTimeDoesMarchForward
 {
     SPDYTimeInterval t1 = [SPDYStopwatch currentSystemTime];
     usleep(INTERVAL_USEC);
     SPDYTimeInterval t2 = [SPDYStopwatch currentSystemTime];
+    STAssertTrue(t2 > t1, nil);
+    STAssertTrue((t2 - t1) < UPPER_BOUND_SEC, nil);
+}
+
+- (void)testAbsoluteTimeDoesMarchForward
+{
+    SPDYTimeInterval t1 = [SPDYStopwatch currentAbsoluteTime];
+    usleep(INTERVAL_USEC);
+    SPDYTimeInterval t2 = [SPDYStopwatch currentAbsoluteTime];
     STAssertTrue(t2 > t1, nil);
     STAssertTrue((t2 - t1) < UPPER_BOUND_SEC, nil);
 }

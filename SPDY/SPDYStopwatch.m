@@ -40,23 +40,28 @@ static mach_timebase_info_data_t __machTimebase;
     return (SPDYTimeInterval)now * __machTimebaseToSeconds;
 }
 
++ (SPDYTimeInterval)currentAbsoluteTime
+{
+    return CFAbsoluteTimeGetCurrent();
+}
+
 - (id)init
 {
     self = [super init];
     if (self) {
-        _startTime = [SPDYStopwatch currentSystemTime];
+        _startTime = [SPDYStopwatch currentAbsoluteTime];
     }
     return self;
 }
 
 - (void)reset
 {
-    _startTime = [SPDYStopwatch currentSystemTime];
+    _startTime = [SPDYStopwatch currentAbsoluteTime];
 }
 
 - (SPDYTimeInterval)elapsedSeconds
 {
-    return [SPDYStopwatch currentSystemTime] - _startTime;
+    return [SPDYStopwatch currentAbsoluteTime] - _startTime;
 }
 
 @end
