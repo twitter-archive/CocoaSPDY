@@ -20,16 +20,14 @@
 #import "SPDYCommonLogger.h"
 #import "SPDYFrameDecoder.h"
 #import "SPDYFrameEncoder.h"
+#import "SPDYMetadata.h"
 #import "SPDYOrigin.h"
 #import "SPDYProtocol.h"
-#import "SPDYSession.h"
-#import "SPDYSessionManager.h"
 #import "SPDYSettingsStore.h"
 #import "SPDYSocket.h"
+#import "SPDYStopwatch.h"
 #import "SPDYStream.h"
 #import "SPDYStreamManager.h"
-#import "SPDYTLSTrustEvaluator.h"
-#import "SPDYMetadata.h"
 
 // The input buffer should be more than twice MAX_CHUNK_LENGTH and
 // MAX_COMPRESSED_HEADER_BLOCK_LENGTH to avoid having to resize the
@@ -59,9 +57,8 @@
     NSMutableData *_inputBuffer;
 
     SPDYStreamId _lastGoodStreamId;
-    CFAbsoluteTime _lastSocketActivity;
-    CFAbsoluteTime _sessionPingOut;
-    CFTimeInterval _sessionLatency;
+    SPDYStopwatch *_sessionPingStopwatch;
+    SPDYTimeInterval _sessionLatency;
     NSUInteger _bufferReadIndex;
     NSUInteger _bufferWriteIndex;
     uint32_t _initialSendWindowSize;
@@ -78,7 +75,7 @@
     bool _established;
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
-    CFAbsoluteTime _connectedTime;
+    SPDYStopwatch *_connectedStopwatch;
     NSString *_connectedHost;
     in_port_t _connectedPort;
 }
@@ -102,6 +99,9 @@
             }
             return nil;
         }
+
+        _sessionPingStopwatch = [[SPDYStopwatch alloc] init];
+        _connectedStopwatch = [[SPDYStopwatch alloc] init];
 
         SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self];
         bool connecting = [socket connectToHost:origin.host
@@ -193,7 +193,7 @@
     if (_sessionLatency >= 0) {
         stream.metadata.latencyMs = (NSInteger)(_sessionLatency * 1000);
     }
-    stream.metadata.connectedMs = (CFAbsoluteTimeGetCurrent() - _connectedTime) * 1000;
+    stream.metadata.connectedMs = _connectedStopwatch.elapsedSeconds * 1000;
     stream.metadata.hostAddress = _connectedHost;
     stream.metadata.hostPort = _connectedPort;
 
@@ -284,14 +284,12 @@
 
 - (bool)socket:(SPDYSocket *)socket securedWithTrust:(SecTrustRef)trust
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     return [SPDYProtocol evaluateServerTrust:trust forHost:_origin.host];
 }
 
 - (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
-    _connectedTime = _lastSocketActivity;
+    [_connectedStopwatch reset];
     SPDY_INFO(@"session connected to %@ (%@:%u)", _origin, host, port);
 
     _connected = YES;
@@ -309,7 +307,6 @@
 
 - (void)socket:(SPDYSocket *)socket didReadData:(NSData *)data withTag:(long)tag
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_DEBUG(@"socket read[%li] (%lu)", tag, (unsigned long)data.length);
 
     _bufferWriteIndex += data.length;
@@ -343,9 +340,8 @@
 
 - (void)socket:(SPDYSocket *)socket didWriteDataWithTag:(long)tag
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     if (tag == 1) {
-        _sessionPingOut = _lastSocketActivity;
+        [_sessionPingStopwatch reset];
     }
 }
 
@@ -361,12 +357,10 @@
 
 - (void)socket:(SPDYSocket *)socket didWritePartialDataOfLength:(NSUInteger)partialLength tag:(long)tag
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
 }
 
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_WARNING(@"session connection error: %@", error);
     for (SPDYStream *stream in _activeStreams) {
         stream.delegate = nil;
@@ -377,7 +371,6 @@
 
 - (void)socketDidDisconnect:(SPDYSocket *)socket
 {
-    _lastSocketActivity = CFAbsoluteTimeGetCurrent();
     SPDY_INFO(@"session connection closed");
 
     _connected = NO;
@@ -600,6 +593,12 @@
 
     stream.metadata.rxBytes += synReplyFrame.encodedLength;
 
+    // While we prefer to record latencyMs at stream open time, the ping response may not have been
+    // received yet. It will have been received by this point however.
+    if (_sessionLatency >= 0 && stream.metadata.latencyMs <= 0) {
+        stream.metadata.latencyMs = (NSInteger)(_sessionLatency * 1000);
+    }
+
     // Check if we have received multiple frames for the same Stream-ID
     if (stream.receivedReply) {
         SPDY_WARNING(@"received duplicate SYN_REPLY");
@@ -722,7 +721,7 @@
 
     if (pingId & 1) {
         if (pingId == 1) {
-            _sessionLatency = CFAbsoluteTimeGetCurrent() - _sessionPingOut;
+            _sessionLatency = _sessionPingStopwatch.elapsedSeconds;
             SPDY_DEBUG(@"received PING.%u response (%f)", pingId, _sessionLatency);
             _established = YES;
         }

@@ -18,9 +18,10 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYError.h"
-#import "SPDYProtocol.h"
-#import "SPDYStream.h"
 #import "SPDYMetadata.h"
+#import "SPDYProtocol.h"
+#import "SPDYStopwatch.h"
+#import "SPDYStream.h"
 
 #define DECOMPRESSED_CHUNK_LENGTH 8192
 #define MIN_WRITE_CHUNK_LENGTH 4096
@@ -59,8 +60,8 @@
     bool _compressedResponse;
     bool _writeStreamOpened;
     int _zlibStreamStatus;
-    CFAbsoluteTime _blockedStartTime;
-    CFTimeInterval _blockedElapsed;
+    SPDYStopwatch *_blockedStopwatch;
+    SPDYTimeInterval _blockedElapsed;
     bool _blocked;
 }
 
@@ -79,6 +80,7 @@
         _compressedResponse = NO;
         _receivedReply = NO;
         _metadata = [[SPDYMetadata alloc] init];
+        _blockedStopwatch = [[SPDYStopwatch alloc] init];
     }
     return self;
 }
@@ -558,7 +560,7 @@ static void SPDYStreamCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
 {
     if (!_blocked) {
         _blocked = YES;
-        _blockedStartTime = CFAbsoluteTimeGetCurrent();
+        [_blockedStopwatch reset];
     }
 }
 
@@ -566,8 +568,7 @@ static void SPDYStreamCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
 {
     if (_blocked) {
         _blocked = NO;
-        CFTimeInterval elapsed = (CFAbsoluteTimeGetCurrent() - _blockedStartTime);
-        _blockedElapsed += elapsed;
+        _blockedElapsed += _blockedStopwatch.elapsedSeconds;
     }
 }
 
