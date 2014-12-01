@@ -94,11 +94,10 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 + (bool)evaluateServerTrust:(SecTrustRef)trust forHost:(NSString *)host;
 
 /*
-  Retrieve the SPDY metadata from either the response or the response headers returned in
-  connection:didReceiveResponse. Should be called during the connectionDidFinishLoading
-  callback only, and use at any other time is undefined.
+  Retrieve the SPDY metadata from the response returned in connection:didReceiveResponse.
+  Should be called during the connectionDidFinishLoading callback only, and use at any other
+  time is undefined.
 */
-+ (NSDictionary *)metadataForResponseHeaders:(NSDictionary *)responseHeaders;
 + (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
 
 /*
