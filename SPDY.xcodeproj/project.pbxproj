@@ -426,6 +426,7 @@
 				064EFB0F16715C9F002F0AEC /* Frameworks */,
 				064EFB1016715C9F002F0AEC /* Resources */,
 				064EFB1116715C9F002F0AEC /* ShellScript */,
+				5C4A4F8F1A2D3F8E00CAED23 /* Remove .gcda files */,
 			);
 			buildRules = (
 			);
@@ -577,6 +578,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Run the unit tests in this test bundle.\n\"${SYSTEM_DEVELOPER_DIR}/Tools/RunUnitTests\"\n";
+		};
+		5C4A4F8F1A2D3F8E00CAED23 /* Remove .gcda files */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Remove .gcda files";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# .gcda files are additive each time the unit tests are run, and if the code changes, you'll get\n# \"profiling:invalid arc tag (0xnnnnnnnn)\" warnings.\necho \"Cleaning *.gcda files in ${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}\"\nrm -f ${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}/*.gcda\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
