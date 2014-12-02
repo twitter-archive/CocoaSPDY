@@ -13,8 +13,8 @@
 #error "This file requires ARC support."
 #endif
 
+#import "SPDYDefinitions.h"
 #import "SPDYHeaderBlockCompressor.h"
-#import "SPDYError.h"
 #import "SPDYZLibCommon.h"
 
 // See https://groups.google.com/group/spdy-dev/browse_thread/thread/dfaf498542fac792

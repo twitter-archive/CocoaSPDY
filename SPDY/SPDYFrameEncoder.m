@@ -13,7 +13,7 @@
 #error "This file requires ARC support."
 #endif
 
-#import "SPDYError.h"
+#import "SPDYDefinitions.h"
 #import "SPDYFrameEncoder.h"
 #import "SPDYHeaderBlockCompressor.h"
 

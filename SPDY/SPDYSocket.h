@@ -11,9 +11,6 @@
 //  https://github.com/robbiehanson/CocoaAsyncSocket
 //
 
-#import <Foundation/Foundation.h>
-#import "SPDYError.h"
-
 @class SPDYSocket;
 @class SPDYSocketReadOp;
 @class SPDYSocketWriteOp;

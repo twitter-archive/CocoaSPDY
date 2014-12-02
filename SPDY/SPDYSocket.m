@@ -18,6 +18,7 @@
 #import <arpa/inet.h>
 #import <netinet/in.h>
 #import <sys/socket.h>
+#import "SPDYDefinitions.h"
 #import "SPDYSocket.h"
 #import "SPDYCommonLogger.h"
 

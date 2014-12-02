@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0540DAA719CB7FD600673796 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; };
+		0540DAA719CB7FD600673796 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0540DAA919CB7FEB00673796 /* SPDYCommonLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 062EA63E175D4CD3003BC1CE /* SPDYCommonLogger.h */; };
 		0540DAAA19CB7FEB00673796 /* SPDYCommonLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 062EA63E175D4CD3003BC1CE /* SPDYCommonLogger.h */; };
 		0540DAAB19CB7FF000673796 /* NSURLRequest+SPDYURLRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 069D0E99168268F10037D8AF /* NSURLRequest+SPDYURLRequest.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		0540DAAC19CB7FF900673796 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; };
+		0540DAAC19CB7FF900673796 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0540DAAD19CB800C00673796 /* SPDYLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C9A1715DC85000D1677 /* SPDYLogger.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0540DAAE19CB801900673796 /* SPDYProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = D2CC14C01618CF62002E37CF /* SPDYProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0540DAAF19CB802600673796 /* SPDYTLSTrustEvaluator.h in Headers */ = {isa = PBXBuildFile; fileRef = 06E7BF111823B74D004DB65D /* SPDYTLSTrustEvaluator.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -67,7 +67,7 @@
 		0655606A19D5EDA600631121 /* SPDYMetadata.m in Sources */ = {isa = PBXBuildFile; fileRef = 0655606719D5EDA600631121 /* SPDYMetadata.m */; };
 		0679F3CF186217FC006F122E /* SPDYOriginTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 0679F3CE186217FC006F122E /* SPDYOriginTest.m */; };
 		067EBFE717418F350029F16C /* SPDYStreamTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 067EBFE617418F350029F16C /* SPDYStreamTest.m */; };
-		06811C971714D426000D1677 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; };
+		06811C971714D426000D1677 /* SPDYError.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C961714D426000D1677 /* SPDYError.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		06811C9B1715DC85000D1677 /* SPDYLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 06811C9A1715DC85000D1677 /* SPDYLogger.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		069AA03916975B65005A72CA /* SPDYFrameCodecTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 069AA03816975B65005A72CA /* SPDYFrameCodecTest.m */; };
 		069D0E8B167F9D010037D8AF /* SPDYStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 069D0E89167F9D010037D8AF /* SPDYStream.m */; };
@@ -378,10 +378,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				0540DAAB19CB7FF000673796 /* NSURLRequest+SPDYURLRequest.h in Headers */,
+				0540DAAC19CB7FF900673796 /* SPDYError.h in Headers */,
 				0540DAAD19CB800C00673796 /* SPDYLogger.h in Headers */,
 				0540DAAE19CB801900673796 /* SPDYProtocol.h in Headers */,
 				0540DAAF19CB802600673796 /* SPDYTLSTrustEvaluator.h in Headers */,
-				0540DAAC19CB7FF900673796 /* SPDYError.h in Headers */,
 				0540DAA919CB7FEB00673796 /* SPDYCommonLogger.h in Headers */,
 				7774CD9416661E40D76713F5 /* SPDYStopwatch.h in Headers */,
 			);
@@ -392,8 +392,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				05C7CEB919CB456D0032D681 /* NSURLRequest+SPDYURLRequest.h in Headers */,
-				05C7CEBA19CB45760032D681 /* SPDYLogger.h in Headers */,
 				0540DAA719CB7FD600673796 /* SPDYError.h in Headers */,
+				05C7CEBA19CB45760032D681 /* SPDYLogger.h in Headers */,
 				05C7CEBB19CB45820032D681 /* SPDYProtocol.h in Headers */,
 				05C7CEBC19CB458F0032D681 /* SPDYTLSTrustEvaluator.h in Headers */,
 				0540DAAA19CB7FEB00673796 /* SPDYCommonLogger.h in Headers */,
@@ -406,10 +406,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				064A05D616F8E3AD008C7D08 /* NSURLRequest+SPDYURLRequest.h in Headers */,
+				06811C971714D426000D1677 /* SPDYError.h in Headers */,
 				06811C9B1715DC85000D1677 /* SPDYLogger.h in Headers */,
 				064A05C716F7C313008C7D08 /* SPDYProtocol.h in Headers */,
 				06E7BF131824371F004DB65D /* SPDYTLSTrustEvaluator.h in Headers */,
-				06811C971714D426000D1677 /* SPDYError.h in Headers */,
 				062EA640175D4CD3003BC1CE /* SPDYCommonLogger.h in Headers */,
 				7774CF887055793F373F0D5E /* SPDYStopwatch.h in Headers */,
 			);
