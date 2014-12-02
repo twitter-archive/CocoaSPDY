@@ -1545,8 +1545,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
     CHECK_THREAD_SAFETY();
 
-    NSParameterAssert(data.length > 0);
-
     if (data == nil || data.length == 0) return;
     if (_flags & kForbidReadsWrites) return;
 
