@@ -44,9 +44,23 @@ volatile SPDYLogLevel __sharedLoggerLevel;
     });
 }
 
++ (id<SPDYLogger>)currentLogger
+{
+    id<SPDYLogger> __block sharedLogger;
+    dispatch_sync(__sharedLoggerQueue, ^{
+        sharedLogger = __sharedLogger;
+    });
+    return sharedLogger;
+}
+
 + (void)setLoggerLevel:(SPDYLogLevel)level
 {
     __sharedLoggerLevel = level;
+}
+
++ (SPDYLogLevel)currentLoggerLevel
+{
+    return __sharedLoggerLevel;
 }
 
 + (void)log:(NSString *)format atLevel:(SPDYLogLevel)level, ... NS_FORMAT_FUNCTION(1,3)

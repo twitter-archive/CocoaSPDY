@@ -90,9 +90,19 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     [SPDYCommonLogger setLogger:logger];
 }
 
++ (id<SPDYLogger>)currentLogger
+{
+    return [SPDYCommonLogger currentLogger];
+}
+
 + (void)setLoggerLevel:(SPDYLogLevel)level
 {
     [SPDYCommonLogger setLoggerLevel:level];
+}
+
++ (SPDYLogLevel)currentLoggerLevel
+{
+    return [SPDYCommonLogger currentLoggerLevel];
 }
 
 + (void)setTLSTrustEvaluator:(id<SPDYTLSTrustEvaluator>)evaluator
@@ -122,13 +132,13 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 {
     NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:httpResponse.allHeaderFields];
-    return (metadata != nil) ? [metadata dictionary] : @{};
+    return [metadata dictionary];
 }
 
 + (NSDictionary *)metadataForError:(NSError *)error
 {
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:error.userInfo];
-    return (metadata != nil) ? [metadata dictionary] : @{};
+    return [metadata dictionary];
 }
 
 + (void)registerAlias:(NSString *)aliasString forOrigin:(NSString *)originString

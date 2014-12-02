@@ -45,6 +45,8 @@ extern dispatch_queue_t __sharedLoggerQueue;
 
 @interface SPDYCommonLogger : NSObject
 + (void)setLogger:(id<SPDYLogger>)logger;
++ (id<SPDYLogger>)currentLogger;
 + (void)setLoggerLevel:(SPDYLogLevel)level;
++ (SPDYLogLevel)currentLoggerLevel;
 + (void)log:(NSString *)format atLevel:(SPDYLogLevel)level, ... NS_FORMAT_FUNCTION(1,3);
 @end

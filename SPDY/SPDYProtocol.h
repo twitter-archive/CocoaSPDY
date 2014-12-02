@@ -76,9 +76,19 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 + (void)setLogger:(id<SPDYLogger>)logger;
 
 /**
+  Current logger reference.
+*/
++ (id<SPDYLogger>)currentLogger;
+
+/**
   Set minimum logging level.
 */
 + (void)setLoggerLevel:(SPDYLogLevel)level;
+
+/**
+  Current logging level.
+*/
++ (SPDYLogLevel)currentLoggerLevel;
 
 /**
   Register an object to perform additional evaluation of TLS certificates.
@@ -96,13 +106,14 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 /*
   Retrieve the SPDY metadata from the response returned in connection:didReceiveResponse.
   Should be called during the connectionDidFinishLoading callback only, and use at any other
-  time is undefined.
+  time is undefined. Returns nil if response is nil or no metadata is available.
 */
 + (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
 
 /*
   Retrieve the SPDY metadata from the error returned in connection:didFailWithError. Should be
-  called during that callback only, and use at any other time is undefined.
+  called during that callback only, and use at any other time is undefined. Returns nil if error is
+  nil or no metadata is available.
  */
 + (NSDictionary *)metadataForError:(NSError *)error;
 
