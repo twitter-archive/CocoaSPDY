@@ -43,26 +43,6 @@
     return [SPDYProtocol propertyForKey:@"SPDYBodyFile" inRequest:self];
 }
 
-- (id<SPDYExtendedDelegate>)SPDYDelegate
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegate" inRequest:self];
-}
-
-- (NSRunLoop *)SPDYDelegateRunLoop
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegateRunLoop" inRequest:self];
-}
-
-- (NSString *)SPDYDelegateRunLoopMode;
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegateRunLoopMode" inRequest:self];
-}
-
-- (NSOperationQueue *)SPDYDelegateQueue;
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegateQueue" inRequest:self];
-}
-
 - (NSDictionary *)allSPDYHeaderFields
 {
     NSDictionary *httpHeaders = self.allHTTPHeaderFields;
@@ -212,7 +192,11 @@
 
 - (void)setSPDYBodyStream:(NSInputStream *)SPDYBodyStream
 {
-    [SPDYProtocol setProperty:SPDYBodyStream forKey:@"SPDYBodyStream" inRequest:self];
+    if (SPDYBodyStream == nil) {
+        [SPDYProtocol removePropertyForKey:@"SPDYBodyStream" inRequest:self];
+    } else {
+        [SPDYProtocol setProperty:SPDYBodyStream forKey:@"SPDYBodyStream" inRequest:self];
+    }
 }
 
 - (NSString *)SPDYBodyFile
@@ -222,56 +206,11 @@
 
 - (void)setSPDYBodyFile:(NSString *)SPDYBodyFile
 {
-    [SPDYProtocol setProperty:SPDYBodyFile forKey:@"SPDYBodyFile" inRequest:self];
-}
-
-- (id<SPDYExtendedDelegate>)SPDYDelegate
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegate" inRequest:self];
-}
-
-- (NSRunLoop *)SPDYDelegateRunLoop
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegateRunLoop" inRequest:self];
-}
-
-- (NSString *)SPDYDelegateRunLoopMode;
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegateRunLoopMode" inRequest:self];
-}
-
-- (NSOperationQueue *)SPDYDelegateQueue;
-{
-    return [SPDYProtocol propertyForKey:@"SPDYDelegateQueue" inRequest:self];
-}
-
-- (void)setExtendedDelegate:(id<SPDYExtendedDelegate>)delegate inRunLoop:(NSRunLoop *)runloop forMode:(NSString *)mode
-{
-    if (runloop == nil) {
-        runloop = [NSRunLoop currentRunLoop];
+    if (SPDYBodyFile == nil) {
+        [SPDYProtocol removePropertyForKey:@"SPDYBodyFile" inRequest:self];
+    } else {
+        [SPDYProtocol setProperty:SPDYBodyFile forKey:@"SPDYBodyFile" inRequest:self];
     }
-
-    if (mode == nil) {
-        mode = NSDefaultRunLoopMode;
-    }
-
-    [SPDYProtocol setProperty:delegate forKey:@"SPDYDelegate" inRequest:self];
-    [SPDYProtocol setProperty:runloop forKey:@"SPDYDelegateRunLoop" inRequest:self];
-    [SPDYProtocol setProperty:mode forKey:@"SPDYDelegateRunLoopMode" inRequest:self];
-    [SPDYProtocol removePropertyForKey:@"SPDYDelegateQueue" inRequest:self];
 }
-
-- (void)setExtendedDelegate:(id<SPDYExtendedDelegate>)delegate queue:(NSOperationQueue *)queue
-{
-    if (queue == nil) {
-        queue = [NSOperationQueue currentQueue];
-    }
-
-    [SPDYProtocol setProperty:delegate forKey:@"SPDYDelegate" inRequest:self];
-    [SPDYProtocol removePropertyForKey:@"SPDYDelegateRunLoop" inRequest:self];
-    [SPDYProtocol removePropertyForKey:@"SPDYDelegateRunLoopMode" inRequest:self];
-    [SPDYProtocol setProperty:queue forKey:@"SPDYDelegateQueue" inRequest:self];
-}
-
 
 @end

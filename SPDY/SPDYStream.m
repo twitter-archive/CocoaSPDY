@@ -378,13 +378,32 @@
             return;
         }
 
+        // Returning redirectURL acts odd. When it is sent to the WebView's
+        // shouldStartLoadWithRequest callback, the hostname gets stripped out. By flattening
+        // the NSURL with absoluteString, we can avoid that. This is observed in iOS8 but not iOS7.
+        NSURL *finalRedirectURL = [NSURL URLWithString:redirectURL.absoluteString];
         NSMutableURLRequest *redirect = [_protocol.request mutableCopy];
-        redirect.URL = redirectURL;
+        redirect.URL = finalRedirectURL;
         redirect.SPDYPriority = _request.SPDYPriority;
         redirect.SPDYBodyFile = _request.SPDYBodyFile;
 
-        if (statusCode == 303) {
+        // 303 means a POST should be redirected to a GET.
+        // 302 is somewhat ambiguous, but in the past user agents have also redirected POSTs to
+        // GETs. Apple's HTTP stack does this, so we need to maintain parity. Also note that we
+        // need to remove the body data else we'll end up making a GET request with a body.
+        if (statusCode == 303 || statusCode == 302) {
             redirect.HTTPMethod = @"GET";
+            [redirect setValue:nil forHTTPHeaderField:@"content-encoding"];
+            [redirect setValue:nil forHTTPHeaderField:@"content-language"];
+            [redirect setValue:nil forHTTPHeaderField:@"content-length"];
+            [redirect setValue:nil forHTTPHeaderField:@"content-location"];
+            [redirect setValue:nil forHTTPHeaderField:@"content-md5"];
+            [redirect setValue:nil forHTTPHeaderField:@"content-range"];
+            [redirect setValue:nil forHTTPHeaderField:@"content-type"];
+            redirect.HTTPBody = nil;
+            redirect.HTTPBodyStream = nil;
+            redirect.SPDYBodyFile = nil;
+            redirect.SPDYBodyStream = nil;
         }
 
         [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:response];
