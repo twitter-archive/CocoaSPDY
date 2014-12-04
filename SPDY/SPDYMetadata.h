@@ -14,16 +14,16 @@
 #import "SPDYDefinitions.h"
 
 @interface SPDYMetadata : NSObject
-@property (nonatomic) NSString *version;
-@property (assign) SPDYStreamId streamId;
-@property (assign) NSInteger latencyMs;
-@property (assign) NSUInteger txBytes;
-@property (assign) NSUInteger rxBytes;
-@property (assign) bool cellular;
-@property (assign) NSUInteger connectedMs;
-@property (assign) NSUInteger blockedMs;
-@property (assign) NSString *hostAddress;
-@property (assign) NSUInteger hostPort;
+@property (nonatomic, copy) NSString *version;
+@property (nonatomic) SPDYStreamId streamId;
+@property (nonatomic) NSInteger latencyMs;
+@property (nonatomic) NSUInteger txBytes;
+@property (nonatomic) NSUInteger rxBytes;
+@property (nonatomic) bool cellular;
+@property (nonatomic) NSUInteger connectedMs;
+@property (nonatomic) NSUInteger blockedMs;
+@property (nonatomic, copy) NSString *hostAddress;
+@property (nonatomic) NSUInteger hostPort;
 
 - (NSDictionary *)dictionary;
 
