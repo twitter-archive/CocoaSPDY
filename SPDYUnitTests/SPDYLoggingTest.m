@@ -11,6 +11,7 @@
 
 #import <SenTestingKit/SenTestingKit.h>
 #import "SPDYCommonLogger.h"
+#import "SPDYProtocol.h"
 
 @interface SPDYLoggingTest : SenTestCase <SPDYLogger>
 @end
@@ -40,7 +41,7 @@
 
 - (void)tearDown
 {
-    [SPDYCommonLogger setLogger:nil];
+    [SPDYProtocol setLogger:nil];
 }
 
 - (BOOL)logAndWaitAtLevel:(SPDYLogLevel)level expectLog:(BOOL)expectLog
@@ -99,10 +100,25 @@
     return NO;
 }
 
+- (void)testAccessors
+{
+    [SPDYProtocol setLogger:self];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelDebug];
+
+    STAssertEquals([SPDYProtocol currentLogger], self, nil);
+    STAssertEquals([SPDYProtocol currentLoggerLevel], SPDYLogLevelDebug, nil);
+
+    [SPDYProtocol setLogger:nil];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelDisabled];
+
+    STAssertNil([SPDYProtocol currentLogger], nil);
+    STAssertEquals([SPDYProtocol currentLoggerLevel], SPDYLogLevelDisabled, nil);
+}
+
 - (void)testLoggingAtDebugLevel
 {
-    [SPDYCommonLogger setLogger:self];
-    [SPDYCommonLogger setLoggerLevel:SPDYLogLevelDebug];
+    [SPDYProtocol setLogger:self];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelDebug];
 
     [self logAndWaitAtLevel:SPDYLogLevelDebug expectLog:YES];
     [self logAndWaitAtLevel:SPDYLogLevelInfo expectLog:YES];
@@ -112,8 +128,8 @@
 
 - (void)testLoggingAtInfoLevel
 {
-    [SPDYCommonLogger setLogger:self];
-    [SPDYCommonLogger setLoggerLevel:SPDYLogLevelInfo];
+    [SPDYProtocol setLogger:self];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelInfo];
 
     [self logAndWaitAtLevel:SPDYLogLevelDebug expectLog:NO];
     [self logAndWaitAtLevel:SPDYLogLevelInfo expectLog:YES];
@@ -123,8 +139,8 @@
 
 - (void)testLoggingAtWarningLevel
 {
-    [SPDYCommonLogger setLogger:self];
-    [SPDYCommonLogger setLoggerLevel:SPDYLogLevelWarning];
+    [SPDYProtocol setLogger:self];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelWarning];
 
     [self logAndWaitAtLevel:SPDYLogLevelDebug expectLog:NO];
     [self logAndWaitAtLevel:SPDYLogLevelInfo expectLog:NO];
@@ -134,8 +150,8 @@
 
 - (void)testLoggingAtErrorLevel
 {
-    [SPDYCommonLogger setLogger:self];
-    [SPDYCommonLogger setLoggerLevel:SPDYLogLevelError];
+    [SPDYProtocol setLogger:self];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelError];
 
     [self logAndWaitAtLevel:SPDYLogLevelDebug expectLog:NO];
     [self logAndWaitAtLevel:SPDYLogLevelInfo expectLog:NO];
@@ -145,8 +161,8 @@
 
 - (void)testLoggingWhenDisabled
 {
-    [SPDYCommonLogger setLogger:self];
-    [SPDYCommonLogger setLoggerLevel:SPDYLogLevelDisabled];
+    [SPDYProtocol setLogger:self];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelDisabled];
 
     [self logAndWaitAtLevel:SPDYLogLevelDebug expectLog:NO];
     [self logAndWaitAtLevel:SPDYLogLevelInfo expectLog:NO];
@@ -156,8 +172,8 @@
 
 - (void)testLoggingWhenNil
 {
-    [SPDYCommonLogger setLogger:nil];
-    [SPDYCommonLogger setLoggerLevel:SPDYLogLevelError];
+    [SPDYProtocol setLogger:nil];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelError];
 
     SPDY_DEBUG(@"debug %d", 1);
     STAssertNil(_lastMessage,  nil);

@@ -49,15 +49,3 @@ typedef enum {
     SPDYSocketTLSVerificationFailed,
     SPDYSocketTransportError
 } SPDYSocketError;
-
-#define SPDY_STREAM_ERROR(CODE, MESSAGE) \
-    [[NSError alloc] initWithDomain:SPDYStreamErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]
-
-#define SPDY_SESSION_ERROR(CODE, MESSAGE) \
-    [[NSError alloc] initWithDomain:SPDYSessionErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]
-
-#define SPDY_SOCKET_ERROR(CODE, MESSAGE) \
-    [[NSError alloc] initWithDomain:SPDYSocketErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]
-
-#define SPDY_CODEC_ERROR(CODE, MESSAGE) \
-    [[NSError alloc] initWithDomain:SPDYCodecErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]

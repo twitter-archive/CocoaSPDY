@@ -9,6 +9,8 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
+#import "SPDYError.h"
+
 typedef enum : uint32_t {
     SPDY_SYN_STREAM_FRAME = 1,
     SPDY_SYN_REPLY_FRAME,
@@ -78,3 +80,15 @@ static const uint8_t SPDY_DATA_FLAG_FIN = 0x01;
 static const uint8_t SPDY_SETTINGS_FLAG_CLEAR_SETTINGS = 0x01;
 static const uint8_t SPDY_SETTINGS_FLAG_PERSIST_VALUE  = 0x01;
 static const uint8_t SPDY_SETTINGS_FLAG_PERSISTED      = 0x02;
+
+#define SPDY_STREAM_ERROR(CODE, MESSAGE) \
+[[NSError alloc] initWithDomain:SPDYStreamErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]
+
+#define SPDY_SESSION_ERROR(CODE, MESSAGE) \
+[[NSError alloc] initWithDomain:SPDYSessionErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]
+
+#define SPDY_SOCKET_ERROR(CODE, MESSAGE) \
+[[NSError alloc] initWithDomain:SPDYSocketErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]
+
+#define SPDY_CODEC_ERROR(CODE, MESSAGE) \
+[[NSError alloc] initWithDomain:SPDYCodecErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]

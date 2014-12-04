@@ -18,6 +18,7 @@
 #import <arpa/inet.h>
 #import <netinet/in.h>
 #import <sys/socket.h>
+#import "SPDYDefinitions.h"
 #import "SPDYSocket.h"
 #import "SPDYCommonLogger.h"
 
@@ -1544,8 +1545,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
     CHECK_THREAD_SAFETY();
-
-    NSParameterAssert(data.length > 0);
 
     if (data == nil || data.length == 0) return;
     if (_flags & kForbidReadsWrites) return;

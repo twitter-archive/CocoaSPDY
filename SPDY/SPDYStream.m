@@ -17,7 +17,7 @@
 #import <objc/runtime.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCommonLogger.h"
-#import "SPDYError.h"
+#import "SPDYDefinitions.h"
 #import "SPDYMetadata.h"
 #import "SPDYProtocol.h"
 #import "SPDYStopwatch.h"
