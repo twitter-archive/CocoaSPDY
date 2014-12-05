@@ -64,7 +64,7 @@
 - (NSUInteger)deflate:(uint8_t *)inputBuffer availIn:(NSUInteger)inputLength outputBuffer:(uint8_t *)outputBuffer availOut:(NSUInteger)outputLength error:(NSError **)pError
 {
     if (_zlibStreamStatus != Z_OK) {
-        if (pError) *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockEncodingError, @"invalid zlib stream state");
+        if (pError) *pError = SPDY_CODEC_ERROR(SPDYHeaderBlockEncodingError, @"invalid zlib stream state");
         return 0;
     }
 
@@ -77,7 +77,7 @@
     _zlibStreamStatus = deflate(&_zlibStream, Z_SYNC_FLUSH);
 
     if (_zlibStreamStatus != Z_OK && pError) {
-        *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockEncodingError, @"error compressing header block");
+        *pError = SPDY_CODEC_ERROR(SPDYHeaderBlockEncodingError, @"error compressing header block");
     }
 
     return _zlibStream.next_out - outputBuffer;

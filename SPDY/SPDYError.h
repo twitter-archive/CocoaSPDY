@@ -36,8 +36,8 @@ typedef enum {
 } SPDYSessionError;
 
 typedef enum {
-    SDPYHeaderBlockEncodingError = 1,
-    SDPYHeaderBlockDecodingError
+    SPDYHeaderBlockEncodingError = 1,
+    SPDYHeaderBlockDecodingError
 } SPDYCodecError;
 
 typedef enum {

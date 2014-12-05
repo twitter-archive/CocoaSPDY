@@ -51,7 +51,7 @@
 - (NSUInteger)inflate:(uint8_t *)inputBuffer availIn:(NSUInteger)inputLength outputBuffer:(uint8_t *)outputBuffer availOut:(NSUInteger)outputLength error:(NSError **)pError
 {
     if (_zlibStreamStatus != Z_OK) {
-        if (pError) *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockDecodingError, @"invalid zlib stream state");
+        if (pError) *pError = SPDY_CODEC_ERROR(SPDYHeaderBlockDecodingError, @"invalid zlib stream state");
         return 0;
     }
 
@@ -79,14 +79,14 @@
                 // For simplicity's sake, if avail_out == 0, we treat the header block
                 // as too large for this implementation to handle.
                 if (_zlibStream.avail_out == 0) {
-                    *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockDecodingError, @"header block is too large");
+                    *pError = SPDY_CODEC_ERROR(SPDYHeaderBlockDecodingError, @"header block is too large");
                 }
                 break;
 
             case Z_STREAM_ERROR:
             case Z_DATA_ERROR:
             case Z_MEM_ERROR:
-                *pError = SPDY_CODEC_ERROR(SDPYHeaderBlockDecodingError, @"error decompressing header block");
+                *pError = SPDY_CODEC_ERROR(SPDYHeaderBlockDecodingError, @"error decompressing header block");
                 break;
         }
     }
