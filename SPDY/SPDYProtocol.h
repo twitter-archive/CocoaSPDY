@@ -135,7 +135,7 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 /**
   Protocol implementation intended for use with NSURLSession.
 
-  Currently identical to SDPYProtocol, but potential future
+  Currently identical to SPDYProtocol, but potential future
   NSURLSession-specific features will be present in this subclass only
 */
 @interface SPDYURLSessionProtocol : SPDYProtocol

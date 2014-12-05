@@ -379,5 +379,93 @@
     STAssertEquals(_session.load, (NSUInteger)0, nil);
 }
 
+- (void)testMergeHeadersWithLocationAnd200DoesRedirect
+{
+    _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://mocked/init"]];
+    _URLRequest.SPDYPriority = 3;
+    _URLRequest.HTTPMethod = @"POST";
+    _URLRequest.SPDYBodyFile = @"bodyfile.txt";
+    _URLRequest.SPDYDeferrableInterval = 1.0;
+    [_URLRequest setValue:@"50" forHTTPHeaderField:@"content-length"];
+
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
+
+    NSDictionary *headers = @{@":scheme":@"https", @":host":@"mocked", @":path":@"/init",
+            @":status":@"200", @":version":@"http/1.1", @"Header1":@"Value1",
+            @"location":@"/newpath"};
+    NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked/newpath"];
+
+    [stream didReceiveResponse:headers];
+    STAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest, nil);
+
+    NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
+    STAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString, nil);
+    STAssertEqualObjects(redirectRequest.URL, redirectUrl, nil);
+    STAssertEquals(redirectRequest.SPDYPriority, (NSUInteger)3, nil);
+    STAssertEqualObjects(redirectRequest.HTTPMethod, @"POST", nil);
+    STAssertEqualObjects(redirectRequest.SPDYBodyFile, @"bodyfile.txt", nil);
+    STAssertEquals(redirectRequest.SPDYDeferrableInterval, 1.0, nil);
+    STAssertEqualObjects(redirectRequest.allSPDYHeaderFields[@"content-length"], @"50", nil);
+    STAssertNotNil(redirectRequest.allSPDYHeaderFields[@"content-type"], nil);
+
+    STAssertEqualObjects(((NSHTTPURLResponse *)_mockURLProtocolClient.lastRedirectResponse).allHeaderFields[@"Header1"], @"Value1", nil);
+}
+
+- (void)testMergeHeadersWithLocationAnd302DoesRedirectToGET
+{
+    _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
+    _URLRequest.HTTPMethod = @"POST";
+    _URLRequest.SPDYBodyFile = @"bodyfile.txt";
+    [_URLRequest setValue:@"50" forHTTPHeaderField:@"content-length"];
+
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
+
+    NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
+            @":status":@"302", @":version":@"http/1.1", @"Header1":@"Value1",
+            @"location":@"https://mocked2/newpath"};
+    NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked2/newpath"];
+
+    [stream didReceiveResponse:headers];
+    STAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest, nil);
+
+    NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
+    STAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString, nil);
+    STAssertEqualObjects(redirectRequest.URL, redirectUrl, nil);
+    STAssertEqualObjects(redirectRequest.HTTPMethod, @"GET", @"expect GET after 302");  // 302 generally means GET
+    STAssertNil(redirectRequest.SPDYBodyFile, nil);
+    STAssertNil(redirectRequest.HTTPBodyStream, nil);
+    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-length"], nil);
+    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-type"], nil);
+}
+
+- (void)testMergeHeadersWithLocationAnd303DoesRedirectToGET
+{
+    NSInputStream *inputStream = [NSInputStream inputStreamWithFileAtPath:@"foo"];
+    _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://mocked/init"]];
+    _URLRequest.HTTPMethod = @"POST";
+    _URLRequest.HTTPBodyStream = inputStream;  // test stream this time
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
+
+    NSDictionary *headers = @{@":scheme":@"https", @":host":@"mocked", @":path":@"/init",
+            @":status":@"303", @":version":@"http/1.1", @"Header1":@"Value1",
+            @"location":@"/newpath?param=value&foo=1"};
+    NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked/newpath?param=value&foo=1"];
+
+    [stream didReceiveResponse:headers];
+    STAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest, nil);
+
+    NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
+    STAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString, nil);
+    STAssertEqualObjects(redirectRequest.URL, redirectUrl, nil);
+    STAssertEqualObjects(redirectRequest.HTTPMethod, @"GET", @"expect GET after 303");  // 303 means GET
+    STAssertNil(redirectRequest.SPDYBodyFile, nil);
+    STAssertNil(redirectRequest.HTTPBodyStream, nil);
+    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-length"], nil);
+    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-type"], nil);
+}
+
 @end
 
