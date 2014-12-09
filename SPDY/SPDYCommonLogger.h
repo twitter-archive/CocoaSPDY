@@ -14,9 +14,6 @@
 
 extern volatile SPDYLogLevel __sharedLoggerLevel;
 
-// Only needed in tests and maybe debugging
-extern dispatch_queue_t __sharedLoggerQueue;
-
 #define LOG_LEVEL_ENABLED(l) ((l) <= __sharedLoggerLevel)
 
 #define SPDY_DEBUG(message, ...) do { \
@@ -49,4 +46,5 @@ extern dispatch_queue_t __sharedLoggerQueue;
 + (void)setLoggerLevel:(SPDYLogLevel)level;
 + (SPDYLogLevel)currentLoggerLevel;
 + (void)log:(NSString *)format atLevel:(SPDYLogLevel)level, ... NS_FORMAT_FUNCTION(1,3);
++ (void)flush;
 @end

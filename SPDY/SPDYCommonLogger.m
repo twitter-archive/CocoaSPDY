@@ -83,4 +83,10 @@ volatile SPDYLogLevel __sharedLoggerLevel;
     });
 }
 
++ (void)flush
+{
+    dispatch_sync(__sharedLoggerQueue, ^{
+    });
+}
+
 @end

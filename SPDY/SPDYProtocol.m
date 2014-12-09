@@ -49,6 +49,60 @@ static NSMutableDictionary *certificates;
 static dispatch_queue_t configQueue;
 static dispatch_once_t initConfig;
 
+@interface SPDYAssertionHandler : NSAssertionHandler
+@property (nonatomic) BOOL abortOnFailure;
+@end
+
+@implementation SPDYAssertionHandler
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _abortOnFailure = YES;
+    }
+    return self;
+}
+
+- (void)handleFailureInMethod:(SEL)selector
+                       object:(id)object
+                         file:(NSString *)fileName
+                   lineNumber:(NSInteger)line
+                  description:(NSString *)format, ...
+{
+    va_list args;
+    va_start(args, format);
+    NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
+    va_end(args);
+
+    NSString *reason = [NSString stringWithFormat:@"*** CocoaSPDY NSAssert failure '%@'\nin method '%@' for object %@ in %@#%zd\n%@", message, NSStringFromSelector(selector), object, fileName, line, [NSThread callStackSymbols]];
+    SPDY_ERROR(@"%@", reason);
+    [SPDYCommonLogger flush];
+    if (_abortOnFailure) {
+        abort();
+    }
+}
+
+- (void)handleFailureInFunction:(NSString *)functionName
+                           file:(NSString *)fileName
+                     lineNumber:(NSInteger)line
+                    description:(NSString *)format, ...
+{
+    va_list args;
+    va_start(args, format);
+    NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
+    va_end(args);
+
+    NSString *reason = [NSString stringWithFormat:@"*** CocoaSPDY NSCAssert failure '%@'\nin function '%@' in %@#%zd\n%@", message, functionName, fileName, line, [NSThread callStackSymbols]];
+    SPDY_ERROR(@"%@", reason);
+    [SPDYCommonLogger flush];
+    if (_abortOnFailure) {
+        abort();
+    }
+}
+
+@end
+
 @implementation SPDYProtocol
 {
     SPDYStream *_stream;
@@ -239,6 +293,14 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 {
     NSURLRequest *request = self.request;
     SPDY_INFO(@"start loading %@", request.URL.absoluteString);
+
+    // Add an assertion handler to this NSURL thread if one doesn't exist. Without it, assertions
+    // will get swallowed on iOS. OSX seems to behave properly without it, but it's safer to
+    // just always set this.
+    NSMutableDictionary *currentThreadDictionary = [[NSThread currentThread] threadDictionary];
+    if (currentThreadDictionary[NSAssertionHandlerKey] == nil) {
+        currentThreadDictionary[NSAssertionHandlerKey] = [[SPDYAssertionHandler alloc] init];
+    }
 
     NSError *error;
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:request.URL error:&error];
