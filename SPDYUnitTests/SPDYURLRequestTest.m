@@ -267,6 +267,18 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     STAssertEqualObjects(headers[@":path"], @"/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule", nil);
 }
 
+- (void)testPathHeaderEmpty
+{
+    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com");
+    STAssertEqualObjects(headers[@":path"], @"/", nil);
+}
+
+- (void)testUserAgentHeaderNotEmpty
+{
+    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com");
+    STAssertNotNil(headers[@"user-agent"], nil);
+}
+
 - (void)testSPDYProperties
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
@@ -300,6 +312,38 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     STAssertEquals(immutableCopy.SPDYBypass, (BOOL)TRUE, nil);
     STAssertEquals(immutableCopy.SPDYBodyStream, stream, nil);
     STAssertEquals(immutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
+}
+
+- (void)testCanonicalRequestDoesNotAddDefaultUserAgent
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com/", @"GET");
+    NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
+
+    STAssertNil([canonicalRequest valueForHTTPHeaderField:@"User-Agent"], nil);
+}
+
+- (void)testCanonicalRequestAddsHost
+{
+    NSMutableURLRequest *request = GetRequest(@"http://:80/foo", @"GET");
+    NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
+
+    STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://localhost:80/foo", nil);
+}
+
+- (void)testCanonicalRequestAddsEmptyPath
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com", @"GET");
+    NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
+
+    STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com/", nil);
+}
+
+- (void)testCanonicalRequestAddsEmptyPathWithPort
+{
+    NSMutableURLRequest *request = GetRequest(@"http://example.com:80", @"GET");
+    NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
+
+    STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com:80/", nil);
 }
 
 @end

@@ -14,15 +14,16 @@
 #endif
 
 #import <arpa/inet.h>
-#import "SPDYProtocol.h"
+#import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
+#import "SPDYMetadata.h"
 #import "SPDYOrigin.h"
+#import "SPDYProtocol.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
-#import "SPDYTLSTrustEvaluator.h"
-#import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYStream.h"
-#import "SPDYMetadata.h"
+#import "SPDYTLSTrustEvaluator.h"
 
 NSString *const SPDYStreamErrorDomain = @"SPDYStreamErrorDomain";
 NSString *const SPDYSessionErrorDomain = @"SPDYSessionErrorDomain";
@@ -218,7 +219,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request
 {
-    return request;
+    return SPDYCanonicalRequestForRequest(request);
 }
 
 - (void)startLoading

@@ -79,6 +79,10 @@
         [path appendFormat:@"#%@", fragment];
     }
 
+    if (path.length == 0) {
+        [path appendString:@"/"];
+    }
+
     // Allow manually-set headers to override request properties
     NSMutableDictionary *spdyHeaders = [[NSMutableDictionary alloc] initWithDictionary:@{
         @":method"  : self.HTTPMethod,
@@ -106,6 +110,9 @@
     if ([self.HTTPMethod isEqualToString:@"POST"] && hasBodyData) {
         spdyHeaders[@"content-type"] = @"application/x-www-form-urlencoded";
     }
+
+    // Default user-agent in case none provided
+    spdyHeaders[@"user-agent"] = @"CocoaSPDY";
 
     // NSURLRequest will automatically set the content-length header when HTTPBody is used,
     // so we'll do that too. Note that when using HTTPBodyStream, the content-length is not
