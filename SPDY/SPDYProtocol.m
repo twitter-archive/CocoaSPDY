@@ -196,6 +196,19 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     });
 }
 
++ (void)unregisterAllAliases
+{
+    dispatch_barrier_async(configQueue, ^{
+        [aliases removeAllObjects];
+        [certificates removeAllObjects];
+
+        [[NSNotificationCenter defaultCenter] postNotificationName:SPDYOriginUnregisteredNotification
+                                                            object:nil
+                                                          userInfo:@{ @"alias": @"*"}];
+        SPDY_DEBUG(@"unregistered all aliases");
+    });
+}
+
 + (SPDYOrigin *)originForAlias:(SPDYOrigin *)alias
 {
     __block SPDYOrigin *origin;
@@ -327,7 +340,7 @@ static NSMutableSet *origins;
     });
 }
 
-+ (void)unregisterAll
++ (void)unregisterAllOrigins
 {
     dispatch_barrier_async(configQueue, ^{
         [origins removeAllObjects];
