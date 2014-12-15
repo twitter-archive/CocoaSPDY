@@ -14,6 +14,8 @@
 @class SPDYSocket;
 @class SPDYSocketReadOp;
 @class SPDYSocketWriteOp;
+@class SPDYOrigin;
+@class SPDYOriginEndpoint;
 
 extern NSString *const SPDYSocketException;
 
@@ -27,7 +29,7 @@ extern NSString *const SPDYSocketException;
 
   You may call [SPDYSocket unreadData] during this callback to retrieve
   remaining data off the socket. This delegate method may be called before
-  socket:didAcceptNewSocket: or onSocket:didConnectToHost:.
+  socket:didAcceptNewSocket: or socket:didConnectToHost:port:.
 */
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error;
 
@@ -151,18 +153,12 @@ extern NSString *const SPDYSocketException;
 
 /**
   Connects to the given host and port.
-*/
-- (bool)connectToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError;
-
-/**
-  Connects to the given host and port.
 
   @param timeout use a negative value for no connection timeout
 **/
-- (bool)connectToHost:(NSString *)hostname
-               onPort:(in_port_t)port
-          withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)pError;
+- (bool)connectToOrigin:(SPDYOrigin *)origin
+            withTimeout:(NSTimeInterval)timeout
+                  error:(NSError **)pError;
 
 /**
   Disconnects immediately; any pending reads or writes are dropped.
