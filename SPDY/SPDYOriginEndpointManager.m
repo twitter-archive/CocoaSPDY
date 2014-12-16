@@ -92,8 +92,9 @@
     // No operations pending, go ahead and complete
     if (_autoConfigRunLoopSource == nil) {
         if (_resolveCallback) {
-            _resolveCallback();
+            dispatch_block_t block = _resolveCallback;
             _resolveCallback = nil;
+            block();
         }
     }
 }
@@ -125,7 +126,6 @@
     for (NSString *mode in _autoConfigRunLoopModes) {
         CFRunLoopAddSource(CFRunLoopGetCurrent(), _autoConfigRunLoopSource, (__bridge CFStringRef)mode);
     }
-
 }
 
 - (void)_removeRunLoopSource
@@ -158,12 +158,13 @@
     [self _removeRunLoopSource];
 
     if (_resolveCallback) {
-        _resolveCallback();
+        dispatch_block_t block = _resolveCallback;
         _resolveCallback = nil;
+        block();
     }
 }
 
-void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
+static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
 {
     SPDYOriginEndpointManager *manager = CFBridgingRelease(client);
 

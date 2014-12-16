@@ -85,14 +85,12 @@
 
 - (id)initWithTimeout:(NSTimeInterval)timeout
 {
-    self = [super initWithData:nil
+    return [super initWithData:nil
                    startOffset:0
                      maxLength:0
                        timeout:timeout
                    fixedLength:PROXY_READ_SIZE
                            tag:0];
-    _statusCode = 0;
-    return self;
 }
 
 - (bool)tryParseResponse
