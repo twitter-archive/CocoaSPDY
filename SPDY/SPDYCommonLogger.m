@@ -70,15 +70,16 @@ volatile SPDYLogLevel __sharedLoggerLevel;
     NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
     va_end(args);
 
+#ifdef DEBUG
+    if (__sharedLogger == nil) {
+        NSLog(@"SPDY [%@] %@", logLevels[level], message);
+    }
+#endif
+    
     dispatch_async(__sharedLoggerQueue, ^{
         if (__sharedLogger) {
             [__sharedLogger log:message atLevel:level];
         }
-#ifdef DEBUG
-        else {
-            NSLog(@"SPDY [%@] %@", logLevels[level], message);
-        }
-#endif
     });
 }
 
