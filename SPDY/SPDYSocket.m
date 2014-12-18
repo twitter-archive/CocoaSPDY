@@ -21,12 +21,16 @@
 #import "SPDYDefinitions.h"
 #import "SPDYSocket.h"
 #import "SPDYCommonLogger.h"
+#import "SPDYOrigin.h"
+#import "SPDYOriginEndpoint.h"
+#import "SPDYOriginEndpointManager.h"
+#import "SPDYSocket.h"
+#import "SPDYSocketOps.h"
 
 #pragma mark Declarations
 
 #define READ_QUEUE_CAPACITY  64    // Initial capacity
 #define WRITE_QUEUE_CAPACITY 64    // Initial capacity
-#define READ_CHUNK_SIZE      65536 // Limit on size of each read pass
 #define WRITE_CHUNK_SIZE     2852  // Limit on size of each write pass
 
 #define DEBUG_THREAD_SAFETY 0
@@ -59,6 +63,7 @@ typedef enum : uint16_t {
     kDequeueWriteScheduled   = 1 << 10,  // If set, a _dequeueWrite operation is already scheduled
     kSocketCanAcceptBytes    = 1 << 11,  // If set, we know socket can accept bytes. If unset, it's unknown.
     kSocketHasBytesAvailable = 1 << 12,  // If set, we know socket has bytes available. If unset, it's unknown.
+    kConnectingToProxy       = 1 << 13,  // If set, a proxy connection is in progress
 } SPDYSocketFlag;
 
 @interface SPDYSocket ()
@@ -68,6 +73,7 @@ typedef enum : uint16_t {
 }
 
 // Connecting
+- (bool)_connectToNextEndpointWithError:(NSError **)error;
 - (void)_startConnectTimeout:(NSTimeInterval)timeout;
 - (void)_endConnectTimeout;
 - (void)_timeoutConnect:(NSTimer *)timer;
@@ -137,156 +143,6 @@ static void SPDYSocketCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
 static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType type, void *pInfo);
 
 
-/**
-  Encompasses the instructions for any given read operation.
-
-  [SPDYSocketDelegate socket:didReadData:withTag:] is called when a read
-  operation completes. If _fixedLength is set, the delegate will not be called
-  until exactly that number of bytes is read. If _maxLength is set, the
-  delegate will be called as soon as 0 < bytes <= maxLength are read. If
-  neither is set, the delegate will be called as soon as any bytes are read.
-*/
-@interface SPDYSocketReadOp : NSObject {
- @public
-    NSMutableData *_buffer;
-    NSUInteger _bytesRead;
-    NSUInteger _startOffset;
-    NSUInteger _maxLength;
-    NSUInteger _fixedLength;
-    NSUInteger _originalBufferLength;
-    NSTimeInterval _timeout;
-    bool _bufferOwner;
-    long _tag;
-}
-
-- (id)initWithData:(NSMutableData *)data
-       startOffset:(NSUInteger)startOffset
-         maxLength:(NSUInteger)maxLength
-           timeout:(NSTimeInterval)timeout
-       fixedLength:(NSUInteger)fixedLength
-               tag:(long)tag;
-
-- (NSUInteger)safeReadLength;
-@end
-
-@implementation SPDYSocketReadOp
-
-- (id)initWithData:(NSMutableData *)data
-       startOffset:(NSUInteger)startOffset
-         maxLength:(NSUInteger)maxLength
-           timeout:(NSTimeInterval)timeout
-       fixedLength:(NSUInteger)fixedLength
-               tag:(long)tag
-{
-    self = [super init];
-    if (self) {
-        if (data) {
-            _buffer = data;
-            _startOffset = startOffset;
-            _bufferOwner = NO;
-            _originalBufferLength = data.length;
-        } else {
-            _buffer = [[NSMutableData alloc] initWithLength:MAX(0, fixedLength)];
-            _startOffset = 0;
-            _bufferOwner = YES;
-            _originalBufferLength = 0;
-        }
-
-        _bytesRead = 0;
-        _maxLength = maxLength;
-        _timeout = timeout;
-        _fixedLength = fixedLength;
-        _tag = tag;
-    }
-    return self;
-}
-
-/**
-  Returns the safe length of data that can be read relative to the buffer.
- */
-- (NSUInteger)safeReadLength
-{
-    if (_fixedLength > 0) {
-        return _fixedLength - _bytesRead;
-    } else {
-        NSUInteger result = READ_CHUNK_SIZE;
-
-        if (_maxLength > 0) {
-            result = MIN(result, (_maxLength - _bytesRead));
-        }
-
-        if (!_bufferOwner && _buffer.length == _originalBufferLength) {
-            NSUInteger bufferSize = _buffer.length;
-            NSUInteger bufferSpace = bufferSize - _startOffset - _bytesRead;
-
-            if (bufferSpace > 0) {
-                result = MIN(result, bufferSpace);
-            }
-        }
-
-        return result;
-    }
-}
-
-@end
-
-
-/**
-  Encompasses the instructions for any given write operation.
-*/
-@interface SPDYSocketWriteOp : NSObject {
- @public
-    NSData *_buffer;
-    NSUInteger _bytesWritten;
-    NSTimeInterval _timeout;
-    long _tag;
-}
-
-- (id)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag;
-@end
-
-@implementation SPDYSocketWriteOp
-
-- (id)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag
-{
-    self = [super init];
-    if (self) {
-        _buffer = data;
-        _bytesWritten = 0;
-        _timeout = timeout;
-        _tag = tag;
-    }
-    return self;
-}
-
-@end
-
-
-/**
-  Encompasses instructions for TLS.
-*/
-@interface SPDYSocketTLSOp : NSObject {
- @public
-    NSDictionary *_tlsSettings;
-}
-
-- (id)initWithTLSSettings:(NSDictionary *)settings;
-@end
-
-@implementation SPDYSocketTLSOp
-
-- (id)initWithTLSSettings:(NSDictionary *)settings
-{
-    self = [super init];
-    if (self) {
-        _tlsSettings = [settings copy];
-    }
-    return self;
-}
-
-@end
-
-
 @implementation SPDYSocket
 {
     CFSocketNativeHandle _socket4FD;
@@ -317,6 +173,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     id<SPDYSocketDelegate> _delegate;
     uint16_t _flags;
+
+    SPDYOriginEndpointManager *_endpointManager;
+    SPDYOriginEndpoint *_endpoint;
 }
 
 - (id)init
@@ -646,22 +505,15 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 #pragma mark Connecting
 
-
-- (bool)connectToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError
-{
-    return [self connectToHost:hostname onPort:port withTimeout:-1 error:pError];
-}
-
 /**
   Attempts to connect to the given host and port.
 
   The delegate will have access to the CFReadStream and CFWriteStream prior to connection,
   specifically in the socketWillConnect: method.
 */
-- (bool)connectToHost:(NSString *)hostname
-               onPort:(in_port_t)port
-          withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)pError
+- (bool)connectToOrigin:(SPDYOrigin *)origin
+            withTimeout:(NSTimeInterval)timeout
+                  error:(NSError **)pError
 {
     if (_delegate == nil) {
         [NSException raise:SPDYSocketException
@@ -675,18 +527,75 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     [self _emptyQueues];
 
-    if (![self _createStreamsToHost:hostname onPort:port error:pError]) goto Failed;
-    if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
-    if (![self _configureStreams:pError])                               goto Failed;
-    if (![self _openStreams:pError])                                    goto Failed;
+    if (_runLoop == nil) {
+        // Need to set this before _startConnectTimeout
+        _runLoop = CFRunLoopGetCurrent();
+    }
 
     [self _startConnectTimeout:timeout];
     _flags |= kDidStartDelegate;
 
+    if (_endpointManager == nil) {
+        _endpointManager = [[SPDYOriginEndpointManager alloc] initWithOrigin:origin];
+    }
+
+    __typeof__(self) __weak weakSelf = self;
+    [_endpointManager resolveEndpointsWithCompletionHandler:^{
+        __typeof__(self) strongSelf = weakSelf;
+        if (strongSelf) {
+            NSError *error = nil;
+            if (![strongSelf _connectToNextEndpointWithError:&error]) {
+                [strongSelf _closeWithError:error];
+                return;
+            }
+        }
+    }];
+
+    return YES;
+}
+
+- (bool)_connectToNextEndpointWithError:(NSError **)pError
+{
+    _endpoint = [_endpointManager selectNextEndpoint];
+    if (_endpoint == nil) {
+        if (pError) {
+            *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"No endpoints available, unable to connect socket");
+        }
+        return NO;
+    }
+
+    SPDY_ERROR(@"socket attempting connection to %@", _endpoint);
+
+    if (![self _createStreamsToHost:_endpoint.host onPort:_endpoint.port error:pError]) goto Failed;
+    if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
+    if (![self _configureStreams:pError])                               goto Failed;
+    if (![self _openStreams:pError])                                    goto Failed;
+
+    // If connecting to an HTTPS proxy, we have to exchange an HTTP CONNECT message. This exchange
+    // needs to be included in the timeout. If anything fails, we'd prefer to hide the error
+    // from the app, until no more endpoints (proxy or direct) are available. Let's go start
+    // the CONNECT exchange now.
+    if (_endpoint.type == SPDYOriginEndpointTypeHttpsProxy) {
+        CHECK_THREAD_SAFETY();
+
+        _flags |= kConnectingToProxy;
+
+        // Issue the proxy read op. Needs to go to the head of the queue.
+        SPDYSocketProxyReadOp *readOp = [[SPDYSocketProxyReadOp alloc] initWithTimeout:(NSTimeInterval)-1];
+        [_readQueue insertObject:readOp atIndex:0];
+        [self _scheduleRead];
+
+        // Issue the proxy write op (CONNECT message). Needs to go to the head of the queue.
+        SPDYSocketProxyWriteOp *writeOp = [[SPDYSocketProxyWriteOp alloc] initWithOrigin:_endpoint.origin timeout:(NSTimeInterval)-1];
+        [_writeQueue insertObject:writeOp atIndex:0];
+        [self _scheduleWrite];
+
+        SPDY_DEBUG(@"sent proxy CONNECT request");
+    }
+
     return YES;
 
     Failed:
-    [self _close];
     return NO;
 }
 
@@ -793,6 +702,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (bool)_configureStreams:(NSError **)pError
 {
+    // Always called, even for proxy connections
     if ([_delegate respondsToSelector:@selector(socketWillConnect:)]) {
         if (![_delegate socketWillConnect:self]) {
             if (pError) *pError = [self abortError];
@@ -848,7 +758,11 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             return;
         }
 
-        [self _endConnectTimeout];
+        // A non-proxy connection is finished at this point. Proxy connections still have to
+        // exchange an HTTP CONNECT message.
+        if (!(_flags & kConnectingToProxy)) {
+            [self _endConnectTimeout];
+        }
         [self _setConnectionProperties];
 
         if ([_delegate respondsToSelector:@selector(socket:didConnectToHost:port:)]) {
@@ -908,10 +822,14 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)_closeWithError:(NSError *)error
 {
+    NSParameterAssert(error != nil);
+
     _flags |= kClosingWithError;
 
     if (_flags & kDidStartDelegate) {
-        [self _captureUnreadData];
+        if (!(_flags & kConnectingToProxy)) {
+            [self _captureUnreadData];
+        }
 
         // Give the delegate the opportunity to recover unread data
         if ([_delegate respondsToSelector:@selector(socket:willDisconnectWithError:)]) {
@@ -955,6 +873,11 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (void)_close
 {
+    if ((_flags & kConnectingToProxy) && _endpointManager.remaining > 0) {
+        SPDY_ERROR(@"socket failed connecting to proxy %@. %lu endpoints remain, but only 1 attempt is supported.",
+                _endpoint, (unsigned long)_endpointManager.remaining);
+    }
+
     [self _emptyQueues];
 
     _unreadData = nil;
@@ -1009,19 +932,18 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     _runLoop = NULL;
 
     // If the connection has at least been started, notify delegate that it is now ending
-    bool shouldCallDelegate = (_flags & kDidStartDelegate) == kDidStartDelegate;
+    bool shouldCallDelegate = (_flags & kDidStartDelegate);
 
     // Clear all flags
     _flags = (uint16_t)0;
 
     if (shouldCallDelegate) {
+        // Do not access any instance variables after calling onSocketDidDisconnect.
+        // This gives the delegate freedom to release us without returning here and crashing.
         if ([_delegate respondsToSelector:@selector(socketDidDisconnect:)]) {
             [_delegate socketDidDisconnect:self];
         }
     }
-
-    // Do not access any instance variables after calling onSocketDidDisconnect.
-    // This gives the delegate freedom to release us without returning here and crashing.
 }
 
 /**
@@ -1453,10 +1375,14 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         readComplete = YES;
     }
 
-    if (readComplete) {
+    if ([_currentReadOp isKindOfClass:[SPDYSocketProxyReadOp class]]) {
+        // Let's see if the proxy has fully responded
+        [self _onProxyResponse];
+    } else if (readComplete) {
         [self _finishRead];
         if (!readError) [self _scheduleRead];
     } else if (newBytesRead > 0) {
+        // Note we will never call this when a proxy connect is happening
         if ([_delegate respondsToSelector:@selector(socket:didReadPartialDataOfLength:tag:)]) {
             [_delegate socket:self didReadPartialDataOfLength:newBytesRead tag:_currentReadOp->_tag];
         }
@@ -1516,7 +1442,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     NSTimeInterval timeoutExtension = 0.0;
 
-    if ([_delegate respondsToSelector:@selector(socket:willTimeoutReadWithTag:elapsed:bytesDone:)]) {
+    if (!(_flags & kConnectingToProxy) &&
+            [_delegate respondsToSelector:@selector(socket:willTimeoutReadWithTag:elapsed:bytesDone:)]) {
         timeoutExtension = [_delegate socket:self willTimeoutReadWithTag:_currentReadOp->_tag
                                      elapsed:_currentReadOp->_timeout
                                    bytesDone:_currentReadOp->_bytesRead];
@@ -1615,7 +1542,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     NSUInteger newBytesWritten = 0;
     bool writeComplete = NO;
 
-    while (!writeComplete && [self _writeStreamReady]) {
+    while (!(writeComplete = (_currentWriteOp->_buffer.length == _currentWriteOp->_bytesWritten))&&
+            [self _writeStreamReady]) {
 
         NSUInteger bytesRemaining = _currentWriteOp->_buffer.length - _currentWriteOp->_bytesWritten;
         NSUInteger bytesToWrite = (bytesRemaining < WRITE_CHUNK_SIZE) ? bytesRemaining : WRITE_CHUNK_SIZE;
@@ -1634,14 +1562,17 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         } else {
             _currentWriteOp->_bytesWritten += bytesWritten;
             newBytesWritten += bytesWritten;
-            writeComplete = (_currentWriteOp->_buffer.length == _currentWriteOp->_bytesWritten);
         }
     }
 
-    if (writeComplete) {
+    if ([_currentWriteOp isKindOfClass:[SPDYSocketProxyWriteOp class]]) {
+        // Proxy connect has been written. We need to block other writes until the read is
+        // finished, so we're just going to sit on this op. It will be cleared in _onProxyResponse.
+    } else if (writeComplete) {
         [self _finishWrite];
         [self _scheduleWrite];
     } else if (newBytesWritten > 0) {
+        // Note we will never call this when a proxy connect is happening
         if ([_delegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)]) {
             [_delegate socket:self didWritePartialDataOfLength:newBytesWritten tag:_currentWriteOp->_tag];
         }
@@ -1652,7 +1583,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 {
     NSAssert(_currentWriteOp, @"Trying to complete current write when there is no current write.");
 
-    if ([_delegate respondsToSelector:@selector(socket:didWriteDataWithTag:)]) {
+    if (!(_flags & kConnectingToProxy) &&
+            [_delegate respondsToSelector:@selector(socket:didWriteDataWithTag:)]) {
         [_delegate socket:self didWriteDataWithTag:_currentWriteOp->_tag];
     }
 
@@ -1675,7 +1607,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     NSTimeInterval timeoutExtension = 0.0;
 
-    if ([_delegate respondsToSelector:@selector(socket:willTimeoutWriteWithTag:elapsed:bytesDone:)]) {
+    if (!(_flags & kConnectingToProxy) &&
+            [_delegate respondsToSelector:@selector(socket:willTimeoutWriteWithTag:elapsed:bytesDone:)]) {
         timeoutExtension = [_delegate socket:self willTimeoutWriteWithTag:_currentWriteOp->_tag
                                      elapsed:_currentWriteOp->_timeout
                                    bytesDone:_currentWriteOp->_bytesWritten];
@@ -1723,6 +1656,17 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     if ((_flags & kStartingReadTLS) && (_flags & kStartingWriteTLS)) {
         SPDYSocketTLSOp *tlsOp = (SPDYSocketTLSOp *)_currentReadOp;
 
+        // If we're using a proxy server, and we're not establishing a TLS connection with the
+        // proxy itself, then we need to set the peer name to be the origin host, not the proxy
+        // host. Only do this if the app hasn't already set the peer name.
+        if (_endpoint.type != SPDYOriginEndpointTypeDirect &&
+                !(_flags & kConnectingToProxy) &&
+                !tlsOp->_tlsSettings[(__bridge NSString *)kCFStreamSSLPeerName]) {
+            NSMutableDictionary *newTlsSettings = [tlsOp->_tlsSettings mutableCopy];
+            newTlsSettings[(__bridge NSString *)kCFStreamSSLPeerName] = _endpoint.origin.host;
+            tlsOp->_tlsSettings = newTlsSettings;
+        }
+
         bool didStartOnReadStream = CFReadStreamSetProperty(_readStream, kCFStreamPropertySSLSettings,
             (__bridge CFDictionaryRef)tlsOp->_tlsSettings);
         bool didStartOnWriteStream = CFWriteStreamSetProperty(_writeStream, kCFStreamPropertySSLSettings,
@@ -1743,6 +1687,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         bool acceptTrust = YES;
         if ([_delegate respondsToSelector:@selector(socket:securedWithTrust:)]) {
             SecTrustRef trust = (SecTrustRef)CFReadStreamCopyProperty(_readStream, kCFStreamPropertySSLPeerTrust);
+            // TODO: Need something to distinguish proxy from endpoint? Only when/if we secure
+            // the proxy connection itself with TLS. Not doing that yet.
             acceptTrust = [_delegate socket:self securedWithTrust:trust];
             if (trust) {
                 CFRelease(trust);
@@ -1762,6 +1708,58 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     }
 }
 
+- (void)_onProxyResponse
+{
+    // TODO: uncomment NSAsserts here once they have been fixed.
+    //NSAssert(_flags & kConnectingToProxy, @"must be connecting to proxy");
+
+    SPDYSocketProxyReadOp *proxyReadOp = (SPDYSocketProxyReadOp *)_currentReadOp;
+    SPDY_DEBUG(@"parsing proxy response: %@", proxyReadOp);
+    if ([proxyReadOp tryParseResponse]) {
+        SPDY_INFO(@"received proxy response: %@", proxyReadOp);
+
+        if ([proxyReadOp success]) {
+            // The write op has clearly completed, since we're received the response, but it's
+            // still sitting as the current op. Finish it too.
+            //NSAssert([_currentReadOp isKindOfClass:[SPDYSocketProxyReadOp class]], nil);
+            //NSAssert([_currentWriteOp isKindOfClass:[SPDYSocketProxyWriteOp class]], nil);
+
+            // Since this is a TCP stream, it's possible for there to be data present after the
+            // proxy's HTTP response. However, because we always block on completion of both the
+            // proxy read op and proxy write op before executing any additional operations, we
+            // won't have sent data. Thus we can't receive data from the origin yet. To do so would
+            // be a protocol error.
+            // Note that we are allowed to immediately send data to the origin after sending the
+            // proxy CONNECT message per the spec, but we don't. In addition, because we should
+            // always use TLS with SPDY to the origin, we're doubly safe from an early send and
+            // extra receive.
+            SPDYSocketProxyReadOp *op = (SPDYSocketProxyReadOp *)_currentReadOp;
+            if (op->_bytesParsed != op->_bytesRead) {
+                SPDY_ERROR(@"socket failed proxy connection to %@, response too large: %lu parsed, %lu read",
+                        _endpoint, (unsigned long)op->_bytesParsed, (unsigned long)op->_bytesRead);
+                [self _closeWithError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Proxy response too large")];
+                return;
+            }
+
+            // Successfully connected to proxy server, carry on
+            SPDY_INFO(@"socket is now connected to proxy");
+            _flags &= ~kConnectingToProxy;
+
+            [self _endConnectTimeout];
+
+            [self _endRead];
+            [self _scheduleRead];
+
+            [self _endWrite];
+            [self _scheduleWrite];
+        }
+        else {
+            SPDY_ERROR(@"socket failed proxy connection to %@, got \"%@\"", _endpoint, proxyReadOp);
+            [self _closeWithError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Invalid proxy response")];
+            return;
+        }
+    }
+}
 
 #pragma mark CFReadStream callbacks
 

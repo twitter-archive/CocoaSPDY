@@ -248,4 +248,28 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
  */
 @property BOOL enableTCPNoDelay;
 
+/**
+  Enable or disable system-configured HTTPS proxy support.
+
+  Default value is YES. Configuration of this option is experimental and
+  may be removed in a future version.
+*/
+@property BOOL enableProxy;
+
+/**
+  Set HTTPS proxy host override.
+
+  Default value is nil. If set in conjunction with proxyPort, overrides
+  the system-configured proxy information and forces use of a proxy.
+*/
+@property NSString *proxyHost;
+
+/**
+  Set HTTPS proxy port override.
+
+  Default value is 0. If set in conjunction with proxyHost, overrides
+  the system-configured proxy information and forces use of a proxy.
+*/
+@property NSInteger proxyPort;
+
 @end

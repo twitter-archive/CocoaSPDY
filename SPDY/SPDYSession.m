@@ -22,6 +22,7 @@
 #import "SPDYFrameEncoder.h"
 #import "SPDYMetadata.h"
 #import "SPDYOrigin.h"
+#import "SPDYOriginEndpoint.h"
 #import "SPDYProtocol.h"
 #import "SPDYSettingsStore.h"
 #import "SPDYSocket.h"
@@ -104,10 +105,9 @@
         _connectedStopwatch = [[SPDYStopwatch alloc] init];
 
         SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:self];
-        bool connecting = [socket connectToHost:origin.host
-                                         onPort:origin.port
-                                    withTimeout:configuration.connectTimeout
-                                          error:pError];
+        bool connecting = [socket connectToOrigin:origin
+                                      withTimeout:configuration.connectTimeout
+                                            error:pError];
 
         if (connecting) {
             _delegate = delegate;

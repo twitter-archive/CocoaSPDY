@@ -380,6 +380,9 @@ static SPDYConfiguration *defaultConfiguration;
     defaultConfiguration.tlsSettings = @{ /* use Apple default TLS settings */ };
     defaultConfiguration.connectTimeout = 60.0;
     defaultConfiguration.enableTCPNoDelay = NO;
+    defaultConfiguration.enableProxy = YES;
+    defaultConfiguration.proxyHost = nil;
+    defaultConfiguration.proxyPort = 0;
 }
 
 + (SPDYConfiguration *)defaultConfiguration
@@ -398,6 +401,9 @@ static SPDYConfiguration *defaultConfiguration;
     copy.tlsSettings = _tlsSettings;
     copy.connectTimeout = _connectTimeout;
     copy.enableTCPNoDelay = _enableTCPNoDelay;
+    copy.enableProxy = _enableProxy;
+    copy.proxyHost = _proxyHost;
+    copy.proxyPort = _proxyPort;
     return copy;
 }
 
