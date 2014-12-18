@@ -28,7 +28,7 @@
     STAssertTrue(op->_buffer.length > 0, nil);
 
     NSString *httpConnect = [[NSString alloc] initWithData:op->_buffer encoding:NSUTF8StringEncoding];
-    STAssertTrue([httpConnect hasPrefix:@"CONNECT twitter.com:443 HTTP/1.1\r\nHost: twitter.com\r\n"], @"actual: %@", httpConnect);
+    STAssertTrue([httpConnect hasPrefix:@"CONNECT twitter.com:443 HTTP/1.1\r\nHost: twitter.com:443\r\n"], @"actual: %@", httpConnect);
 }
 
 - (void)testProxyReadOpInit

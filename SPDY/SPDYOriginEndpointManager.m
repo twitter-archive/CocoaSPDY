@@ -28,7 +28,7 @@
     NSInteger _endpointIndex;
     CFRunLoopSourceRef _autoConfigRunLoopSource;
     NSMutableArray *_autoConfigRunLoopModes;
-    __strong void (^_resolveCallback)();
+    void (^_resolveCallback)();
 }
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
@@ -118,7 +118,7 @@
     [_autoConfigRunLoopModes addObject:(__bridge NSString *)kCFRunLoopDefaultMode];
     CFStringRef currentMode = CFRunLoopCopyCurrentMode(CFRunLoopGetCurrent());
     if (currentMode != NULL) {
-        if (CFStringCompare(currentMode, kCFRunLoopDefaultMode, kCFCompareCaseInsensitive) != kCFCompareEqualTo) {
+        if (CFStringCompare(currentMode, kCFRunLoopDefaultMode, 0) != kCFCompareEqualTo) {
             [_autoConfigRunLoopModes addObject:(__bridge NSString *)currentMode];
         }
         CFRelease(currentMode);
@@ -173,15 +173,15 @@ static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
     // We don't need to keep them beyond the life of this call, and even if we did we'll
     // let ARC do its thing inside _handleExecuteCallback.
 
-    NSError *nserror = nil;
-    NSArray *nsproxies = nil;
+    NSError *bridgedError = nil;
+    NSArray *bridgedProxies = nil;
     if (error != NULL) {
-        nserror = (__bridge NSError *)error;
+        bridgedError = (__bridge NSError *)error;
     } else {
-        nsproxies = (__bridge NSArray *)proxies;
+        bridgedProxies = (__bridge NSArray *)proxies;
     }
 
-    [manager _handleExecuteCallback:nsproxies error:nserror];
+    [manager _handleExecuteCallback:bridgedProxies error:bridgedError];
 }
 
 - (NSDictionary *)_proxyGetSystemSettings

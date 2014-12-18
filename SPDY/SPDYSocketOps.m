@@ -201,10 +201,11 @@
 - (id)initWithOrigin:(SPDYOrigin *)origin timeout:(NSTimeInterval)timeout
 {
     NSString *httpConnect = [NSString stringWithFormat:
-            @"CONNECT %@:%u HTTP/1.1\r\nHost: %@\r\nConnection: keep-alive\r\nUser-Agent: SPDYTest\r\n\r\n",
+            @"CONNECT %@:%u HTTP/1.1\r\nHost: %@:%u\r\nConnection: keep-alive\r\nUser-Agent: SPDYTest\r\n\r\n",
             origin.host,
             origin.port,
-            origin.host];
+            origin.host,
+            origin.port];
     NSData *httpConnectData = [httpConnect dataUsingEncoding:NSUTF8StringEncoding];
     self = [super initWithData:httpConnectData timeout:timeout tag:0];
     return self;
