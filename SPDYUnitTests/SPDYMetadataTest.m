@@ -40,6 +40,7 @@
     metadata.connectedMs = 500;
     metadata.hostAddress = @"1.2.3.4";
     metadata.hostPort = 1;
+    metadata.viaProxy = YES;
 
     return metadata;
 }
@@ -60,6 +61,7 @@
     STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"0", nil);
     STAssertNil(dict[SPDYMetadataSessionRemoteAddressKey], nil);
     STAssertNil(dict[SPDYMetadataSessionRemotePortKey], nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionViaProxyKey], @"0", nil);
 }
 
 - (void)testSerializeToDictionary
@@ -76,6 +78,7 @@
     STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"500", nil);
     STAssertEqualObjects(dict[SPDYMetadataSessionRemoteAddressKey], @"1.2.3.4", nil);
     STAssertEqualObjects(dict[SPDYMetadataSessionRemotePortKey], @"1", nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionViaProxyKey], @"1", nil);
 }
 
 - (void)testMemberRetention

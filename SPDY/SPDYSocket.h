@@ -181,9 +181,14 @@ extern NSString *const SPDYSocketException;
 - (void)disconnectAfterReadsAndWrites;
 
 /**
-  @return YES when the socket streams are open and connected
+@return YES when the socket streams are open and connected
 */
 - (bool)connected;
+
+/**
+  @return YES if a proxy server is being used
+*/
+- (bool)connectedToProxy;
 
 /**
   @return the IP address of the host to which the socket is connected

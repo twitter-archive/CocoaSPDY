@@ -77,8 +77,6 @@
     bool _receivedGoAwayFrame;
     bool _sentGoAwayFrame;
     SPDYStopwatch *_connectedStopwatch;
-    NSString *_connectedHost;
-    in_port_t _connectedPort;
 }
 
 - (id)initWithOrigin:(SPDYOrigin *)origin
@@ -194,8 +192,9 @@
         stream.metadata.latencyMs = (NSInteger)(_sessionLatency * 1000);
     }
     stream.metadata.connectedMs = _connectedStopwatch.elapsedSeconds * 1000;
-    stream.metadata.hostAddress = _connectedHost;
-    stream.metadata.hostPort = _connectedPort;
+    stream.metadata.hostAddress = _socket.connectedHost;
+    stream.metadata.hostPort = _socket.connectedPort;
+    stream.metadata.viaProxy = _socket.connectedToProxy;
 
     [stream startWithStreamId:streamId
                sendWindowSize:_initialSendWindowSize
@@ -293,8 +292,6 @@
     SPDY_INFO(@"session connected to %@ (%@:%u)", _origin, host, port);
 
     _connected = YES;
-    _connectedHost = host;
-    _connectedPort = port;
     [_delegate session:self connectedToNetwork:_cellular];
 
     if(_enableTCPNoDelay){

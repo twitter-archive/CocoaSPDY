@@ -141,6 +141,7 @@
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
     [socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error];
     STAssertNil(error, nil);
+    STAssertTrue(socket.connectedToProxy, nil);
 
     STAssertTrue(socketDelegate.didCallWillConnect, nil);
     STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
@@ -178,6 +179,7 @@
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
     [socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error];
     STAssertNil(error, nil);
+    STAssertTrue(socket.connectedToProxy, nil);
 
     STAssertTrue(socketDelegate.didCallWillConnect, nil);
     STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
@@ -217,6 +219,9 @@
 
     STAssertFalse(socket.didCallScheduleRead, nil);
     STAssertFalse(socket.didCallScheduleWrite, nil);
+
+    // Since this failed trying to resolve the proxy name, we never tried to connected
+    STAssertFalse(socket.connectedToProxy, nil);
 }
 
 @end
