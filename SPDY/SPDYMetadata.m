@@ -38,14 +38,7 @@ static NSString * const SPDYMetadataIdentifierKey = @"x-spdy-metadata-identifier
     self = [super init];
     if (self) {
         _version = @"3.1";
-        _streamId = 0;
         _latencyMs = -1;
-        _txBytes = 0;
-        _rxBytes = 0;
-        _connectedMs = 0;
-        _blockedMs = 0;
-        _hostAddress = nil;
-        _hostPort = 0;
     }
     return self;
 }
@@ -58,6 +51,7 @@ static NSString * const SPDYMetadataIdentifierKey = @"x-spdy-metadata-identifier
         SPDYMetadataStreamRxBytesKey : [@(_rxBytes) stringValue],
         SPDYMetadataStreamConnectedMsKey : [@(_connectedMs) stringValue],
         SPDYMetadataStreamBlockedMsKey : [@(_blockedMs) stringValue],
+        SPDYMetadataSessionViaProxyKey : [@(_viaProxy) stringValue],
     }];
 
     if (_streamId > 0) {

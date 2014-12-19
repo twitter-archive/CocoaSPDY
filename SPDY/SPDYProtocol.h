@@ -30,6 +30,9 @@ extern NSString *const SPDYMetadataSessionRemoteAddressKey;
 // TCP port of remote side
 extern NSString *const SPDYMetadataSessionRemotePortKey;
 
+// Indicates connection used a proxy server
+extern NSString *const SPDYMetadataSessionViaProxyKey;
+
 // SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
 extern NSString *const SPDYMetadataSessionLatencyKey;
 

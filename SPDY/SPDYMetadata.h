@@ -19,11 +19,12 @@
 @property (nonatomic) NSInteger latencyMs;
 @property (nonatomic) NSUInteger txBytes;
 @property (nonatomic) NSUInteger rxBytes;
-@property (nonatomic) bool cellular;
+@property (nonatomic) BOOL cellular;
 @property (nonatomic) NSUInteger connectedMs;
 @property (nonatomic) NSUInteger blockedMs;
 @property (nonatomic, copy) NSString *hostAddress;
 @property (nonatomic) NSUInteger hostPort;
+@property (nonatomic) BOOL viaProxy;
 
 - (NSDictionary *)dictionary;
 
