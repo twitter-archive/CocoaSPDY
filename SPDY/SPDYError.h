@@ -9,10 +9,12 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
-extern NSString *const SPDYStreamErrorDomain;
-extern NSString *const SPDYSessionErrorDomain;
-extern NSString *const SPDYCodecErrorDomain;
-extern NSString *const SPDYSocketErrorDomain;
+#import <Foundation/Foundation.h>
+
+FOUNDATION_EXTERN NSString *const SPDYStreamErrorDomain;
+FOUNDATION_EXTERN NSString *const SPDYSessionErrorDomain;
+FOUNDATION_EXTERN NSString *const SPDYCodecErrorDomain;
+FOUNDATION_EXTERN NSString *const SPDYSocketErrorDomain;
 
 // These errors map one-to-one with the status code in a RST_STREAM message.
 typedef enum {

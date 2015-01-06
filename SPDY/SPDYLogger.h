@@ -9,6 +9,8 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
+#import <Foundation/Foundation.h>
+
 typedef enum {
     SPDYLogLevelDisabled = -1,
     SPDYLogLevelError = 0,
