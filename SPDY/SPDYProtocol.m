@@ -286,7 +286,23 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request
 {
-    return SPDYCanonicalRequestForRequest(request);
+    NSMutableURLRequest *canonicalRequest = SPDYCanonicalRequestForRequest(request);
+    [SPDYProtocol setProperty:@(YES) forKey:@"x-spdy-is-canonical-request" inRequest:canonicalRequest];
+    return canonicalRequest;
+}
+
+- (instancetype)initWithRequest:(NSURLRequest *)request cachedResponse:(NSCachedURLResponse *)cachedResponse client:(id <NSURLProtocolClient>)client
+{
+    // iOS 8 will call this using the 'request' returned from canonicalRequestForRequest. However,
+    // iOS 7 passes the original (non-canonical) request. As SPDYCanonicalRequestForRequest is
+    // somewhat heavyweight, we'll use a flag to detect non-canonical requests. Ensuring the
+    // canonical form is used for processing is important for correctness.
+    BOOL isCanonical = ([SPDYProtocol propertyForKey:@"x-spdy-is-canonical-request" inRequest:request] != nil);
+    if (!isCanonical) {
+        request = [SPDYProtocol canonicalRequestForRequest:request];
+    }
+
+    return [super initWithRequest:request cachedResponse:cachedResponse client:client];
 }
 
 - (void)startLoading

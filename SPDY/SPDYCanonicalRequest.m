@@ -11,10 +11,66 @@
 //  https://developer.apple.com/LIBRARY/IOS/samplecode/CustomHTTPProtocol
 //
 
+#import <sys/utsname.h>
 #import "SPDYCanonicalRequest.h"
 #import "NSURLRequest+SPDYURLRequest.h"
 
 #include <xlocale.h>
+
+static dispatch_once_t __defaultUserAgentInitialized;
+static NSString *__defaultUserAgent;
+
+static NSString *getDefaultUserAgent()
+{
+    // NSURLConnection-based request example:
+    //     <product-name>/<build-number> CFNetwork/548.0.3 Darwin/11.2.0
+    //
+    // UIWebView-based request example:
+    //     Mozilla/5.0 (iPhone Simulator; CPU iPhone OS 5_0 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Mobile/9A334
+    //
+    // We're going to mimic the NSURLConnection one.
+
+    dispatch_once(&__defaultUserAgentInitialized, ^{
+        NSBundle *mainBundle = [NSBundle mainBundle];
+        NSString *mainBundleName = [mainBundle objectForInfoDictionaryKey:(__bridge NSString *)kCFBundleNameKey];
+        NSString *mainBundleVersion = [mainBundle objectForInfoDictionaryKey:(__bridge NSString *)kCFBundleVersionKey];
+
+        NSBundle *cfnetworkBundle = [NSBundle bundleWithIdentifier:@"com.apple.CFNetwork"];
+        NSString *cfnetworkName = [cfnetworkBundle objectForInfoDictionaryKey:(__bridge NSString *)kCFBundleNameKey];
+        NSString *cfnetworkVersion = [cfnetworkBundle objectForInfoDictionaryKey:(__bridge NSString *)kCFBundleVersionKey];
+
+        NSString *sysName = nil;
+        NSString *sysVersion = nil;
+        struct utsname name;
+        if (uname(&name) == 0) {
+            sysName = [NSString stringWithCString:name.sysname encoding:NSASCIIStringEncoding];
+            sysVersion = [NSString stringWithCString:name.release encoding:NSASCIIStringEncoding];
+        }
+
+        NSString *userAgent;
+        if (mainBundleName != nil) {
+            if (mainBundleVersion != nil) {
+                userAgent = [NSString stringWithFormat:@"%@/%@", mainBundleName, mainBundleVersion];
+            } else {
+                userAgent = mainBundleName;
+            }
+        } else {
+            userAgent = @"CocoaSPDY/1.0";
+        }
+
+        if (cfnetworkName != nil && cfnetworkVersion != nil) {
+            userAgent = [userAgent stringByAppendingFormat:@" %@/%@", cfnetworkName, cfnetworkVersion];
+        }
+
+        if (sysName != nil && sysVersion != nil) {
+            userAgent = [userAgent stringByAppendingFormat:@" %@/%@", sysName, sysVersion];
+        }
+
+        __defaultUserAgent = userAgent;
+    });
+
+    return __defaultUserAgent;
+}
 
 #pragma mark * URL canonicalization steps
 
@@ -172,7 +228,7 @@ static CFIndex FixEmptyPath(NSURL *url, NSMutableData *urlData, CFIndex bytesIns
     return bytesInserted;
 }
 
-__attribute__((unused)) static CFIndex DeleteDefaultPort(NSURL *url, NSMutableData *urlData, CFIndex bytesInserted)
+__attribute__((unavailable)) static CFIndex DeleteDefaultPort(NSURL *url, NSMutableData *urlData, CFIndex bytesInserted)
     // If the user specified the default port (80 for HTTP, 443 for HTTPS), remove it from the URL.
 
     // Actually this code is disabled because the equivalent code in the default protocol handle
@@ -244,7 +300,7 @@ static void CanonicaliseHeaders(NSMutableURLRequest * request)
         [request setValue:@"gzip, deflate" forHTTPHeaderField:@"Accept-Encoding"];
     }
 
-    // If there's not an "Accept-Language" headre, add a default.  This is quite bogus; ideally we
+    // If there's not an "Accept-Language" header, add a default.  This is quite bogus; ideally we
     // should derive the correct "Accept-Language" value from the langauge that the app is running
     // in.  However, that's quite difficult to get right, so rather than show some general purpose
     // code that might fail in some circumstances, I've decided to just hardwire US English.
@@ -254,6 +310,29 @@ static void CanonicaliseHeaders(NSMutableURLRequest * request)
 
     if ([request valueForHTTPHeaderField:@"Accept-Language"] == nil) {
         [request setValue:@"en-us" forHTTPHeaderField:@"Accept-Language"];
+    }
+
+    // NSURLRequest will automatically set the content-length header when HTTPBody is used,
+    // so we'll do that too. Note that when using HTTPBodyStream, the content-length is not
+    // automatically set, so neither will we. Also note we pay no attention to the HTTP method.
+    if ([request valueForHTTPHeaderField:@"Content-Length"] == nil) {
+        int64_t contentLength = -1;
+        if (request.HTTPBody) {
+            contentLength = request.HTTPBody.length;
+        } else if (request.SPDYBodyFile) {
+            NSString *path = [request.SPDYBodyFile stringByResolvingSymlinksInPath];
+            contentLength = [[[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil] fileSize];
+        }
+
+        if (contentLength >= 0) {
+            [request setValue:[@(contentLength) stringValue] forHTTPHeaderField:@"Content-Length"];
+        }
+    }
+
+    // Add a default user agent that matches what Apple's HTTP system will add. As we cannot
+    // get the default directly, this is only approximate.
+    if ([request valueForHTTPHeaderField:@"User-Agent"] == nil) {
+        [request setValue:getDefaultUserAgent() forHTTPHeaderField:@"User-Agent"];
     }
 }
 

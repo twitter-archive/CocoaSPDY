@@ -11,6 +11,7 @@
 
 #import <SenTestingKit/SenTestingKit.h>
 #import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYCanonicalRequest.h"
 #import "SPDYProtocol.h"
 
 @interface SPDYURLRequestTest : SenTestCase
@@ -18,14 +19,21 @@
 
 @implementation SPDYURLRequestTest
 
-NSDictionary* GetHeadersFromRequest(NSString *urlString)
+- (NSDictionary *)headersForUrl:(NSString *)urlString
 {
     NSURL *url = [[NSURL alloc] initWithString:urlString];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+    request = SPDYCanonicalRequestForRequest(request);
     return [request allSPDYHeaderFields];
 }
 
-NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
+- (NSDictionary *)headersForRequest:(NSMutableURLRequest *)request
+{
+    request = SPDYCanonicalRequestForRequest(request);
+    return [request allSPDYHeaderFields];
+}
+
+- (NSMutableURLRequest *)buildRequestForUrl:(NSString *)urlString method:(NSString *)httpMethod
 {
     NSURL *url = [[NSURL alloc] initWithString:urlString];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
@@ -90,10 +98,10 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
 - (void)testContentTypeHeaderDefaultForPost
 {
     // Ensure SPDY adds a default content-type when request is a POST with body.
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"POST"];
     [request setSPDYBodyFile:@"bodyfile.json"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@":method"], @"POST", nil);
     STAssertEqualObjects(headers[@"content-type"], @"application/x-www-form-urlencoded", nil);
 }
@@ -101,139 +109,139 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
 - (void)testContentTypeHeaderCustomForPost
 {
     // Ensure we can also override the default content-type.
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"POST"];
     [request setSPDYBodyFile:@"bodyfile.json"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@":method"], @"POST", nil);
     STAssertEqualObjects(headers[@"content-type"], @"application/json", nil);
 }
 
 - (void)testContentLengthHeaderDefaultForPostWithHTTPBody
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"POST"];
     NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
     [request setHTTPBody:data];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
 }
 
 - (void)testContentLengthHeaderDefaultForPostWithInvalidSPDYBodyFile
 {
     // An invalid body file will result in a size of 0
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"POST"];
     [request setSPDYBodyFile:@"doesnotexist.json"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], @"0", nil);
 }
 
 - (void)testContentLengthHeaderDefaultForPostWithSPDYBodyStream
 {
     // No default for input streams
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"POST"];
     NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
     NSInputStream *dataStream = [NSInputStream inputStreamWithData:data];
     [request setSPDYBodyStream:dataStream];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], nil, nil);
 }
 
 - (void)testContentLengthHeaderCustomForPostWithSPDYBodyStream
 {
     // No default for input streams
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"POST"];
     NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
     NSInputStream *dataStream = [NSInputStream inputStreamWithData:data];
     [request setSPDYBodyStream:dataStream];
     [request setValue:@"12" forHTTPHeaderField:@"Content-Length"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], @"12", nil);
 }
 
 - (void)testContentLengthHeaderCustomForPostWithHTTPBody
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"POST");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"POST"];
     NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
     [request setHTTPBody:data];
     [request setValue:@"1" forHTTPHeaderField:@"Content-Length"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], @"1", nil);
 }
 
 - (void)testContentLengthHeaderDefaultForPutWithHTTPBody
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"PUT");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"PUT"];
     NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
     [request setHTTPBody:data];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
 }
 
 - (void)testContentLengthHeaderDefaultForGet
 {
     // Unusual but not explicitly disallowed
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"GET"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], nil, nil);
 }
 
 - (void)testContentLengthHeaderDefaultForGetWithHTTPBody
 {
     // Unusual but not explicitly disallowed
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"GET"];
     NSData *data = [@"Hello World" dataUsingEncoding:NSUTF8StringEncoding];
     [request setHTTPBody:data];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
 }
 
 - (void)testAcceptEncodingHeaderDefault
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"GET"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"accept-encoding"], @"gzip, deflate", nil);
 }
 
 - (void)testAcceptEncodingHeaderCustom
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/test/path", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"GET"];
     [request setValue:@"bogus" forHTTPHeaderField:@"Accept-Encoding"];
 
-    NSDictionary *headers = [request allSPDYHeaderFields];
+    NSDictionary *headers = [self headersForRequest:request];
     STAssertEqualObjects(headers[@"accept-encoding"], @"bogus", nil);
 }
 
 - (void)testPathHeaderWithQueryString
 {
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/test/path?param1=value1&param2=value2");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path?param1=value1&param2=value2"];
     STAssertEqualObjects(headers[@":path"], @"/test/path?param1=value1&param2=value2", nil);
 }
 
 - (void)testPathHeaderWithQueryStringAndFragment
 {
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/test/path?param1=value1&param2=value2#fraggles");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path?param1=value1&param2=value2#fraggles"];
     STAssertEqualObjects(headers[@":path"], @"/test/path?param1=value1&param2=value2#fraggles", nil);
 }
 
 - (void)testPathHeaderWithQueryStringAndFragmentInMixedCase
 {
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/Test/Path?Param1=Value1#Fraggles");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/Test/Path?Param1=Value1#Fraggles"];
     STAssertEqualObjects(headers[@":path"], @"/Test/Path?Param1=Value1#Fraggles", nil);
 }
 
 - (void)testPathHeaderWithURLEncodedPath
 {
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/test/path/%E9%9F%B3%E6%A5%BD.json");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path/%E9%9F%B3%E6%A5%BD.json"];
     STAssertEqualObjects(headers[@":path"], @"/test/path/%E9%9F%B3%E6%A5%BD.json", nil);
 }
 
@@ -242,41 +250,35 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     // Besides non-ASCII characters, paths may contain any valid URL character except "?#[]".
     // Test path: /gen?#[]/sub!$&'()*+,;=/unres-._~
     // Note that NSURL chokes on non-encoded ";" in path, so we'll test it separately.
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1"];
     STAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1", nil);
 
     // Test semicolon separately
-    headers = GetHeadersFromRequest(@"http://example.com/semi%3B");
+    headers = [self headersForUrl:@"http://example.com/semi%3B"];
     STAssertEqualObjects(headers[@":path"], @"/semi;", nil);
 }
 
 - (void)testPathHeaderWithDoubleURLEncodedPath
 {
     // Ensure double encoding "#!", "%23%21", are preserved
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/double%2523%2521/tail");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/double%2523%2521/tail"];
     STAssertEqualObjects(headers[@":path"], @"/double%2523%2521/tail", nil);
 
     // Ensure double encoding non-ASCII characters are preserved
-    headers = GetHeadersFromRequest(@"http://example.com/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD");
+    headers = [self headersForUrl:@"http://example.com/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD"];
     STAssertEqualObjects(headers[@":path"], @"/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD", nil);
 }
 
 - (void)testPathHeaderWithURLEncodedQueryStringAndFragment
 {
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule"];
     STAssertEqualObjects(headers[@":path"], @"/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule", nil);
 }
 
 - (void)testPathHeaderEmpty
 {
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com");
+    NSDictionary *headers = [self headersForUrl:@"http://example.com"];
     STAssertEqualObjects(headers[@":path"], @"/", nil);
-}
-
-- (void)testUserAgentHeaderNotEmpty
-{
-    NSDictionary *headers = GetHeadersFromRequest(@"http://example.com");
-    STAssertNotNil(headers[@"user-agent"], nil);
 }
 
 - (void)testSPDYProperties
@@ -314,17 +316,40 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
     STAssertEquals(immutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
 }
 
-- (void)testCanonicalRequestDoesNotAddDefaultUserAgent
+- (void)testCanonicalRequestAddsUserAgent
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com/", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/" method:@"GET"];
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
-    STAssertNil([canonicalRequest valueForHTTPHeaderField:@"User-Agent"], nil);
+    NSString *userAgent = [canonicalRequest valueForHTTPHeaderField:@"User-Agent"];
+    STAssertNotNil(userAgent, nil);
+    STAssertTrue([userAgent rangeOfString:@"CFNetwork/"].location > 0, nil);
+    STAssertTrue([userAgent rangeOfString:@"Darwin/"].location > 0, nil);
+}
+
+- (void)testCanonicalRequestDoesNotOverwriteUserAgent
+{
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/" method:@"GET"];
+    [request setValue:@"Foobar/2" forHTTPHeaderField:@"User-Agent"];
+    NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
+
+    NSString *userAgent = [canonicalRequest valueForHTTPHeaderField:@"User-Agent"];
+    STAssertEqualObjects(userAgent, @"Foobar/2", nil);
+}
+
+- (void)testCanonicalRequestDoesNotOverwriteUserAgentWhenEmpty
+{
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/" method:@"GET"];
+    [request setValue:@"" forHTTPHeaderField:@"User-Agent"];
+    NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
+
+    NSString *userAgent = [canonicalRequest valueForHTTPHeaderField:@"User-Agent"];
+    STAssertEqualObjects(userAgent, @"", nil);
 }
 
 - (void)testCanonicalRequestAddsHost
 {
-    NSMutableURLRequest *request = GetRequest(@"http://:80/foo", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://:80/foo" method:@"GET"];
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
     STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://localhost:80/foo", nil);
@@ -332,7 +357,7 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
 
 - (void)testCanonicalRequestAddsEmptyPath
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com" method:@"GET"];
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
     STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com/", nil);
@@ -340,7 +365,7 @@ NSMutableURLRequest* GetRequest(NSString *urlString, NSString *httpMethod)
 
 - (void)testCanonicalRequestAddsEmptyPathWithPort
 {
-    NSMutableURLRequest *request = GetRequest(@"http://example.com:80", @"GET");
+    NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com:80" method:@"GET"];
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
     STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com:80/", nil);
