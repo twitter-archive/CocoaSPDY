@@ -259,9 +259,11 @@
 {
     if (self.isOpen && _socket.runLoop) {
         _closing = YES;
-        CFRunLoopPerformBlock([_socket.runLoop getCFRunLoop], kCFRunLoopDefaultMode, ^{
+        CFRunLoopRef runLoop = [_socket.runLoop getCFRunLoop];
+        CFRunLoopPerformBlock(runLoop, kCFRunLoopDefaultMode, ^{
             [self _closeWithStatus:SPDY_SESSION_OK];
         });
+        CFRunLoopWakeUp(runLoop);
     }
 }
 
