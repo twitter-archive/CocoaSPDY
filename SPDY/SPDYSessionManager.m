@@ -215,6 +215,12 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     return sessionPool;
 }
 
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"<%@ %p configuration=%@ allSessions=%@>",
+            [self class], self, self.configuration, self.allSessions];
+}
+
 @end
 
 #if TARGET_OS_IPHONE

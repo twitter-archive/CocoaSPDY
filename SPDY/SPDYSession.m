@@ -965,9 +965,15 @@
     }
 }
 
+static inline NSString *SPDYStringFromBOOL(BOOL value)
+{
+    return value ? @"YES" : @"NO";
+}
+
 - (NSString *)description
 {
-    return [NSString stringWithFormat:@"<%@:%p isOpen=%@>", [self class], self, self.isOpen ? @"YES" : @"NO"];
+    return [NSString stringWithFormat:@"<%@:%p origin=%@ isOpen=%@ isCellular=%@ socket=%@>",
+            [self class], self, self.origin, SPDYStringFromBOOL(self.isOpen), SPDYStringFromBOOL(self.isCellular), self.socket];
 }
 
 @end

@@ -1824,7 +1824,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (NSString *)description
 {
-    return [NSString stringWithFormat:@"<%@:%p readStream=%@, writeStream=%@, socket=%@>", [self class], self, _readStream, _writeStream, _socket4];
+    return [NSString stringWithFormat:@"<%@:%p isConnected=%@ connectedHost=%@ connectedPort=%d readStream=%@, writeStream=%@, socket=%@>",
+            [self class], self, self.connected ? @"YES" : @"NO", _connectedHost, _connectedPort, _readStream, _writeStream, [self cfSocket]];
 }
 
 @end
