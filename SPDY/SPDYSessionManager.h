@@ -10,14 +10,34 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "SPDYOrigin.h"
+#import "SPDYStream.h"
 
 @class SPDYConfiguration;
 @class SPDYSession;
 @class SPDYStreamManager;
+@class SPDYSessionManager;
+
+extern NSString *const SPDYSessionManagerDidInitializeNotification;
+
+@protocol SPDYSessionManagerDelegate <NSObject>
+
+@optional
+
+- (void)sessionManager:(SPDYSessionManager *)sessionManager sessionDidConnect:(SPDYSession *)session;
+- (void)sessionManager:(SPDYSessionManager *)sessionManager sessionWillClose:(SPDYSession *)session withError:(NSError *)error;
+- (void)sessionManager:(SPDYSessionManager *)sessionManager sessionDidClose:(SPDYSession *)session;
+
+@end
 
 @interface SPDYSessionManager : NSObject
 
 + (SPDYSessionManager *)localManagerForOrigin:(SPDYOrigin *)origin;
+
+@property (nonatomic, readonly) SPDYOrigin *origin;
+@property (nonatomic, weak) id<SPDYSessionManagerDelegate> delegate;
+
 - (void)queueStream:(SPDYStream *)stream;
+- (NSArray *)allSessions;
 
 @end

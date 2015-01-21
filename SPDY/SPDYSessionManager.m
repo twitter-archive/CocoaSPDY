@@ -35,9 +35,13 @@ static dispatch_queue_t reachabilityQueue;
 
 static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
 
+extern NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessionManagerDidInitializeNotification";
+
 @interface SPDYSessionPool : NSObject
 @property (nonatomic, assign, readonly) NSUInteger count;
 @property (nonatomic, assign) NSUInteger pendingCount;
+@property (nonatomic, readonly) NSArray *sessions;
+
 - (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager cellular:(bool)cellular error:(NSError **)pError;
 - (NSUInteger)remove:(SPDYSession *)session;
 - (SPDYSession *)nextSession;
@@ -179,6 +183,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if (!manager) {
         manager = [[SPDYSessionManager alloc] initWithOrigin:origin];
         originDictionary[origin] = manager;
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:SPDYSessionManagerDidInitializeNotification object:manager];
     }
 
     return manager;
@@ -250,6 +256,14 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     } else {
         [self _dispatch];
     }
+}
+
+- (NSArray *)allSessions
+{
+    NSMutableArray *sessions = [NSMutableArray new];
+    [sessions addObjectsFromArray:[_basePool valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+    [sessions addObjectsFromArray:[_wwanPool valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+    return sessions;
 }
 
 #pragma mark SPDYStreamDelegate
@@ -359,6 +373,10 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     }
 
     [self _dispatch];
+    
+    if ([self.delegate respondsToSelector:@selector(sessionManager:sessionDidConnect:)]) {
+        [self.delegate sessionManager:self sessionDidConnect:session];
+    }
 }
 
 - (void)sessionClosed:(SPDYSession *)session
@@ -374,11 +392,10 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
             _wwanPool = nil;
         }
     }
-
-//    SPDYSessionPool * __strong *pool = session.isCellular ? &_wwanPool : &_basePool;
-//    if (*pool && [*pool remove:session] == 0) {
-//        *pool = nil;
-//    }
+    
+    if ([self.delegate respondsToSelector:@selector(sessionManager:sessionDidClose:)]) {
+        [self.delegate sessionManager:self sessionDidClose:session];
+    }
 }
 
 - (void)session:(SPDYSession *)session refusedStream:(SPDYStream *)stream
@@ -386,6 +403,13 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     SPDY_INFO(@"re-queueing request: %@", stream.protocol.request.URL);
     [_pendingStreams addStream:stream];
     stream.delegate = self;
+}
+
+- (void)session:(SPDYSession *)session willDisconnectWithError:(NSError *)error
+{
+    if ([self.delegate respondsToSelector:@selector(sessionManager:sessionWillClose:withError:)]) {
+        [self.delegate sessionManager:self sessionWillClose:session withError:error];
+    }
 }
 
 @end

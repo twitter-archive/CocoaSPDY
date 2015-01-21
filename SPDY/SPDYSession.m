@@ -30,6 +30,9 @@
 #import "SPDYStream.h"
 #import "SPDYStreamManager.h"
 
+NSString *const SPDYSessionDidConnectToNetworkNotification = @"SPDYSessionDidConnectToNetworkNotification";
+NSString *const SPDYSessionDidCloseNotification = @"SPDYSessionDidCloseNotification";
+
 // The input buffer should be more than twice MAX_CHUNK_LENGTH and
 // MAX_COMPRESSED_HEADER_BLOCK_LENGTH to avoid having to resize the
 // buffer.
@@ -293,6 +296,8 @@
 
     _connected = YES;
     [_delegate session:self connectedToNetwork:_cellular];
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:SPDYSessionDidConnectToNetworkNotification object:self];
 
     if(_enableTCPNoDelay){
         CFDataRef nativeSocket = CFWriteStreamCopyProperty(socket.cfWriteStream, kCFStreamPropertySocketNativeHandle);
@@ -364,6 +369,8 @@
         [stream closeWithError:error];
     }
     [_activeStreams removeAllStreams];
+    
+    [_delegate session:self willDisconnectWithError:error];
 }
 
 - (void)socketDidDisconnect:(SPDYSocket *)socket
@@ -376,6 +383,7 @@
 
     [_delegate sessionClosed:self];
     _delegate = nil;
+    [[NSNotificationCenter defaultCenter] postNotificationName:SPDYSessionDidCloseNotification object:self];
 }
 
 #pragma mark SPDYFrameEncoderDelegate
@@ -762,6 +770,8 @@
     if (_activeStreams.count == 0) {
         [self close];
     }
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:SPDYSessionDidCloseNotification object:self];
 }
 
 - (void)didReadHeadersFrame:(SPDYHeadersFrame *)headersFrame frameDecoder:(SPDYFrameDecoder *)frameDecoder

@@ -18,9 +18,14 @@
 @class SPDYSession;
 @class SPDYStream;
 
+extern NSString *const SPDYSessionDidConnectToNetworkNotification;
+extern NSString *const SPDYSessionDidCloseNotification;
+extern NSString *const SPDYSessionDidDisconnectWithError;
+
 @protocol SPDYSessionDelegate <NSObject>
 - (void)session:(SPDYSession *)session capacityIncreased:(NSUInteger)capacity;
 - (void)session:(SPDYSession *)session connectedToNetwork:(bool)cellular;
+- (void)session:(SPDYSession *)session willDisconnectWithError:(NSError *)error;
 - (void)session:(SPDYSession *)session refusedStream:(SPDYStream *)stream;
 - (void)sessionClosed:(SPDYSession *)session;
 @end
