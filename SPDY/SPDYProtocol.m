@@ -48,6 +48,8 @@ static NSMutableDictionary *certificates;
 static dispatch_queue_t configQueue;
 static dispatch_once_t initConfig;
 
+static NSRunLoop *requestRunLoop;
+
 @implementation SPDYProtocol
 {
     SPDYStream *_stream;
@@ -221,8 +223,15 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     return request;
 }
 
++ (NSRunLoop *)requestRunLoop
+{
+    return requestRunLoop;
+}
+
 - (void)startLoading
 {
+    requestRunLoop = [NSRunLoop currentRunLoop];
+    
     NSURLRequest *request = self.request;
     SPDY_INFO(@"start loading %@", request.URL.absoluteString);
 
