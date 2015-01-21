@@ -27,4 +27,8 @@
                 host:(NSString *)host
                 port:(in_port_t)port
                error:(NSError **)pError;
+
+// Returns YES if the given URL is relative to the receiver
+- (BOOL)matchesURL:(NSURL *)URL;
+
 @end

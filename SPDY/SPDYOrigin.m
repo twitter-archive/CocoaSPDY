@@ -126,4 +126,9 @@
     return copy;
 }
 
+- (BOOL)matchesURL:(NSURL *)URL
+{
+    return [[URL absoluteString] hasPrefix:_serialization];
+}
+
 @end
