@@ -11,3 +11,6 @@ profile
 build/
 xcuserdata
 *.xccheckout
+
+Pods
+CocoaSPDY.xcworkspace/xcshareddata/xcschemes/*Tests.xcscheme
