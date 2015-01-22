@@ -261,8 +261,12 @@ NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessionManag
 - (NSArray *)allSessions
 {
     NSMutableArray *sessions = [NSMutableArray new];
-    [sessions addObjectsFromArray:[_basePool valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
-    [sessions addObjectsFromArray:[_wwanPool valueForKeyPath:@"@distinctUnionOfArrays.sessions"]];
+    if (_basePool.sessions) {
+        [sessions addObjectsFromArray:_basePool.sessions];
+    }
+    if (_wwanPool.sessions) {
+        [sessions addObjectsFromArray:_wwanPool.sessions];
+    }
     return sessions;
 }
 
