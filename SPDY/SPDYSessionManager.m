@@ -270,12 +270,6 @@ NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessionManag
     return sessions;
 }
 
-- (NSString *)description
-{
-    return [NSString stringWithFormat:@"<%@:%p origin=%@ basePool=%@ wwanPool=%@>",
-            [self class], self, _origin, _basePool, _wwanPool];
-}
-
 #pragma mark SPDYStreamDelegate
 
 - (void)streamCanceled:(SPDYStream *)stream
