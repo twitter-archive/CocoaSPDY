@@ -247,7 +247,10 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         origin = aliasedOrigin;
     }
 
-    SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
+    SPDYSessionManager *manager = [SPDYProtocol propertyForKey:@"SPDYSessionManager" inRequest:request];
+    if (!manager) {
+        manager = [SPDYSessionManager localManagerForOrigin:origin];
+    }
     _stream = [[SPDYStream alloc] initWithProtocol:self];
     [manager queueStream:_stream];
 }

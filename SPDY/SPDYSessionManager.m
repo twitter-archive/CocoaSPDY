@@ -199,7 +199,7 @@ NSString *const SPDYSessionManagerDidInitializeNotification = @"SPDYSessionManag
         _runLoop = [NSRunLoop currentRunLoop];
 
         NSString *currentMode = [_runLoop currentMode];
-        if ([currentMode isEqual:NSDefaultRunLoopMode]) {
+        if (currentMode == nil || [currentMode isEqual:NSDefaultRunLoopMode]) {
             _runLoopModes = @[NSDefaultRunLoopMode];
         } else {
             _runLoopModes = @[NSDefaultRunLoopMode, currentMode];

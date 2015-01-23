@@ -33,6 +33,7 @@ extern NSString *const SPDYSessionManagerDidInitializeNotification;
 @interface SPDYSessionManager : NSObject
 
 + (SPDYSessionManager *)localManagerForOrigin:(SPDYOrigin *)origin;
+- (id)initWithOrigin:(SPDYOrigin *)origin;
 
 @property (nonatomic, readonly) SPDYOrigin *origin;
 @property (nonatomic, weak) id<SPDYSessionManagerDelegate> delegate;
