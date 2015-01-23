@@ -1071,4 +1071,10 @@ NSString *const SPDYSessionDidCloseNotification = @"SPDYSessionDidCloseNotificat
     _sentGoAwayFrame = YES;
 }
 
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"<%@:%p isConnected=%d isOpen=%d isCellular=%d isEstablished=%d load=%lu capacity=%lu>",
+            [self class], self, self.isConnected, self.isOpen, self.isCellular, self.isEstablished, (unsigned long)self.load, (unsigned long)self.capacity];
+}
+
 @end
