@@ -564,7 +564,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         return NO;
     }
 
-    SPDY_ERROR(@"socket attempting connection to %@", _endpoint);
+    SPDY_INFO(@"socket attempting connection to %@", _endpoint);
 
     if (![self _createStreamsToHost:_endpoint.host onPort:_endpoint.port error:pError]) goto Failed;
     if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
