@@ -307,9 +307,6 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 - (void)startLoading
 {
-    NSURLRequest *request = self.request;
-    SPDY_INFO(@"start loading %@", request.URL.absoluteString);
-
     // Add an assertion handler to this NSURL thread if one doesn't exist. Without it, assertions
     // will get swallowed on iOS. OSX seems to behave properly without it, but it's safer to
     // just always set this.
@@ -317,6 +314,18 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     if (currentThreadDictionary[NSAssertionHandlerKey] == nil) {
         currentThreadDictionary[NSAssertionHandlerKey] = [[SPDYAssertionHandler alloc] init];
     }
+
+    // Only allow one startLoading call. iOS 8 using NSURLSession has exhibited different
+    // behavior, by calling startLoading, then stopLoading, then startLoading, etc, over and
+    // over. This happens asynchronously when using a NSURLSessionDataTaskDelegate after the
+    // URLSession:dataTask:didReceiveResponse:completionHandler: callback.
+    if (_stream) {
+        SPDY_WARNING(@"start loading already called, ignoring %@", self.request.URL.absoluteString);
+        return;
+    }
+
+    NSURLRequest *request = self.request;
+    SPDY_INFO(@"start loading %@", request.URL.absoluteString);
 
     NSError *error;
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:request.URL error:&error];
