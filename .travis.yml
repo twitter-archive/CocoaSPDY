@@ -5,5 +5,8 @@ before_install:
 script: "xcodebuild test -workspace SPDY.xcodeproj/project.xcworkspace/ -scheme SPDYUnitTests -sdk iphonesimulator"
 after_success: 
   - cp -r ${HOME}/Library/Developer/Xcode/DerivedData/SPDY-*/Build/Intermediates/SPDY.build/Coverage-iphonesimulator/SPDYUnitTests.build/Objects-normal/*/ gcov
-  - coveralls -i SPDY
-  - rm -r gcov
+  - rm -f gcov/*Test.*
+  - rm -f gcov/*Mock*
+  - rm -f gcov/SPDYSenTestLog.*
+  - coveralls
+  - rm -rf gcov
