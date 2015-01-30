@@ -12,6 +12,6 @@
 #import "SPDYOriginEndpointManager.h"
 
 @interface SPDYMockOriginEndpointManager : SPDYOriginEndpointManager
-@property NSArray *mock_proxyList;
+@property (nonatomic) NSArray *mock_proxyList;
+@property (nonatomic) NSString *mock_autoConfigScript;
 @end
-
