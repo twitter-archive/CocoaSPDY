@@ -105,6 +105,12 @@
 		5C5EA4701A119B630058FB64 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C5EA46A1A119B630058FB64 /* SPDYOriginEndpoint.m */; };
 		5C5EA4731A119C950058FB64 /* SPDYMockOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C5EA4721A119C950058FB64 /* SPDYMockOriginEndpointManager.m */; };
 		5C5EA4751A119CAB0058FB64 /* SPDYSocketTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C5EA4741A119CAB0058FB64 /* SPDYSocketTest.m */; };
+		5C6B0D291A3A3E8400334BFA /* SPDYCanonicalRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6B0D271A3A3E8400334BFA /* SPDYCanonicalRequest.h */; };
+		5C6B0D2A1A3A3E8400334BFA /* SPDYCanonicalRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6B0D271A3A3E8400334BFA /* SPDYCanonicalRequest.h */; };
+		5C6B0D2B1A3A3E8400334BFA /* SPDYCanonicalRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6B0D271A3A3E8400334BFA /* SPDYCanonicalRequest.h */; };
+		5C6B0D2C1A3A3E8400334BFA /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */; };
+		5C6B0D2D1A3A3E8400334BFA /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */; };
+		5C6B0D2E1A3A3E8400334BFA /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */; };
 		5C9A0BD01A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
 		5C9A0BD11A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
 		5C9A0BD21A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
@@ -182,6 +188,8 @@
 		5C5EA4711A119C950058FB64 /* SPDYMockOriginEndpointManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYMockOriginEndpointManager.h; sourceTree = "<group>"; };
 		5C5EA4721A119C950058FB64 /* SPDYMockOriginEndpointManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMockOriginEndpointManager.m; sourceTree = "<group>"; };
 		5C5EA4741A119CAB0058FB64 /* SPDYSocketTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSocketTest.m; sourceTree = "<group>"; };
+		5C6B0D271A3A3E8400334BFA /* SPDYCanonicalRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYCanonicalRequest.h; sourceTree = "<group>"; };
+		5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYCanonicalRequest.m; sourceTree = "<group>"; };
 		5C9A0BCB1A363B7700CF2D3D /* SPDYOriginEndpointManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYOriginEndpointManager.h; sourceTree = "<group>"; };
 		5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOriginEndpointManager.m; sourceTree = "<group>"; };
 		5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMetadataTest.m; sourceTree = "<group>"; };
@@ -355,6 +363,8 @@
 		D2CC14B416179B43002E37CF /* SPDY */ = {
 			isa = PBXGroup;
 			children = (
+				5C6B0D271A3A3E8400334BFA /* SPDYCanonicalRequest.h */,
+				5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */,
 				069D0E99168268F10037D8AF /* NSURLRequest+SPDYURLRequest.h */,
 				069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */,
 				D2CC14B816179B43002E37CF /* SPDY-Prefix.pch */,
@@ -417,6 +427,7 @@
 				0540DAAD19CB800C00673796 /* SPDYLogger.h in Headers */,
 				0540DAAE19CB801900673796 /* SPDYProtocol.h in Headers */,
 				0540DAAF19CB802600673796 /* SPDYTLSTrustEvaluator.h in Headers */,
+				5C6B0D2A1A3A3E8400334BFA /* SPDYCanonicalRequest.h in Headers */,
 				0540DAA919CB7FEB00673796 /* SPDYCommonLogger.h in Headers */,
 				7774CD9416661E40D76713F5 /* SPDYStopwatch.h in Headers */,
 			);
@@ -431,6 +442,7 @@
 				05C7CEBA19CB45760032D681 /* SPDYLogger.h in Headers */,
 				05C7CEBB19CB45820032D681 /* SPDYProtocol.h in Headers */,
 				05C7CEBC19CB458F0032D681 /* SPDYTLSTrustEvaluator.h in Headers */,
+				5C6B0D291A3A3E8400334BFA /* SPDYCanonicalRequest.h in Headers */,
 				0540DAAA19CB7FEB00673796 /* SPDYCommonLogger.h in Headers */,
 				7774CC29BBD86413798C1425 /* SPDYStopwatch.h in Headers */,
 			);
@@ -445,6 +457,7 @@
 				06811C9B1715DC85000D1677 /* SPDYLogger.h in Headers */,
 				064A05C716F7C313008C7D08 /* SPDYProtocol.h in Headers */,
 				06E7BF131824371F004DB65D /* SPDYTLSTrustEvaluator.h in Headers */,
+				5C6B0D2B1A3A3E8400334BFA /* SPDYCanonicalRequest.h in Headers */,
 				062EA640175D4CD3003BC1CE /* SPDYCommonLogger.h in Headers */,
 				7774CF887055793F373F0D5E /* SPDYStopwatch.h in Headers */,
 			);
@@ -670,6 +683,7 @@
 				061C8E9517C5954400D22083 /* SPDYStreamManager.m in Sources */,
 				06B290CE1861018900540A03 /* SPDYOrigin.m in Sources */,
 				7774C1F1E544793907908882 /* SPDYMockFrameEncoderDelegate.m in Sources */,
+				5C6B0D2C1A3A3E8400334BFA /* SPDYCanonicalRequest.m in Sources */,
 				5C427F0F1A1C7C4D0072403D /* SPDYSenTestLog.m in Sources */,
 				7774CA1FA1F4A59CA0906BB7 /* SPDYSocket+SPDYSocketMock.m in Sources */,
 				7774C1318AB029C6BCEF84D6 /* SPDYSessionTest.m in Sources */,
@@ -686,6 +700,7 @@
 				5C5EA46F1A119B630058FB64 /* SPDYOriginEndpoint.m in Sources */,
 				0651EC3D16F3FA1400CE44D2 /* SPDYFrame.m in Sources */,
 				0651EC3E16F3FA1400CE44D2 /* SPDYFrameDecoder.m in Sources */,
+				5C6B0D2D1A3A3E8400334BFA /* SPDYCanonicalRequest.m in Sources */,
 				0651EC3F16F3FA1400CE44D2 /* SPDYFrameEncoder.m in Sources */,
 				0651EC4016F3FA1400CE44D2 /* SPDYHeaderBlockCompressor.m in Sources */,
 				0651EC4116F3FA1400CE44D2 /* SPDYHeaderBlockDecompressor.m in Sources */,
@@ -713,6 +728,7 @@
 				5C5EA4701A119B630058FB64 /* SPDYOriginEndpoint.m in Sources */,
 				0651EC2316F3FA0B00CE44D2 /* SPDYFrame.m in Sources */,
 				0651EC2416F3FA0B00CE44D2 /* SPDYFrameDecoder.m in Sources */,
+				5C6B0D2E1A3A3E8400334BFA /* SPDYCanonicalRequest.m in Sources */,
 				0651EC2516F3FA0B00CE44D2 /* SPDYFrameEncoder.m in Sources */,
 				0651EC2616F3FA0B00CE44D2 /* SPDYHeaderBlockCompressor.m in Sources */,
 				0651EC2716F3FA0B00CE44D2 /* SPDYHeaderBlockDecompressor.m in Sources */,

@@ -133,6 +133,12 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
   Unregister an origin alias.
 */
 + (void)unregisterAlias:(NSString *)aliasString;
+
+/**
+  Unregister all origin aliases.
+*/
++ (void)unregisterAllAliases;
+
 @end
 
 /**
@@ -174,7 +180,7 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
   any communication, though existing connections will be maintained
   until completion/termination.
  */
-+ (void)unregisterAll;
++ (void)unregisterAllOrigins;
 
 @end
 

@@ -13,6 +13,11 @@
 #import "SPDYCommonLogger.h"
 #import "SPDYProtocol.h"
 
+// Private to SPDYProtocol.m but need access to test
+@interface SPDYAssertionHandler : NSAssertionHandler
+@property (nonatomic) BOOL abortOnFailure;
+@end
+
 @interface SPDYLoggingTest : SenTestCase <SPDYLogger>
 @end
 
@@ -67,10 +72,7 @@
             break;
     }
 
-
-    dispatch_sync(__sharedLoggerQueue, ^{
-        // Don't need to do anything. Just need this to run and return.
-    });
+    [SPDYCommonLogger flush];
 
     if (_lastMessage == nil && !expectLog) {
         return YES;
@@ -186,6 +188,30 @@
 
     SPDY_ERROR(@"error %d", 1);
     STAssertNil(_lastMessage,  nil);
+}
+
+- (void)testAssertionHandler
+{
+    [SPDYProtocol setLogger:self];
+    [SPDYProtocol setLoggerLevel:SPDYLogLevelError];
+
+    // Register SPDYProtocol's assertion handler on our thread, but disable the abort() call.
+    SPDYAssertionHandler *assertionHandler = [[SPDYAssertionHandler alloc] init];
+    assertionHandler.abortOnFailure = NO;
+    [NSThread currentThread].threadDictionary[NSAssertionHandlerKey] = assertionHandler;
+
+    NSAssert(NO, @"test failing method");
+    STAssertNotNil(_lastMessage, nil);
+    STAssertEquals(_lastLevel, SPDYLogLevelError, nil);
+
+    _lastMessage = nil;
+    _lastLevel = nil;
+    NSCAssert(NO, @"test failing function");
+    STAssertNotNil(_lastMessage, nil);
+    STAssertEquals(_lastLevel, SPDYLogLevelError, nil);
+
+    // All done
+    [[NSThread currentThread].threadDictionary removeObjectForKey:NSAssertionHandlerKey];
 }
 
 @end

@@ -14,15 +14,16 @@
 #endif
 
 #import <arpa/inet.h>
-#import "SPDYProtocol.h"
+#import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
+#import "SPDYMetadata.h"
 #import "SPDYOrigin.h"
+#import "SPDYProtocol.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
-#import "SPDYTLSTrustEvaluator.h"
-#import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYStream.h"
-#import "SPDYMetadata.h"
+#import "SPDYTLSTrustEvaluator.h"
 
 NSString *const SPDYStreamErrorDomain = @"SPDYStreamErrorDomain";
 NSString *const SPDYSessionErrorDomain = @"SPDYSessionErrorDomain";
@@ -47,6 +48,60 @@ static NSMutableDictionary *aliases;
 static NSMutableDictionary *certificates;
 static dispatch_queue_t configQueue;
 static dispatch_once_t initConfig;
+
+@interface SPDYAssertionHandler : NSAssertionHandler
+@property (nonatomic) BOOL abortOnFailure;
+@end
+
+@implementation SPDYAssertionHandler
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _abortOnFailure = YES;
+    }
+    return self;
+}
+
+- (void)handleFailureInMethod:(SEL)selector
+                       object:(id)object
+                         file:(NSString *)fileName
+                   lineNumber:(NSInteger)line
+                  description:(NSString *)format, ...
+{
+    va_list args;
+    va_start(args, format);
+    NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
+    va_end(args);
+
+    NSString *reason = [NSString stringWithFormat:@"*** CocoaSPDY NSAssert failure '%@'\nin method '%@' for object %@ in %@#%zd\n%@", message, NSStringFromSelector(selector), object, fileName, line, [NSThread callStackSymbols]];
+    SPDY_ERROR(@"%@", reason);
+    [SPDYCommonLogger flush];
+    if (_abortOnFailure) {
+        abort();
+    }
+}
+
+- (void)handleFailureInFunction:(NSString *)functionName
+                           file:(NSString *)fileName
+                     lineNumber:(NSInteger)line
+                    description:(NSString *)format, ...
+{
+    va_list args;
+    va_start(args, format);
+    NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
+    va_end(args);
+
+    NSString *reason = [NSString stringWithFormat:@"*** CocoaSPDY NSCAssert failure '%@'\nin function '%@' in %@#%zd\n%@", message, functionName, fileName, line, [NSThread callStackSymbols]];
+    SPDY_ERROR(@"%@", reason);
+    [SPDYCommonLogger flush];
+    if (_abortOnFailure) {
+        abort();
+    }
+}
+
+@end
 
 @implementation SPDYProtocol
 {
@@ -195,6 +250,19 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     });
 }
 
++ (void)unregisterAllAliases
+{
+    dispatch_barrier_async(configQueue, ^{
+        [aliases removeAllObjects];
+        [certificates removeAllObjects];
+
+        [[NSNotificationCenter defaultCenter] postNotificationName:SPDYOriginUnregisteredNotification
+                                                            object:nil
+                                                          userInfo:@{ @"alias": @"*"}];
+        SPDY_DEBUG(@"unregistered all aliases");
+    });
+}
+
 + (SPDYOrigin *)originForAlias:(SPDYOrigin *)alias
 {
     __block SPDYOrigin *origin;
@@ -218,11 +286,44 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request
 {
-    return request;
+    NSMutableURLRequest *canonicalRequest = SPDYCanonicalRequestForRequest(request);
+    [SPDYProtocol setProperty:@(YES) forKey:@"x-spdy-is-canonical-request" inRequest:canonicalRequest];
+    return canonicalRequest;
+}
+
+- (instancetype)initWithRequest:(NSURLRequest *)request cachedResponse:(NSCachedURLResponse *)cachedResponse client:(id <NSURLProtocolClient>)client
+{
+    // iOS 8 will call this using the 'request' returned from canonicalRequestForRequest. However,
+    // iOS 7 passes the original (non-canonical) request. As SPDYCanonicalRequestForRequest is
+    // somewhat heavyweight, we'll use a flag to detect non-canonical requests. Ensuring the
+    // canonical form is used for processing is important for correctness.
+    BOOL isCanonical = ([SPDYProtocol propertyForKey:@"x-spdy-is-canonical-request" inRequest:request] != nil);
+    if (!isCanonical) {
+        request = [SPDYProtocol canonicalRequestForRequest:request];
+    }
+
+    return [super initWithRequest:request cachedResponse:cachedResponse client:client];
 }
 
 - (void)startLoading
 {
+    // Add an assertion handler to this NSURL thread if one doesn't exist. Without it, assertions
+    // will get swallowed on iOS. OSX seems to behave properly without it, but it's safer to
+    // just always set this.
+    NSMutableDictionary *currentThreadDictionary = [[NSThread currentThread] threadDictionary];
+    if (currentThreadDictionary[NSAssertionHandlerKey] == nil) {
+        currentThreadDictionary[NSAssertionHandlerKey] = [[SPDYAssertionHandler alloc] init];
+    }
+
+    // Only allow one startLoading call. iOS 8 using NSURLSession has exhibited different
+    // behavior, by calling startLoading, then stopLoading, then startLoading, etc, over and
+    // over. This happens asynchronously when using a NSURLSessionDataTaskDelegate after the
+    // URLSession:dataTask:didReceiveResponse:completionHandler: callback.
+    if (_stream) {
+        SPDY_WARNING(@"start loading already called, ignoring %@", self.request.URL.absoluteString);
+        return;
+    }
+
     NSURLRequest *request = self.request;
     SPDY_INFO(@"start loading %@", request.URL.absoluteString);
 
@@ -326,7 +427,7 @@ static NSMutableSet *origins;
     });
 }
 
-+ (void)unregisterAll
++ (void)unregisterAllOrigins
 {
     dispatch_barrier_async(configQueue, ^{
         [origins removeAllObjects];
