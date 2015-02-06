@@ -47,8 +47,8 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
     // autorelease pool at this point, so avoid Objective-C calls.
     Method original, swizzle;
 
-    original = class_getInstanceMethod(self, @selector(connectToHost:onPort:withTimeout:error:));
-    swizzle = class_getInstanceMethod(self, @selector(swizzled_connectToHost:onPort:withTimeout:error:));
+    original = class_getInstanceMethod(self, @selector(connectToOrigin:withTimeout:error:));
+    swizzle = class_getInstanceMethod(self, @selector(swizzled_connectToOrigin:withTimeout:error:));
     if (performSwizzling) {
         method_exchangeImplementations(original, swizzle);
     } else {
@@ -72,12 +72,11 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
     }
 }
 
-- (BOOL)swizzled_connectToHost:(NSString *)hostname
-                        onPort:(in_port_t)port
-                   withTimeout:(NSTimeInterval)timeout
-                         error:(NSError **)pError
+- (bool)swizzled_connectToOrigin:(SPDYOrigin *)origin
+                     withTimeout:(NSTimeInterval)timeout
+                           error:(NSError **)pError
 {
-    NSLog(@"SPDYMock: Swizzled connectToHost:%@ onPost:%d withTimeout:%f", hostname, port, timeout);
+    NSLog(@"SPDYMock: Swizzled connectToOrigin:%@ withTimeout:%f error", origin, timeout);
 
     return YES;
 }

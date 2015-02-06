@@ -11,7 +11,46 @@
 
 #import "SPDYMockOriginEndpointManager.h"
 
+@interface SPDYOriginEndpointManager ()
+- (void)_proxyExecuteAutoConfigURL:(NSURL *)pacScriptUrl;
+- (void)_handleExecuteCallback:(NSArray *)proxies error:(NSError *)error;
+@end
+
 @implementation SPDYMockOriginEndpointManager
+
+static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
+{
+    SPDYMockOriginEndpointManager *manager = CFBridgingRelease(client);
+    NSError *bridgedError = nil;
+    NSArray *bridgedProxies = nil;
+    if (error != NULL) {
+        bridgedError = (__bridge NSError *)error;
+    } else {
+        bridgedProxies = (__bridge NSArray *)proxies;
+    }
+    [manager _handleExecuteCallback:bridgedProxies error:bridgedError];
+    CFRunLoopStop(CFRunLoopGetCurrent());
+}
+
+- (void)_executeAutoConfigScript:(NSString *)script
+{
+    NSString *originUrlString = [NSString stringWithFormat:@"%@://%@:%u", [self origin].scheme, [self origin].host, [self origin].port];
+    NSURL *originUrl = [NSURL URLWithString:originUrlString];
+
+    CFStreamClientContext context = {0, (void *)CFBridgingRetain(self), nil, nil, nil};
+    CFRunLoopSourceRef runLoopSource = CFNetworkExecuteProxyAutoConfigurationScript(
+            (__bridge CFStringRef)script,
+            (__bridge CFURLRef)originUrl,
+            ResultCallback,
+            &context);
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    CFRunLoopAddSource(runLoop, runLoopSource, kCFRunLoopDefaultMode);
+    CFRunLoopRun();
+    CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopDefaultMode);
+    CFRelease(runLoopSource);
+}
+
+#pragma mark Overrides
 
 - (NSDictionary *)_proxyGetSystemSettings
 {
@@ -24,5 +63,13 @@
     return _mock_proxyList;
 }
 
-@end
+- (void)_proxyExecuteAutoConfigURL:(NSURL *)pacScriptUrl
+{
+    if (_mock_autoConfigScript) {
+        [self _executeAutoConfigScript:_mock_autoConfigScript];
+    } else {
+        [super _proxyExecuteAutoConfigURL:pacScriptUrl];
+    }
+}
 
+@end

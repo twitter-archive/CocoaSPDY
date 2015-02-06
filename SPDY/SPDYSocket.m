@@ -539,24 +539,33 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         _endpointManager = [[SPDYOriginEndpointManager alloc] initWithOrigin:origin];
     }
 
+    // This block may run synchronously, if there is no work to do to resolve the endpoints.
+    // If there is, it will be scheduled on the current runloop and run asynchronously. For
+    // the case where it runs synchronously but fails, we need to know that in order to inform
+    // the session properly.
+    BOOL __block success = YES;
+    NSError __block *error = nil;
     __typeof__(self) __weak weakSelf = self;
     [_endpointManager resolveEndpointsWithCompletionHandler:^{
         __typeof__(self) strongSelf = weakSelf;
         if (strongSelf) {
-            NSError *error = nil;
             if (![strongSelf _connectToNextEndpointWithError:&error]) {
+                success = NO;
                 [strongSelf _closeWithError:error];
                 return;
             }
         }
     }];
 
-    return YES;
+    if (pError && error) {
+        *pError = error;
+    }
+    return success;
 }
 
 - (bool)_connectToNextEndpointWithError:(NSError **)pError
 {
-    _endpoint = [_endpointManager selectNextEndpoint];
+    _endpoint = [_endpointManager moveToNextEndpoint];
     if (_endpoint == nil) {
         if (pError) {
             *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"No endpoints available, unable to connect socket");

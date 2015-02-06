@@ -19,6 +19,7 @@
 @property (nonatomic, readonly) in_port_t createStreamsToPort;
 @property (nonatomic, readonly) BOOL didCallScheduleRead;
 @property (nonatomic, readonly) BOOL didCallScheduleWrite;
+@property (nonatomic) BOOL openStreamsShouldFail;
 @end
 
 @implementation SPDYMockSocket
@@ -33,6 +34,11 @@
 - (NSMutableArray *)writeQueue
 {
     return [self valueForKey:@"_writeQueue"];
+}
+
+- (id<SPDYSocketDelegate>)delegate
+{
+    return [self valueForKey:@"_delegate"];
 }
 
 - (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate endpointManager:(SPDYOriginEndpointManager *)endpointManager
@@ -56,7 +62,10 @@
 
 - (bool)_openStreams:(NSError **)pError
 {
-    return YES;
+    if (_openStreamsShouldFail) {
+        *pError = [NSError errorWithDomain:@"UnitTest" code:1 userInfo:nil];
+    }
+    return !_openStreamsShouldFail;
 }
 
 - (void)_scheduleRead
@@ -123,9 +132,14 @@
 
 @implementation SPDYSocketTest
 
-- (void)testInitWithHttpsProxyDoesInitiateConnect
+- (SPDYMockSocket *)_createConnectedSocketWithProxyList:(NSArray *)proxyList
 {
-    // Set up mock origin endpoint manager to avoid getting system's real proxy config.
+    SPDYMockSocketDelegate *socketDelegate = [[SPDYMockSocketDelegate alloc] init];
+    return [self _createConnectedSocketWithProxyList:proxyList delegate:socketDelegate];
+}
+
+- (SPDYMockSocket *)_createConnectedSocketWithProxyList:(NSArray *)proxyList delegate:(SPDYMockSocketDelegate *)delegate
+{
     NSError *error = nil;
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"https://mytesthost.com:443" error:&error];
     SPDYMockOriginEndpointManager *manager = [[SPDYMockOriginEndpointManager alloc] initWithOrigin:origin];
@@ -137,12 +151,20 @@
     }];
 
     // Set up mocked socket
-    SPDYMockSocketDelegate *socketDelegate = [[SPDYMockSocketDelegate alloc] init];
-    SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
-    [socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error];
-    STAssertNil(error, nil);
-    STAssertTrue(socket.connectedToProxy, nil);
+    SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:delegate endpointManager:manager];
+    if (delegate.shouldFailWillConnect) {
+        STAssertFalse([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
+        STAssertNotNil(error, nil);
+    } else {
+        STAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
+        STAssertNil(error, nil);
+    }
+    return socket;
+}
 
+- (void)_assertProxyConnectWasInitiatedToHost:(NSString *)host port:(int)port socket:(SPDYMockSocket *)socket
+{
+    SPDYMockSocketDelegate *socketDelegate = socket.delegate;
     STAssertTrue(socketDelegate.didCallWillConnect, nil);
     STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
     STAssertFalse(socketDelegate.didCallDidDisconnect, nil);
@@ -158,29 +180,33 @@
     STAssertTrue([[[socket writeQueue] objectAtIndex:0] isKindOfClass:[SPDYSocketProxyWriteOp class]], nil);
 }
 
-- (void)testInitWithHttpsProxyDelegateCancelsConnect
-{
-    // Set up mock origin endpoint manager to avoid getting system's real proxy config.
-    NSError *error = nil;
-    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"https://mytesthost.com:443" error:&error];
-    SPDYMockOriginEndpointManager *manager = [[SPDYMockOriginEndpointManager alloc] initWithOrigin:origin];
+#pragma mark Tests
 
-    manager.mock_proxyList = @[@{
+- (void)testInitWithHttpsProxyDoesInitiateConnect
+{
+    SPDYMockSocket *socket = [self _createConnectedSocketWithProxyList:@[@{
             (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeHTTPS,
             (__bridge NSString *)kCFProxyHostNameKey : @"1.2.3.4",
             (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
-    }];
+    }]];
 
+    STAssertTrue(socket.connectedToProxy, nil);
+    [self _assertProxyConnectWasInitiatedToHost:@"1.2.3.4" port:8888 socket:socket];
+}
 
+- (void)testInitWithHttpsProxyDelegateCancelsConnect
+{
     // Set up mocked socket
     SPDYMockSocketDelegate *socketDelegate = [[SPDYMockSocketDelegate alloc] init];
     socketDelegate.shouldFailWillConnect = YES;
 
-    SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
-    [socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error];
-    STAssertNil(error, nil);
-    STAssertTrue(socket.connectedToProxy, nil);
+    SPDYMockSocket *socket = [self _createConnectedSocketWithProxyList:@[@{
+            (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeHTTPS,
+            (__bridge NSString *)kCFProxyHostNameKey : @"1.2.3.4",
+            (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
+    }] delegate:socketDelegate];
 
+    STAssertTrue(socket.connectedToProxy, nil);
     STAssertTrue(socketDelegate.didCallWillConnect, nil);
     STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
     STAssertTrue(socketDelegate.didCallDidDisconnect, nil);
@@ -190,7 +216,28 @@
     STAssertFalse(socket.didCallScheduleWrite, nil);
 }
 
-- (void)testInitWithEmptyProxyAutoConfigURLDoesFail
+- (void)testConnectWithProxyWhenOpenStreamsFailsDoesReturnFalse
+{
+    // Set up mock origin endpoint manager to avoid getting system's real proxy config.
+    NSError *error = nil;
+    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"https://mytesthost.com:443" error:&error];
+    SPDYMockOriginEndpointManager *manager = [[SPDYMockOriginEndpointManager alloc] initWithOrigin:origin];
+
+    manager.mock_proxyList = @[@{
+            (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeHTTPS,
+            (__bridge NSString *)kCFProxyHostNameKey : @"",
+            (__bridge NSString *)kCFProxyPortNumberKey : @"443"
+    }];
+
+    // Set up mocked socket
+    SPDYMockSocketDelegate *socketDelegate = [[SPDYMockSocketDelegate alloc] init];
+
+    SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
+    socket.openStreamsShouldFail = YES;
+    STAssertFalse([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
+}
+
+- (void)testConnectWithEmptyProxyAutoConfigURLDoesUseDirect
 {
     // Set up mock origin endpoint manager to avoid getting system's real proxy config.
     NSError *error = nil;
@@ -207,14 +254,14 @@
     socketDelegate.shouldStopRunLoop = YES;
 
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
-    [socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error];
+    STAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
     STAssertNil(error, nil);  // it's async
 
     CFRunLoopRun();
 
-    STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
-    STAssertTrue(socketDelegate.didCallDidDisconnect, nil);
-    STAssertFalse(socketDelegate.didCallWillConnect, nil);
+    STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
+    STAssertFalse(socketDelegate.didCallDidDisconnect, nil);
+    STAssertTrue(socketDelegate.didCallWillConnect, nil);
     STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
 
     STAssertFalse(socket.didCallScheduleRead, nil);

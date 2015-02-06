@@ -15,10 +15,11 @@
 @interface SPDYOriginEndpointManager : NSObject
 
 @property (nonatomic, readonly) SPDYOrigin *origin;
+@property (nonatomic, readonly) SPDYOriginEndpoint *endpoint;
 @property (nonatomic, readonly) NSUInteger remaining;
 
 - (id)initWithOrigin:(SPDYOrigin *)origin;
 - (void)resolveEndpointsWithCompletionHandler:(void (^)())completionHandler;
-- (SPDYOriginEndpoint *)selectNextEndpoint;
+- (SPDYOriginEndpoint *)moveToNextEndpoint;
 
 @end

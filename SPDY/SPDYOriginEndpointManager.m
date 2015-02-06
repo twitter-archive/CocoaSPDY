@@ -56,6 +56,15 @@
     return (_endpointIndex >= count) ? 0 : (NSUInteger)(count - _endpointIndex - 1);
 }
 
+- (SPDYOriginEndpoint *)endpoint
+{
+    if (_endpointIndex >= 0 && _endpointIndex < _endpointList.count) {
+        return _endpointList[_endpointIndex];
+    } else {
+        return nil;
+    }
+}
+
 - (void)resolveEndpointsWithCompletionHandler:(void (^)())completionHandler
 {
     _resolveCallback = [completionHandler copy];
@@ -77,39 +86,21 @@
             NSArray *originalProxyList = [self _proxyGetListFromSettings:[self _proxyGetSystemSettings]];
             [self _proxyAddSupportedFrom:originalProxyList executeAutoConfig:YES];
         }
-    } else {
-        // Avoid proxies altogether and hard-code a direct connection
-        SPDYOriginEndpoint *endpoint;
-        endpoint = [[SPDYOriginEndpoint alloc] initWithHost:_origin.host
-                                                       port:_origin.port
-                                                       user:nil
-                                                   password:nil
-                                                       type:SPDYOriginEndpointTypeDirect
-                                                     origin:_origin];
-        [_endpointList addObject:endpoint];
     }
 
     // No operations pending, go ahead and complete
     if (_autoConfigRunLoopSource == nil) {
-        if (_resolveCallback) {
-            dispatch_block_t block = _resolveCallback;
-            _resolveCallback = nil;
-            block();
-        }
+        [self _finalizeResolveEndpoints];
     }
 }
 
-- (SPDYOriginEndpoint *)selectNextEndpoint
+- (SPDYOriginEndpoint *)moveToNextEndpoint
 {
     if (_endpointIndex < (NSInteger)_endpointList.count) {
         _endpointIndex++;
     }
 
-    if (_endpointIndex >= 0 && _endpointIndex < _endpointList.count) {
-        return _endpointList[_endpointIndex];
-    } else {
-        return nil;
-    }
+    return self.endpoint;
 }
 
 - (void)_addRunLoopSource
@@ -146,6 +137,27 @@
     return [NSURL URLWithString:originUrlString];
 }
 
+- (void)_finalizeResolveEndpoints
+{
+    // Nothing added (or not enabled) means we should try a direct connection
+    if (_endpointList.count == 0) {
+        SPDYOriginEndpoint *endpoint;
+        endpoint = [[SPDYOriginEndpoint alloc] initWithHost:_origin.host
+                                                       port:_origin.port
+                                                       user:nil
+                                                   password:nil
+                                                       type:SPDYOriginEndpointTypeDirect
+                                                     origin:_origin];
+        [_endpointList addObject:endpoint];
+    }
+
+    if (_resolveCallback) {
+        dispatch_block_t block = _resolveCallback;
+        _resolveCallback = nil;
+        block();
+    }
+}
+
 - (void)_handleExecuteCallback:(NSArray *)proxies error:(NSError *)error
 {
     if (error) {
@@ -157,11 +169,7 @@
     // Only allow 1 outstanding operation, so go ahead and complete
     [self _removeRunLoopSource];
 
-    if (_resolveCallback) {
-        dispatch_block_t block = _resolveCallback;
-        _resolveCallback = nil;
-        block();
-    }
+    [self _finalizeResolveEndpoints];
 }
 
 static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
@@ -209,11 +217,17 @@ static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
 
         // Note: these are possibly never populated. Maybe have to look them up in the keychain.
         // See comment at http://src.chromium.org/svn/trunk/src/net/proxy/proxy_resolver_mac.cc.
+        // Even if they are present, we don't use them.
         NSString *user = proxyDict[(__bridge NSString *)kCFProxyUsernameKey];
         NSString *pass = proxyDict[(__bridge NSString *)kCFProxyPasswordKey];
 
-        // We only support HTTPS proxies (not HTTP), since SPDY requires their use.
-        if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeHTTPS]) {
+        // The difference between an HTTP proxy and a HTTPS proxy, as returned by
+        // CFNetworkCopyProxiesForURL, is only the URL's scheme. The UI supports a single "proxy"
+        // setting, but the returned type is dependent on "http" or "https" scheme in the URL.
+        // So we'll try both, although we have to use a CONNECT message in order to upgrade to
+        // a tunnel (for the binary SPDY frames). Some simple HTTP proxies may not support that.
+        if (([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeHTTPS] || [proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeHTTP])
+                && host.length > 0) {
             SPDYOriginEndpoint *endpoint;
             endpoint = [[SPDYOriginEndpoint alloc] initWithHost:host
                                                            port:port
@@ -233,7 +247,7 @@ static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
                                                          origin:_origin];
             [_endpointList addObject:endpoint];
             SPDY_INFO(@"Proxy: added direct endpoint %@", _endpointList.lastObject);
-        } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL]) {
+        } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL] && executeAutoConfig) {
             NSURL *pacScriptUrl = proxyDict[(__bridge NSString *) kCFProxyAutoConfigurationURLKey];
             SPDY_INFO(@"Proxy: executing auto-config url: %@", pacScriptUrl);
             [self _proxyExecuteAutoConfigURL:pacScriptUrl];
