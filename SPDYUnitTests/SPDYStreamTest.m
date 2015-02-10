@@ -90,7 +90,7 @@ static NSThread *_streamThread;
 
 - (void)testMergeHeadersCollisionDoesAbort
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -106,7 +106,7 @@ static NSThread *_streamThread;
 
 - (void)testReceiveResponseMissingStatusCodeDoesAbort
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -119,7 +119,7 @@ static NSThread *_streamThread;
 
 - (void)testReceiveResponseInvalidStatusCodeDoesAbort
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -132,7 +132,7 @@ static NSThread *_streamThread;
 
 - (void)testReceiveResponseMissingVersionDoesAbort
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -145,7 +145,7 @@ static NSThread *_streamThread;
 
 - (void)testReceiveResponseDoesSucceed
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -173,7 +173,7 @@ static NSThread *_streamThread;
     _URLRequest.SPDYBodyFile = @"bodyfile.txt";
     _URLRequest.SPDYDeferrableInterval = 1.0;
 
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -202,7 +202,7 @@ static NSThread *_streamThread;
     _URLRequest.HTTPMethod = @"POST";
     _URLRequest.SPDYBodyStream = inputStream;
 
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",

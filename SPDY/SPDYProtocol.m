@@ -21,6 +21,7 @@
 #import "SPDYMetadata+Utils.h"
 #import "SPDYOrigin.h"
 #import "SPDYProtocol+Project.h"
+#import "SPDYPushStreamManager.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYStream.h"
@@ -382,16 +383,14 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         origin = aliasedOrigin;
     }
 
-    // Create the stream
-    _stream = [[SPDYStream alloc] initWithProtocol:self];
+    // Create the context, but delay stream creation (to allow for looking up push cache
+    // as late as possible)
     _context = [[SPDYProtocolContext alloc] initWithStream:_stream];
 
     if (request.SPDYURLSession) {
         [self detectSessionAndTaskThenContinueWithOrigin:origin];
     } else {
-        // Start the stream
-        SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
-        [manager queueStream:_stream];
+        [self startStreamForOrigin:origin];
     }
 }
 
@@ -435,9 +434,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
                     }
                 }
 
-                // Start the stream
-                SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
-                [manager queueStream:_stream];
+                [self startStreamForOrigin:origin];
             }
         };
 
@@ -447,9 +444,25 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     }];
 }
 
+- (void)startStreamForOrigin:(SPDYOrigin *)origin
+{
+    SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
+
+    // See if this is currently being pushed, and if so, hook it up, else create it
+    _stream = [manager.pushStreamManager streamForProtocol:self];
+    if (_stream != nil) {
+        SPDY_INFO(@"using in-progress push stream %@ for %@", _stream, self.request.URL.absoluteString);
+    } else {
+        _stream = [[SPDYStream alloc] initWithProtocol:self pushStreamManager:manager.pushStreamManager];
+        [manager queueStream:_stream];
+    }
+}
+
 - (void)stopLoading
 {
     SPDY_INFO(@"stop loading %@", self.request.URL.absoluteString);
+
+    [_stream.pushStreamManager stopLoadingStream:_stream];
 
     if (_stream && !_stream.closed) {
         [_stream cancel];

@@ -15,6 +15,7 @@
 #import "SPDYMockSessionTestBase.h"
 #import "SPDYMockURLProtocolClient.h"
 #import "SPDYOrigin.h"
+#import "SPDYPushStreamManager.h"
 #import "SPDYSocket.h"
 #import "SPDYSocket+SPDYSocketMock.h"
 #import "SPDYStream.h"
@@ -70,6 +71,8 @@
     [super setUp];
     [SPDYSocket performSwizzling:YES];
     _protocolList = [[NSMutableArray alloc] initWithCapacity:1];
+    _pushProtocolList = [[NSMutableArray alloc] initWithCapacity:1];
+    _pushStreamManager = [[SPDYPushStreamManager alloc] init];
 
     NSError *error = nil;
     _origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
@@ -105,7 +108,7 @@
 
 - (SPDYStream *)createStream
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol] pushStreamManager:_pushStreamManager];
     stream.delegate = _mockStreamDelegate;
     return stream;
 }
@@ -122,6 +125,17 @@
 - (void)makeSocketConnect
 {
     [[_session socket] performDelegateCall_socketDidConnectToHost:@"testhost" port:1234];
+}
+
+- (SPDYStream *)attachToPushRequestWithUrl:(NSString *)url
+{
+    _mockPushURLProtocolClient = [[SPDYMockURLProtocolClient alloc] init];
+    NSMutableURLRequest *pushURLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+    SPDYProtocol *pushProtocolRequest = [[SPDYProtocol alloc] initWithRequest:pushURLRequest cachedResponse:nil client:_mockPushURLProtocolClient];
+    [_pushProtocolList addObject:pushProtocolRequest];
+
+    SPDYStream *pushStream = [_pushStreamManager streamForProtocol:pushProtocolRequest];
+    return pushStream;
 }
 
 - (SPDYStream *)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last

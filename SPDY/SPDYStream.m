@@ -17,10 +17,12 @@
 #import <objc/runtime.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCacheStoragePolicy.h"
+#import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYDefinitions.h"
 #import "SPDYMetadata+Utils.h"
 #import "SPDYProtocol+Project.h"
+#import "SPDYPushStreamManager.h"
 #import "SPDYStopwatch.h"
 #import "SPDYStream.h"
 
@@ -72,10 +74,12 @@
 }
 
 - (instancetype)initWithProtocol:(SPDYProtocol *)protocol
+               pushStreamManager:(SPDYPushStreamManager *)pushStreamManager
 {
     self = [super init];
     if (self) {
         _protocol = protocol;
+        _pushStreamManager = pushStreamManager;
         _client = protocol.client;
         _request = protocol.request;
         _priority = (uint8_t)MIN(_request.SPDYPriority, 0x07);
@@ -100,6 +104,7 @@
     self = [super init];
     if (self) {
         _protocol = nil;
+        _pushStreamManager = associatedStream.pushStreamManager;
         _client = nil;
         _request = nil;
         _priority = priority;
@@ -517,6 +522,7 @@
         }
     }
 
+    // Check encoding, but only do it once, so look at newHeaders
     NSString *encoding = allHTTPHeaders[@"content-encoding"];
     _compressedResponse = [encoding hasPrefix:@"deflate"] || [encoding hasPrefix:@"gzip"];
     if (_compressedResponse) {
@@ -620,6 +626,8 @@
 
     _pushRequest = [SPDYProtocol canonicalRequestForRequest:requestCopy];
     _request = _pushRequest;  // need a strong reference for _request's weak one
+
+    [_pushStreamManager addStream:self associatedWith:_associatedStream];
 }
 
 - (void)didLoadData:(NSData *)data
