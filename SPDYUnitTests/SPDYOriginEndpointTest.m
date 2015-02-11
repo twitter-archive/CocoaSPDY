@@ -135,7 +135,8 @@
             (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
     }]];
 
-    STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    // Also adds direct at end
+    STAssertEquals(manager.remaining, (NSUInteger)2, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertNotNil(endpoint, nil);
@@ -145,6 +146,11 @@
     STAssertEqualObjects(endpoint.origin.host, @"mytesthost.com", nil);
     STAssertNil(endpoint.user, @"actual: %@", nil);
     STAssertNil(endpoint.password, @"actual: %@", nil);
+
+    endpoint = [manager moveToNextEndpoint];
+    STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
+    STAssertEqualObjects(endpoint.host, @"mytesthost.com", nil);
+    STAssertEquals(endpoint.port, (in_port_t)443, nil);
 }
 
 - (void)testResolveWithInvalidHttpsProxyConfigDoesReturnDirect
@@ -191,7 +197,7 @@
     STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
 }
 
-- (void)testResolveWithHttpsAndDirectProxyConfigShouldReturnOne
+- (void)testResolveWithHttpsAndDirectProxyConfigShouldReturnBoth
 {
     SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithProxyList:@[@{
             (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeHTTPS,
@@ -202,27 +208,26 @@
     }]];
 
     // Note: currently only support a single proxy.
-    STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.remaining, (NSUInteger)2, nil);
 
     // The first config in the array gets used, so verify that.
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
-    STAssertEquals(manager.remaining, (NSUInteger)0, nil);
     STAssertEquals(endpoint, manager.endpoint, nil);
     STAssertEquals(endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
 
     // Valid once we support multiple proxies
-    //endpoint = [manager moveToNextEndpoint];
-    //STAssertEquals(manager.remaining, (NSUInteger)0, nil);
-    //STAssertEquals(endpoint, manager.endpoint, nil);
-    //STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
+    endpoint = [manager moveToNextEndpoint];
+    STAssertEquals(manager.remaining, (NSUInteger)0, nil);
+    STAssertEquals(endpoint, manager.endpoint, nil);
+    STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
 }
 
-- (void)testResolvePacFileWithProxyAndDirectDoesReturnOne
+- (void)testResolvePacFileWithProxyAndDirectDoesReturnBoth
 {
     SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithPacScript:
             @"function FindProxyForURL(url, host) { return \"PROXY 1.2.3.4:8888; DIRECT\"; }"];
 
-    STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.remaining, (NSUInteger)2, nil);
 
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
@@ -230,29 +235,34 @@
     STAssertEquals(manager.endpoint.port, (in_port_t)8888, nil);
 
     // Valid once we support multiple proxies
-    //[manager moveToNextEndpoint];
-    //STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
-    //STAssertEqualObjects(manager.endpoint.host, @"mytesthost.com", nil);
-    //STAssertEquals(manager.endpoint.port, (in_port_t)443, nil);
+    [manager moveToNextEndpoint];
+    STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
+    STAssertEqualObjects(manager.endpoint.host, @"mytesthost.com", nil);
+    STAssertEquals(manager.endpoint.port, (in_port_t)443, nil);
 }
 
-- (void)testResolvePacFileWithMultiProxyDoesReturnOne
+- (void)testResolvePacFileWithMultiProxyDoesReturnAll
 {
     SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithPacScript:
             @"function FindProxyForURL(url, host) { return \"PROXY 1.2.3.4:8888; PROXY 1.2.3.5:8889\"; }"];
 
-    STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.remaining, (NSUInteger)3, nil);
 
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
     STAssertEqualObjects(manager.endpoint.host, @"1.2.3.4", nil);
     STAssertEquals(manager.endpoint.port, (in_port_t)8888, nil);
 
+    [manager moveToNextEndpoint];
+    STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
+    STAssertEqualObjects(manager.endpoint.host, @"1.2.3.5", nil);
+    STAssertEquals(manager.endpoint.port, (in_port_t)8889, nil);
+
     // Valid once we support multiple proxies
-    //[manager moveToNextEndpoint];
-    //STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
-    //STAssertEqualObjects(manager.endpoint.host, @"1.2.3.5", nil);
-    //STAssertEquals(manager.endpoint.port, (in_port_t)8889, nil);
+    [manager moveToNextEndpoint];
+    STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
+    STAssertEqualObjects(manager.endpoint.host, @"mytesthost.com", nil);
+    STAssertEquals(manager.endpoint.port, (in_port_t)443, nil);
 }
 
 - (void)testResolvePacFileWithTypoDoesReturnDirect

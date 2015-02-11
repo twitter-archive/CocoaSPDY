@@ -103,6 +103,25 @@
     return self.endpoint;
 }
 
+- (void)_addFallback
+{
+    // We'll never add 2 direct endpoints to the list
+    for (SPDYOriginEndpoint *endpoint in _endpointList) {
+        if (endpoint.type == SPDYOriginEndpointTypeDirect) {
+            return;
+        }
+    }
+
+    SPDYOriginEndpoint *endpoint;
+    endpoint = [[SPDYOriginEndpoint alloc] initWithHost:_origin.host
+                                                   port:_origin.port
+                                                   user:nil
+                                               password:nil
+                                                   type:SPDYOriginEndpointTypeDirect
+                                                 origin:_origin];
+    [_endpointList addObject:endpoint];
+}
+
 - (void)_addRunLoopSource
 {
     [_autoConfigRunLoopModes removeAllObjects];
@@ -139,17 +158,10 @@
 
 - (void)_finalizeResolveEndpoints
 {
-    // Nothing added (or not enabled) means we should try a direct connection
-    if (_endpointList.count == 0) {
-        SPDYOriginEndpoint *endpoint;
-        endpoint = [[SPDYOriginEndpoint alloc] initWithHost:_origin.host
-                                                       port:_origin.port
-                                                       user:nil
-                                                   password:nil
-                                                       type:SPDYOriginEndpointTypeDirect
-                                                     origin:_origin];
-        [_endpointList addObject:endpoint];
-    }
+    // Nothing added (or not enabled) means we should try a direct connection.
+    // We'll also add one as a last resort every time, since currently the socket does
+    // not support multiple proxy attempts, except in the case of a 407 response.
+    [self _addFallback];
 
     if (_resolveCallback) {
         dispatch_block_t block = _resolveCallback;
@@ -253,12 +265,7 @@ static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
             [self _proxyExecuteAutoConfigURL:pacScriptUrl];
         } else {
             SPDY_INFO(@"Proxy: ignoring unsupported endpoint %@:%d (%@)", host, port, proxyType);
-            continue;
         }
-
-        // Currently only support 1 endpoint, so we're done here. This simplifies keeping
-        // things in order.
-        break;
     }
 }
 
