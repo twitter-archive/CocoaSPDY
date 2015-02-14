@@ -35,6 +35,7 @@ NSString *const SPDYMetadataVersionKey = @"x-spdy-version";
 NSString *const SPDYMetadataSessionRemoteAddressKey = @"x-spdy-session-remote-address";
 NSString *const SPDYMetadataSessionRemotePortKey = @"x-spdy-session-remote-port";
 NSString *const SPDYMetadataSessionViaProxyKey = @"x-spdy-session-via-proxy";
+NSString *const SPDYMetadataSessionProxyStatusKey = @"x-spdy-session-proxy-status";
 NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
 NSString *const SPDYMetadataStreamBlockedMsKey = @"x-spdy-stream-blocked-ms";
 NSString *const SPDYMetadataStreamConnectedMsKey = @"x-spdy-stream-connected-ms";

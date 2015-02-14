@@ -52,3 +52,15 @@ typedef enum {
     SPDYSocketTransportError,
     SPDYSocketProxyError
 } SPDYSocketError;
+
+typedef enum {
+    SPDYProxyStatusNone = 0,        // direct connection
+    SPDYProxyStatusManual,          // manually configured HTTPS proxy
+    SPDYProxyStatusManualInvalid,   // manually configured proxy but not supported
+    SPDYProxyStatusManualWithAuth,  // manually configured HTTPS proxy that needs auth
+    SPDYProxyStatusAuto,            // proxy auto-config URL, resolved to 1 or more HTTPS proxies
+    SPDYProxyStatusAutoInvalid,     // proxy auto-config URL, did not resolve to supported HTTPS proxy
+    SPDYProxyStatusAutoWithAuth,    // proxy auto-config URL, resolved to 1 or more HTTPS proxies needing auth
+    SPDYProxyStatusConfig,          // info provided in SPDYConfiguration, not from system
+    SPDYProxyStatusConfigWithAuth   // info provided in SPDYConfiguration, proxy needs auth
+} SPDYProxyStatus;

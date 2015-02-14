@@ -10,6 +10,7 @@
 //
 
 #import <SenTestingKit/SenTestingKit.h>
+#import "SPDYError.h"
 #import "SPDYMockOriginEndpointManager.h"
 #import "SPDYOriginEndpoint.h"
 #import "SPDYProtocol.h"
@@ -82,6 +83,7 @@
     STAssertEqualObjects(manager.origin, origin, nil);
     STAssertEquals(manager.remaining, (NSUInteger)0, nil);
     STAssertNil(manager.endpoint, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusNone, nil);
     STAssertNil([manager moveToNextEndpoint], nil);
 
     STAssertEquals(manager.remaining, (NSUInteger)0, nil);
@@ -91,6 +93,7 @@
 
 - (void)testResolveWithNoProxyConfig
 {
+    // Not a case that should happen
     NSError *error = nil;
     __block BOOL gotCallback = NO;
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:@"https://mytesthost.com:443" error:&error];
@@ -103,6 +106,7 @@
 
     STAssertTrue(gotCallback, nil);
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManualInvalid, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertNotNil(endpoint, nil);
@@ -116,6 +120,7 @@
     }]];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusNone, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertNotNil(endpoint, nil);
@@ -137,6 +142,7 @@
 
     // Also adds direct at end
     STAssertEquals(manager.remaining, (NSUInteger)2, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManual, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertNotNil(endpoint, nil);
@@ -162,6 +168,7 @@
     }]];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManualInvalid, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
@@ -192,6 +199,7 @@
 
     STAssertTrue(gotCallback, nil);
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAutoInvalid, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
@@ -209,6 +217,7 @@
 
     // Note: currently only support a single proxy.
     STAssertEquals(manager.remaining, (NSUInteger)2, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManual, nil);
 
     // The first config in the array gets used, so verify that.
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
@@ -228,6 +237,7 @@
             @"function FindProxyForURL(url, host) { return \"PROXY 1.2.3.4:8888; DIRECT\"; }"];
 
     STAssertEquals(manager.remaining, (NSUInteger)2, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAuto, nil);
 
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
@@ -247,6 +257,7 @@
             @"function FindProxyForURL(url, host) { return \"PROXY 1.2.3.4:8888; PROXY 1.2.3.5:8889\"; }"];
 
     STAssertEquals(manager.remaining, (NSUInteger)3, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAuto, nil);
 
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
@@ -271,6 +282,7 @@
             @"function FindProxyForURL(url, host) { return \"PROOXY 1.2.3.4:8888\"; }"];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAutoInvalid, nil);
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
 }
@@ -281,6 +293,7 @@
             @"function FindProxyForURL(url, host) { return \"PROXY :8888\"; }"];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAutoInvalid, nil);
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
 }
@@ -291,6 +304,7 @@
             @"function FindProxyForURL(url, host) { }"];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAutoInvalid, nil);
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
 }
@@ -301,6 +315,7 @@
             @""];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAutoInvalid, nil);
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
 }
@@ -311,6 +326,7 @@
             @"function FindProxyForURL(url, host) { return \"SOCKS 1.2.3.4:8888\"; }"];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAutoInvalid, nil);
     [manager moveToNextEndpoint];
     STAssertEquals(manager.endpoint.type, SPDYOriginEndpointTypeDirect, nil);
 }
@@ -322,6 +338,7 @@
     }]];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManualInvalid, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
@@ -334,6 +351,7 @@
     }]];
 
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManualInvalid, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertEquals(endpoint.type, SPDYOriginEndpointTypeDirect, nil);
@@ -351,6 +369,7 @@
             (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
     }]];
     STAssertEquals(manager.remaining, (NSUInteger)1, nil);
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusNone, nil);
 
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertNotNil(endpoint, nil);
@@ -376,6 +395,8 @@
             (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
     }]];
 
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusConfig, nil);
+
     SPDYOriginEndpoint *endpoint = [manager moveToNextEndpoint];
     STAssertNotNil(endpoint, nil);
     STAssertEquals(endpoint.type, SPDYOriginEndpointTypeHttpsProxy, nil);
@@ -385,6 +406,72 @@
 
     // Remember to reset global config!
     [SPDYProtocol setConfiguration:[SPDYConfiguration defaultConfiguration]];
+}
+
+- (void)testSetAuthRequiredForDirectDoesNothing
+{
+    SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithProxyList:@[@{
+            (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeNone,
+    }]];
+
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusNone, nil);
+    manager.authRequired = YES;
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusNone, nil);
+}
+
+- (void)testSetAuthRequiredForManual
+{
+    SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithProxyList:@[@{
+            (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeHTTPS,
+            (__bridge NSString *)kCFProxyHostNameKey : @"1.2.3.4",
+            (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
+    }]];
+
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManual, nil);
+    manager.authRequired = YES;
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManualWithAuth, nil);
+}
+
+- (void)testSetAuthRequiredForAuto
+{
+    SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithPacScript:
+            @"function FindProxyForURL(url, host) { return \"PROXY 1.2.3.4:8888; DIRECT\"; }"];
+
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAuto, nil);
+    manager.authRequired = YES;
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusAutoWithAuth, nil);
+}
+
+- (void)testSetAuthRequiredForConfigOverride
+{
+    SPDYConfiguration *configuration = [SPDYConfiguration defaultConfiguration];
+    configuration.proxyHost = @"proxyproxyproxy.com";
+    configuration.proxyPort = 9999;
+    [SPDYProtocol setConfiguration:configuration];
+
+    SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithProxyList:@[@{
+            (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeHTTPS,
+            (__bridge NSString *)kCFProxyHostNameKey : @"1.2.3.4",
+            (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
+    }]];
+
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusConfig, nil);
+    manager.authRequired = YES;
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusConfigWithAuth, nil);
+
+    // Remember to reset global config!
+    [SPDYProtocol setConfiguration:[SPDYConfiguration defaultConfiguration]];
+}
+
+- (void)testSetAuthRequiredWhenManualInvalidDoesNothing
+{
+    SPDYMockOriginEndpointManager *manager = [self _resolveEndpointsWithProxyList:@[@{
+            (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeSOCKS
+    }]];
+
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManualInvalid, nil);
+    manager.authRequired = YES;
+    STAssertEquals(manager.proxyStatus, SPDYProxyStatusManualInvalid, nil);
 }
 
 @end

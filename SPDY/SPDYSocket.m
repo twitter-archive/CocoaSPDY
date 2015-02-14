@@ -1838,6 +1838,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             [self _scheduleWrite];
         } else if ([proxyReadOp needsAuth]) {
             SPDY_ERROR(@"socket failed proxy connection to %@ (auth required), got \"%@\"", _endpoint, proxyReadOp);
+            _endpointManager.authRequired = YES;
             [self _attemptNextProxyConnectionForError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Authentication required (not supported)")];
         } else {
             SPDY_ERROR(@"socket failed proxy connection to %@, got \"%@\"", _endpoint, proxyReadOp);

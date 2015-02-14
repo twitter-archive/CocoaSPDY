@@ -52,6 +52,7 @@ static NSString * const SPDYMetadataIdentifierKey = @"x-spdy-metadata-identifier
         SPDYMetadataStreamConnectedMsKey : [@(_connectedMs) stringValue],
         SPDYMetadataStreamBlockedMsKey : [@(_blockedMs) stringValue],
         SPDYMetadataSessionViaProxyKey : [@(_viaProxy) stringValue],
+        SPDYMetadataSessionProxyStatusKey : [@(_proxyStatus) stringValue],
     }];
 
     if (_streamId > 0) {
