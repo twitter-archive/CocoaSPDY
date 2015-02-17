@@ -9,5 +9,6 @@ profile
 
 # Xcode stuff
 build/
-xcuserdata
+xcuserdata/
+contents.xcworkspacedata
 *.xccheckout
