@@ -102,8 +102,6 @@
             @"HTTP/1.1 300 Foo\r\n\r\n",
             @"HTTP/1.1 400 Foo\r\n\r\n",
             @"HTTP/1.1 500 Error\r\n\r\n",
-            @"HTTP/1 200 Connection established\r\n\r\n",
-            @"HTTP/1.2 200 Connection established\r\n\r\n",
             @"/1.1 200 Connection established\r\n\r\n",
             @"1.1 200 Connection established\r\n\r\n",
             @"GARBAGE 200 Connection established\r\n\r\n",
@@ -130,6 +128,8 @@
             @"HTTP/1.1 200 Connection established\r\nHeader: Foo\r\nHeader2: Foo Bar\r\n\r\n",
             @"HTTP/1.1 200.1 Connection established\r\n\r\n",
             @"HTTP/1.1 200 Connection established\r\n\r\n",
+            @"HTTP/1 200 Connection established\r\n\r\n", // questionable
+            @"HTTP/1.2 200 Connection established\r\n\r\n", // questionable
             ];
 
     for (NSString *responseStr in responseStrList) {

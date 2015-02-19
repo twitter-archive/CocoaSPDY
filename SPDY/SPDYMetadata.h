@@ -25,6 +25,7 @@
 @property (nonatomic, copy) NSString *hostAddress;
 @property (nonatomic) NSUInteger hostPort;
 @property (nonatomic) BOOL viaProxy;
+@property (nonatomic) SPDYProxyStatus proxyStatus;
 
 - (NSDictionary *)dictionary;
 

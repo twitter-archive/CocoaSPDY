@@ -61,6 +61,7 @@
 - (id)initWithTimeout:(NSTimeInterval)timeout;
 - (bool)tryParseResponse;
 - (bool)success;
+- (bool)needsAuth;
 
 @end
 

@@ -201,6 +201,11 @@ extern NSString *const SPDYSocketException;
 - (in_port_t)connectedPort;
 
 /**
+  @return YES if the socket has been closed after attempting to connect
+*/
+- (bool)closed;
+
+/**
   @return YES if the socket is IPv4
 */
 - (bool)isIPv4;

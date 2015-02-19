@@ -14,6 +14,7 @@
 #endif
 
 #import "SPDYCommonLogger.h"
+#import "SPDYError.h"
 #import "SPDYOrigin.h"
 #import "SPDYOriginEndpoint.h"
 #import "SPDYOriginEndpointManager.h"
@@ -65,6 +66,24 @@
     }
 }
 
+- (void)setAuthRequired:(bool)authRequired
+{
+    _authRequired = authRequired;
+    switch (_proxyStatus) {
+        case SPDYProxyStatusManual:
+            _proxyStatus = SPDYProxyStatusManualWithAuth;
+            break;
+        case SPDYProxyStatusAuto:
+            _proxyStatus = SPDYProxyStatusAutoWithAuth;
+            break;
+        case SPDYProxyStatusConfig:
+            _proxyStatus = SPDYProxyStatusConfigWithAuth;
+            break;
+        default:
+            SPDY_WARNING(@"unexpected endpoint state, can't set auth required for SPDYProxyStatus %d", (int)_proxyStatus);
+    }
+}
+
 - (void)resolveEndpointsWithCompletionHandler:(void (^)())completionHandler
 {
     _resolveCallback = [completionHandler copy];
@@ -81,6 +100,7 @@
                                                            type:SPDYOriginEndpointTypeHttpsProxy
                                                          origin:_origin];
             [_endpointList addObject:endpoint];
+            _proxyStatus = SPDYProxyStatusConfig;
         } else {
             // Use system configuration
             NSArray *originalProxyList = [self _proxyGetListFromSettings:[self _proxyGetSystemSettings]];
@@ -101,6 +121,25 @@
     }
 
     return self.endpoint;
+}
+
+- (void)_addFallback
+{
+    // We'll never add 2 direct endpoints to the list
+    for (SPDYOriginEndpoint *endpoint in _endpointList) {
+        if (endpoint.type == SPDYOriginEndpointTypeDirect) {
+            return;
+        }
+    }
+
+    SPDYOriginEndpoint *endpoint;
+    endpoint = [[SPDYOriginEndpoint alloc] initWithHost:_origin.host
+                                                   port:_origin.port
+                                                   user:nil
+                                               password:nil
+                                                   type:SPDYOriginEndpointTypeDirect
+                                                 origin:_origin];
+    [_endpointList addObject:endpoint];
 }
 
 - (void)_addRunLoopSource
@@ -139,17 +178,10 @@
 
 - (void)_finalizeResolveEndpoints
 {
-    // Nothing added (or not enabled) means we should try a direct connection
-    if (_endpointList.count == 0) {
-        SPDYOriginEndpoint *endpoint;
-        endpoint = [[SPDYOriginEndpoint alloc] initWithHost:_origin.host
-                                                       port:_origin.port
-                                                       user:nil
-                                                   password:nil
-                                                       type:SPDYOriginEndpointTypeDirect
-                                                     origin:_origin];
-        [_endpointList addObject:endpoint];
-    }
+    // Nothing added (or not enabled) means we should try a direct connection.
+    // We'll also add one as a last resort every time, since currently the socket does
+    // not support multiple proxy attempts, except in the case of a 407 response.
+    [self _addFallback];
 
     if (_resolveCallback) {
         dispatch_block_t block = _resolveCallback;
@@ -162,6 +194,7 @@
 {
     if (error) {
         SPDY_ERROR(@"Error executing auto-config proxy URL: %@", error);
+        _proxyStatus = SPDYProxyStatusAutoInvalid;
     } else if (proxies) {
         [self _proxyAddSupportedFrom:proxies executeAutoConfig:NO];
     }
@@ -237,6 +270,9 @@ static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
                                                          origin:_origin];
             [_endpointList addObject:endpoint];
             SPDY_INFO(@"Proxy: added endpoint %@", endpoint);
+            if (_proxyStatus == SPDYProxyStatusNone) {
+                _proxyStatus = SPDYProxyStatusManual;
+            }
         } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeNone]) {
             SPDYOriginEndpoint *endpoint;
             endpoint = [[SPDYOriginEndpoint alloc] initWithHost:_origin.host
@@ -250,15 +286,19 @@ static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
         } else if ([proxyType isEqualToString:(__bridge NSString *)kCFProxyTypeAutoConfigurationURL] && executeAutoConfig) {
             NSURL *pacScriptUrl = proxyDict[(__bridge NSString *) kCFProxyAutoConfigurationURLKey];
             SPDY_INFO(@"Proxy: executing auto-config url: %@", pacScriptUrl);
+            _proxyStatus = SPDYProxyStatusAuto;
             [self _proxyExecuteAutoConfigURL:pacScriptUrl];
         } else {
             SPDY_INFO(@"Proxy: ignoring unsupported endpoint %@:%d (%@)", host, port, proxyType);
-            continue;
         }
+    }
 
-        // Currently only support 1 endpoint, so we're done here. This simplifies keeping
-        // things in order.
-        break;
+    if (_endpointList.count == 0) {
+        if (_proxyStatus == SPDYProxyStatusAuto) {
+            _proxyStatus = SPDYProxyStatusAutoInvalid;
+        } else {
+            _proxyStatus = SPDYProxyStatusManualInvalid;
+        }
     }
 }
 
