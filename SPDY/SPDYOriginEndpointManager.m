@@ -66,7 +66,7 @@
     }
 }
 
-- (void)setAuthRequired:(BOOL)authRequired
+- (void)setAuthRequired:(bool)authRequired
 {
     _authRequired = authRequired;
     switch (_proxyStatus) {

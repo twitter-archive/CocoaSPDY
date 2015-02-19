@@ -20,7 +20,7 @@
 @property (nonatomic, readonly) SPDYOriginEndpoint *endpoint;
 @property (nonatomic, readonly) NSUInteger remaining;
 @property (nonatomic, readonly) SPDYProxyStatus proxyStatus;
-@property (nonatomic) BOOL authRequired;  // writable since only the socket knows the answer
+@property (nonatomic) bool authRequired;  // writable since only the socket knows the answer
 
 - (id)initWithOrigin:(SPDYOrigin *)origin;
 - (void)resolveEndpointsWithCompletionHandler:(void (^)())completionHandler;

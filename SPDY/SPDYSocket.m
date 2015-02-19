@@ -534,6 +534,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     [self _startConnectTimeout:timeout];
 
+    // Clear all flags
+    _flags = (uint16_t)0;
+
     if (_endpointManager == nil) {
         _endpointManager = [[SPDYOriginEndpointManager alloc] initWithOrigin:origin];
     }
@@ -547,13 +550,17 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     __typeof__(self) __weak weakSelf = self;
     [_endpointManager resolveEndpointsWithCompletionHandler:^{
         __typeof__(self) strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf && !strongSelf.closed) {
             if (![strongSelf _connectToNextEndpointWithError:&error]) {
                 success = NO;
                 [strongSelf _closeWithError:error];
             }
         }
     }];
+
+    // Starting the delegate now will catch the asynchronous case of resolveEndpointsWithCompletionHandler.
+    // It will duplicate the synchronous case, as it has already been set.
+    _flags |= kDidStartDelegate;
 
     if (pError && error) {
         *pError = error;
@@ -563,12 +570,16 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (bool)_connectToNextEndpointWithError:(NSError **)pError
 {
+    // Starting the delegate now will catch the synchronous case of resolveEndpointsWithCompletionHandler,
+    // and also reset to a known state for subsequent connect attempts.
+    _flags = kDidStartDelegate;
+
     if (_currentReadOp) {
         BOOL isProxyOp = [_currentReadOp isKindOfClass:[SPDYSocketProxyReadOp class]];
         NSAssert(isProxyOp, @"expected proxy currentReadOp, is %@", _currentReadOp);
         if (!isProxyOp) {
             SPDY_ERROR(@"error connecting to endpoint %@: unexpected read state", _endpointManager.endpoint);
-            if (pError) {
+            if (pError && *pError == nil) {
                 *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"unexpected read state, unable to connect to next endpoint");
             }
             return NO;
@@ -581,7 +592,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         NSAssert(isProxyOp, @"expected proxy currentWrite, is %@", _currentWriteOp);
         if (!isProxyOp) {
             SPDY_ERROR(@"error connecting to endpoint %@: unexpected write state", _endpointManager.endpoint);
-            if (pError) {
+            if (pError && *pError == nil) {
                 *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"unexpected write state, unable to connect to next endpoint");
             }
             return NO;
@@ -591,13 +602,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     [self _resetStreamsAndSockets];
 
-    // Reset flags
-    _flags = kDidStartDelegate;
-
     _endpoint = [_endpointManager moveToNextEndpoint];
     if (_endpoint == nil) {
         SPDY_ERROR(@"error connecting to origin %@: no more endpoints available", _endpointManager.origin);
-        if (pError) {
+        if (pError && *pError == nil) {
             *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"No endpoints available, unable to connect socket");
         }
         return NO;
@@ -605,10 +613,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     SPDY_INFO(@"socket attempting connection to %@", _endpointManager.endpoint);
 
-    if (![self _createStreamsToHost:_endpoint.host onPort:_endpoint.port error:pError]) goto Failed;
-    if (![self _scheduleStreamsOnRunLoop:nil error:pError])             goto Failed;
-    if (![self _configureStreams:pError])                               goto Failed;
-    if (![self _openStreams:pError])                                    goto Failed;
+    if (![self _createStreamsToHost:_endpoint.host onPort:_endpoint.port error:pError] ||
+            ![self _scheduleStreamsOnRunLoop:nil error:pError] ||
+            ![self _configureStreams:pError] ||
+            ![self _openStreams:pError]) {
+        return [self _connectToNextEndpointWithError:pError];
+    }
 
     // If connecting to an HTTPS proxy, we have to exchange an HTTP CONNECT message. This exchange
     // needs to be included in the timeout. If anything fails, we'd prefer to hide the error
@@ -633,15 +643,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     }
 
     return YES;
-
-    Failed:
-    if (pError) {
-        *pError = nil;
-    }
-    return [self _connectToNextEndpointWithError:pError];
 }
 
-- (BOOL)_attemptNextProxyConnectionForError:(NSError *)rootError
+- (void)_handleError:(NSError *)rootError
 {
     if (!(_flags & kConnectingToProxy)) {
         // We only support attempting the next endpoint if the current one is a proxy, and only
@@ -650,15 +654,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         // message and its response. Once we reach the TLS or application-provided read/write
         // operations, no additional connection attempts are supported.
         [self _closeWithError:rootError];
-        return NO;
     } else {
         NSError *error = nil;
         SPDY_WARNING(@"socket error, attempting next connection: %@", rootError);
         if (![self _connectToNextEndpointWithError:&error]) {
             [self _closeWithError:error];
-            return NO;
         }
-        return YES;
     }
 }
 
@@ -1009,12 +1010,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     _runLoop = NULL;
 
     // If the connection has at least been started, notify delegate that it is now ending
-    bool shouldCallDelegate = (_flags & kDidStartDelegate);
-
-    // Clear all flags
-    _flags = (uint16_t)0;
-
-    if (shouldCallDelegate) {
+    if (_flags & kDidStartDelegate) {
         // Do not access any instance variables after calling onSocketDidDisconnect.
         // This gives the delegate freedom to release us without returning here and crashing.
         if ([_delegate respondsToSelector:@selector(socketDidDisconnect:)]) {
@@ -1282,6 +1278,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     return _connectedHost;
 }
 
+- (bool)closed
+{
+    CHECK_THREAD_SAFETY();
+    return _flags & kClosingWithError;
+}
+
 - (bool)isIPv4
 {
     CHECK_THREAD_SAFETY();
@@ -1462,7 +1464,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     if ([_currentReadOp isKindOfClass:[SPDYSocketProxyReadOp class]]) {
         // Let's see if the proxy has fully responded
         if (_currentReadOp->_bytesRead > 0) {
-            [self _onProxyResponse:(SPDYSocketProxyReadOp *)_currentReadOp];
+            [self _onProxyResponse];
         }
     } else if (readComplete) {
         [self _finishRead];
@@ -1475,7 +1477,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     }
 
     if (readError) {
-        [self _attemptNextProxyConnectionForError:readError];
+        [self _handleError:readError];
     }
 }
 
@@ -1641,7 +1643,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         _flags &= ~kSocketCanAcceptBytes;
 
         if (bytesWritten < 0) {
-            [self _attemptNextProxyConnectionForError:[self streamError]];
+            [self _handleError:[self streamError]];
             return;
         } else if (bytesWritten == 0) {
             SPDY_INFO(@"socket at end of write stream");
@@ -1795,8 +1797,9 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     }
 }
 
-- (void)_onProxyResponse:(SPDYSocketProxyReadOp *)proxyReadOp
+- (void)_onProxyResponse
 {
+    SPDYSocketProxyReadOp *proxyReadOp = (SPDYSocketProxyReadOp *)_currentReadOp;
     SPDY_DEBUG(@"parsing proxy response: %@", proxyReadOp);
     if ([proxyReadOp tryParseResponse]) {
         if ([proxyReadOp success]) {
@@ -1817,7 +1820,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             if (proxyReadOp->_bytesParsed != proxyReadOp->_bytesRead) {
                 SPDY_ERROR(@"socket failed proxy connection to %@, response too large: %lu parsed, %lu read",
                         _endpoint, (unsigned long)proxyReadOp->_bytesParsed, (unsigned long)proxyReadOp->_bytesRead);
-                [self _attemptNextProxyConnectionForError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Proxy response too large")];
+                [self _handleError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Proxy response too large")];
                 return;
             }
 
@@ -1839,10 +1842,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         } else if ([proxyReadOp needsAuth]) {
             SPDY_ERROR(@"socket failed proxy connection to %@ (auth required), got \"%@\"", _endpoint, proxyReadOp);
             _endpointManager.authRequired = YES;
-            [self _attemptNextProxyConnectionForError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Authentication required (not supported)")];
+            [self _handleError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Authentication required (not supported)")];
         } else {
             SPDY_ERROR(@"socket failed proxy connection to %@, got \"%@\"", _endpoint, proxyReadOp);
-            [self _attemptNextProxyConnectionForError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Invalid proxy response")];
+            [self _handleError:SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"Invalid proxy response")];
         }
     }
 }
@@ -1869,10 +1872,10 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             }
             break;
         case kCFStreamEventErrorOccurred:
-            [self _attemptNextProxyConnectionForError:[self streamError]];
+            [self _handleError:[self streamError]];
             break;
         case kCFStreamEventEndEncountered:
-            [self _attemptNextProxyConnectionForError:SPDY_SOCKET_ERROR(SPDYSocketTransportError, @"Unexpected end of stream.")];
+            [self _handleError:SPDY_SOCKET_ERROR(SPDYSocketTransportError, @"Unexpected end of stream.")];
             break;
         default:
             SPDY_WARNING(@"%@ received unexpected CFReadStream callback, CFStreamEventType %li", self, type);
@@ -1900,7 +1903,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             break;
         case kCFStreamEventErrorOccurred:
         case kCFStreamEventEndEncountered:
-            [self _attemptNextProxyConnectionForError:[self streamError]];
+            [self _handleError:[self streamError]];
             break;
         default:
             SPDY_WARNING(@"%@ received unexpected CFWriteStream callback, CFStreamEventType %li", self, type);

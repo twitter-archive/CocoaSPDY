@@ -153,25 +153,12 @@
 
 - (bool)success
 {
-    if (![_version isEqualToString:@"HTTP/1.0"] && ![_version isEqualToString:@"HTTP/1.1"]) {
-        return NO;
-    }
-    if (_statusCode < 200 || _statusCode >= 300) {
-        return NO;
-    }
-    return YES;
+    return _statusCode >= 200 && _statusCode < 300 && [_version hasPrefix:@"HTTP/1"];
 }
 
 - (bool)needsAuth
 {
-    if (![_version isEqualToString:@"HTTP/1.0"] && ![_version isEqualToString:@"HTTP/1.1"]) {
-        return NO;
-    }
-    if (_statusCode != 407) {
-        return NO;
-    }
-    // TODO: check for "Proxy-Authenticate" header
-    return YES;
+    return _statusCode == 407 && [_version hasPrefix:@"HTTP/1"];
 }
 
 - (NSString *)description

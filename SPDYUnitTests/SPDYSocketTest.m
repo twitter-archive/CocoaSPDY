@@ -15,7 +15,8 @@
 #import "SPDYSocketOps.h"
 
 @interface SPDYSocket ()
-- (void)_onProxyResponse:(SPDYSocketProxyReadOp *)proxyReadOp;
+- (void)_onProxyResponse;
+- (void)_timeoutConnect:(NSTimer *)timer;
 @end
 
 @interface SPDYMockSocket : SPDYSocket
@@ -44,7 +45,12 @@
     NSData *responseData = [responseString dataUsingEncoding:NSUTF8StringEncoding];
     [proxyReadOp->_buffer setData:responseData];
     proxyReadOp->_bytesRead = responseData.length;
-    [self _onProxyResponse:proxyReadOp];
+    [self _onProxyResponse];
+}
+
+- (void)mockConnectTimeout
+{
+    [self _timeoutConnect:nil];
 }
 
 - (NSMutableArray *)readQueue
@@ -317,6 +323,71 @@
     STAssertFalse(socket.connectedToProxy, nil);
 }
 
+- (void)testConnectTimesOutWithEmptyProxyAutoConfigURLDoesNotAttemptConnect
+{
+    // Set up mocked socket
+    SPDYMockSocketDelegate *socketDelegate = [[SPDYMockSocketDelegate alloc] init];
+    socketDelegate.shouldStopRunLoop = YES;
+
+    SPDYMockSocket *socket = [self _createConnectedSocketWithProxyList:@[@{
+            (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeAutoConfigurationURL,
+            (__bridge NSString *)kCFProxyAutoConfigurationURLKey : @""
+    }] delegate:socketDelegate];
+
+    // Fake a timeout
+    [socket mockConnectTimeout];
+
+    STAssertTrue(socket.closed, nil);
+    STAssertFalse(socket.connected, nil);
+    STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
+    STAssertTrue(socketDelegate.didCallDidDisconnect, nil);
+    STAssertFalse(socketDelegate.didCallWillConnect, nil);
+    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+
+    [socketDelegate reset];
+
+    // Ensure the endpoint manager's runloop source completes but doesn't connect
+    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1, NO);
+
+    STAssertTrue(socket.closed, nil);
+    STAssertFalse(socket.connected, nil);
+    STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
+    STAssertFalse(socketDelegate.didCallDidDisconnect, nil);
+    STAssertFalse(socketDelegate.didCallWillConnect, nil);
+    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+}
+
+- (void)testConnectTimesOutWithEmptyProxyAutoConfigURLDoesCloseAndReleaseSocket
+{
+    SPDYMockSocket __weak *weakSocket = nil;
+    @autoreleasepool {
+        // Set up mocked socket
+        SPDYMockSocketDelegate *socketDelegate = [[SPDYMockSocketDelegate alloc] init];
+        socketDelegate.shouldStopRunLoop = YES;
+
+        SPDYMockSocket *socket = [self _createConnectedSocketWithProxyList:@[@{
+                (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeAutoConfigurationURL,
+                (__bridge NSString *)kCFProxyAutoConfigurationURLKey : @""
+        }] delegate:socketDelegate];
+
+        // Fake a timeout
+        [socket mockConnectTimeout];
+
+        STAssertTrue(socket.closed, nil);
+        STAssertFalse(socket.connected, nil);
+        STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
+        STAssertTrue(socketDelegate.didCallDidDisconnect, nil);
+        STAssertFalse(socketDelegate.didCallWillConnect, nil);
+        STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+
+        weakSocket = socket;
+    }
+    STAssertNil(weakSocket, nil);
+
+    // Ensure the endpoint manager's runloop source isn't still hanging around crashing stuff
+    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1, NO);
+}
+
 - (void)testConnectWithProxyAndFallbackDoesConnectToDirectWhenProxyFailsOpenStream
 {
     // Set up mock origin endpoint manager to avoid getting system's real proxy config.
@@ -338,7 +409,8 @@
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
     socket.openStreamsShouldFail = YES;
     STAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
-    STAssertNil(error, nil);
+    // connectToOrigin succeeded, but it still returns the intermediate error
+    STAssertNotNil(error, nil);
     [self _assertDirectConnectWasInitiatedForSocket:socket];
 }
 
