@@ -1,4 +1,12 @@
 language: objective-c
 before_install:
-    - brew update
+  - brew update
+  - sudo easy_install cpp-coveralls
 script: "xcodebuild test -workspace SPDY.xcodeproj/project.xcworkspace/ -scheme SPDYUnitTests -sdk iphonesimulator"
+after_success:
+  - cp -r ${HOME}/Library/Developer/Xcode/DerivedData/SPDY-*/Build/Intermediates/SPDY.build/Coverage-iphonesimulator/SPDYUnitTests.build/Objects-normal/*/ gcov
+  - rm -f gcov/*Test.*
+  - rm -f gcov/*Mock*
+  - rm -f gcov/SPDYSenTestLog.*
+  - coveralls
+  - rm -rf gcov
