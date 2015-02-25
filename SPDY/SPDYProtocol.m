@@ -32,6 +32,7 @@ NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
 NSString *const SPDYMetadataVersionKey = @"x-spdy-version";
+NSString *const SPDYMetadataSessionIsCellularKey = @"x-spdy-session-is-cellular";
 NSString *const SPDYMetadataSessionRemoteAddressKey = @"x-spdy-session-remote-address";
 NSString *const SPDYMetadataSessionRemotePortKey = @"x-spdy-session-remote-port";
 NSString *const SPDYMetadataSessionViaProxyKey = @"x-spdy-session-via-proxy";

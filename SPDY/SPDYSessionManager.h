@@ -13,7 +13,7 @@
 
 @protocol SPDYSessionDelegate;
 
-@interface SPDYSessionManager : NSObject <SPDYSessionDelegate>
+@interface SPDYSessionManager : NSObject
 
 + (SPDYSessionManager *)localManagerForOrigin:(SPDYOrigin *)origin;
 - (void)queueStream:(SPDYStream *)stream;

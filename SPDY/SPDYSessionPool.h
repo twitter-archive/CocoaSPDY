@@ -19,7 +19,6 @@
 @property (nonatomic, assign, readonly) NSUInteger count;
 @property (nonatomic, assign) NSUInteger pendingCount;
 
-- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager cellular:(bool)cellular error:(NSError **)pError;
 - (bool)contains:(SPDYSession *)session;
 - (void)add:(SPDYSession *)session;
 - (NSUInteger)count;

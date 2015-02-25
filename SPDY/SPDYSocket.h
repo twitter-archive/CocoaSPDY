@@ -145,6 +145,7 @@ extern NSString *const SPDYSocketException;
 
 @interface SPDYSocket : NSObject
 @property (nonatomic, strong) id<SPDYSocketDelegate> delegate;
+@property (nonatomic, readonly) bool isCellular;
 
 - (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate;
 - (CFSocketRef)cfSocket;

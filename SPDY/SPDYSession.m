@@ -114,7 +114,6 @@
             _origin = origin;
             SPDY_INFO(@"session connecting to %@", _origin);
 
-            // TODO: for accuracy confirm this later from the socket
             _cellular = cellular;
 
             if ([_origin.scheme isEqualToString:@"https"]) {
@@ -195,6 +194,7 @@
     stream.metadata.hostAddress = _socket.connectedHost;
     stream.metadata.hostPort = _socket.connectedPort;
     stream.metadata.viaProxy = _socket.connectedToProxy;
+    stream.metadata.cellular = _cellular;
 
     [stream startWithStreamId:streamId
                sendWindowSize:_initialSendWindowSize
@@ -290,6 +290,19 @@
 {
     [_connectedStopwatch reset];
     SPDY_INFO(@"session connected to %@ (%@:%u)", _origin, host, port);
+
+    if (_cellular != socket.isCellular) {
+        SPDY_WARNING(@"session expected network type %@ but socket is %@",
+                _cellular ? @"cellular" : @"wifi",
+                socket.isCellular ? @"cellular" : @"wifi");
+
+        _cellular = socket.isCellular;
+
+        // Update metadata
+        for (SPDYStream *stream in _activeStreams) {
+            stream.metadata.cellular = _cellular;
+        }
+    }
 
     _connected = YES;
     [_delegate session:self connectedToNetwork:_cellular];

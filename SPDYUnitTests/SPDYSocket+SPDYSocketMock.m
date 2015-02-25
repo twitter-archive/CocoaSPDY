@@ -83,12 +83,17 @@ SPDYFrameDecoder *socketMock_frameDecoder = nil;
     }
 }
 
+- (void)setCellular:(bool)cellular
+{
+    [self setValue:@(cellular) forKey:@"_isCellular"];
+}
+
 - (bool)swizzled_connectToOrigin:(SPDYOrigin *)origin
                      withTimeout:(NSTimeInterval)timeout
                            error:(NSError **)pError
 {
     NSLog(@"SPDYMock: Swizzled connectToOrigin:%@ withTimeout:%f error", origin, timeout);
-
+    [self setValue:@(1) forKey:@"_flags"];  // kDidStartDelegate
     return YES;
 }
 

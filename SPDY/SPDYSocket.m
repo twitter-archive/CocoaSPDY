@@ -885,6 +885,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     CFRelease(peeraddr);
 
+    CFBooleanRef cellularProp = CFReadStreamCopyProperty(_readStream, kCFStreamPropertyConnectionIsCellular);
+    if (cellularProp != NULL) {
+        _isCellular = CFBooleanGetValue(cellularProp);
+        CFRelease(cellularProp);
+    }
+
     return YES;
 }
 

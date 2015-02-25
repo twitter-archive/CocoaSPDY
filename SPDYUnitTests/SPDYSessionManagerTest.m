@@ -13,6 +13,7 @@
 #import <Foundation/Foundation.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYMetadata.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYSessionPool.h"
@@ -185,6 +186,7 @@
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
     urlRequest.SPDYDeferrableInterval = 0;
     SPDYSessionManager *sessionManager = [SPDYSessionManager localManagerForOrigin:origin];
+    SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:nil];
 
     SPDYProtocol *protocol = [[SPDYProtocol alloc] init];
     SPDYProtocol *protocol2 = [[SPDYProtocol alloc] init];
@@ -210,8 +212,9 @@
     STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
 
     // Force callback to SPDYSessionManager's wwan session:connectedToNetwork and dispatch stream
+    [socket setCellular:YES];
     SPDYSession *session = [[sessionManager wwanPool] nextSession];
-    [(id <SPDYSocketDelegate>)session socket:nil didConnectToHost:@"mocked.com" port:55555];
+    [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
 
     STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
     STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
@@ -223,14 +226,14 @@
 
     // Force socket to close base session and remove streams
     session = [[sessionManager basePool] nextSession];
-    [(id <SPDYSocketDelegate>)session socket:nil willDisconnectWithError:nil];
+    [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
     STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
     STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
 
     session = [[sessionManager wwanPool] nextSession];
-    [(id <SPDYSocketDelegate>)session socket:nil willDisconnectWithError:nil];
+    [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
     STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
@@ -243,6 +246,7 @@
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
     urlRequest.SPDYDeferrableInterval = 0;
     SPDYSessionManager *sessionManager = [SPDYSessionManager localManagerForOrigin:origin];
+    SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:nil];
 
     SPDYProtocol *protocol = [[SPDYProtocol alloc] init];
     SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol];
@@ -264,7 +268,7 @@
     [session setCellular:true];
 
     // Force session connection error
-    [(id <SPDYSocketDelegate>)session socket:nil willDisconnectWithError:nil];
+    [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
     STAssertFalse(session.isOpen, nil);
 
@@ -282,8 +286,9 @@
     STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
     STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
 
+    [socket setCellular:YES];
     session = [[sessionManager wwanPool] nextSession];
-    [(id <SPDYSocketDelegate>)session socket:nil didConnectToHost:@"mocked.com" port:55555];
+    [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
     STAssertTrue(session.isOpen, nil);
 
     STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
@@ -292,11 +297,95 @@
 
     // Force socket to close wwan session and remove streams
     session = [[sessionManager wwanPool] nextSession];
-    [(id <SPDYSocketDelegate>)session socket:nil willDisconnectWithError:nil];
+    [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
     STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
     STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+}
+
+- (void)testSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool
+{
+    NSString *url = [self nextOriginUrl];
+    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:url error:nil];
+    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
+    urlRequest.SPDYDeferrableInterval = 0;
+    SPDYSessionManager *sessionManager = [SPDYSessionManager localManagerForOrigin:origin];
+    SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:nil];
+
+    SPDYProtocol *protocol = [[SPDYProtocol alloc] init];
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol];
+    stream.request = urlRequest;
+
+    // Force reachability to WIFI and queue stream
+    [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
+    [sessionManager queueStream:stream];
+
+    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+
+    // Socket manages to connect to a different (WWAN) network after global reachability changes
+    [sessionManager _updateReachability:(kSCNetworkReachabilityFlagsReachable | kSCNetworkReachabilityFlagsIsWWAN)];
+    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+
+    [socket setCellular:YES];
+    SPDYSession *session = [[sessionManager basePool] nextSession];
+    [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
+
+    // Session gets moved into new pool and is dispatched
+    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+    STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
+    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)2, nil);
+    STAssertTrue(session.isOpen, nil);
+    STAssertFalse(stream.closed, nil);
+}
+
+- (void)testSocketReachabilityChangesAfterQueueingStreamThenGlobalReachabilityChangesDoesUpdateSessionPool
+{
+    NSString *url = [self nextOriginUrl];
+    SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:url error:nil];
+    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
+    urlRequest.SPDYDeferrableInterval = 0;
+    SPDYSessionManager *sessionManager = [SPDYSessionManager localManagerForOrigin:origin];
+    SPDYSocket *socket = [[SPDYSocket alloc] initWithDelegate:nil];
+
+    SPDYProtocol *protocol = [[SPDYProtocol alloc] init];
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:protocol];
+    stream.request = urlRequest;
+
+    // Force reachability to WIFI and queue stream
+    [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
+    [sessionManager queueStream:stream];
+
+    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
+    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+
+    // Socket manages to connect to a different (WWAN) network
+    [socket setCellular:YES];
+    SPDYSession *session = [[sessionManager basePool] nextSession];
+    [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
+
+    // Session gets moved into new pool, but the dispatch is for the previous pool. It will allocate
+    // a new session but not dispatch the stream.
+    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
+    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
+    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+
+    // Now the dispatch of the pending stream will happen (to the cellular pool)
+    [sessionManager _updateReachability:(kSCNetworkReachabilityFlagsReachable | kSCNetworkReachabilityFlagsIsWWAN)];
+    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+    STAssertTrue(session.isOpen, nil);
+    STAssertFalse(stream.closed, nil); // still pending, never dispatched
+
+    SPDYMetadata *metadata = [stream metadata];
+    STAssertTrue(metadata.cellular, nil);
 }
 
 @end

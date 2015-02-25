@@ -64,6 +64,7 @@
     STAssertNil(dict[SPDYMetadataSessionRemotePortKey], nil);
     STAssertEqualObjects(dict[SPDYMetadataSessionViaProxyKey], @"0", nil);
     STAssertEqualObjects(dict[SPDYMetadataSessionProxyStatusKey], @"0", nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionIsCellularKey], @"0", nil);
 }
 
 - (void)testSerializeToDictionary
@@ -82,6 +83,7 @@
     STAssertEqualObjects(dict[SPDYMetadataSessionRemotePortKey], @"1", nil);
     STAssertEqualObjects(dict[SPDYMetadataSessionViaProxyKey], @"1", nil);
     STAssertEqualObjects(dict[SPDYMetadataSessionProxyStatusKey], @"1", nil);
+    STAssertEqualObjects(dict[SPDYMetadataSessionIsCellularKey], @"1", nil);
 }
 
 - (void)testMemberRetention
