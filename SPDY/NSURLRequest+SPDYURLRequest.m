@@ -121,19 +121,9 @@
 
 @implementation NSMutableURLRequest (SPDYURLRequest)
 
-- (NSUInteger)SPDYPriority
-{
-    return [[SPDYProtocol propertyForKey:@"SPDYPriority" inRequest:self] unsignedIntegerValue];
-}
-
 - (void)setSPDYPriority:(NSUInteger)priority
 {
     [SPDYProtocol setProperty:@(priority) forKey:@"SPDYPriority" inRequest:self];
-}
-
-- (NSTimeInterval)SPDYDeferrableInterval
-{
-    return [[SPDYProtocol propertyForKey:@"SPDYDeferrableInterval" inRequest:self] doubleValue];
 }
 
 - (void)setSPDYDeferrableInterval:(NSTimeInterval)deferrableInterval
@@ -141,19 +131,9 @@
     [SPDYProtocol setProperty:@(deferrableInterval) forKey:@"SPDYDeferrableInterval" inRequest:self];
 }
 
-- (BOOL)SPDYBypass
-{
-    return [[SPDYProtocol propertyForKey:@"SPDYBypass" inRequest:self] boolValue];
-}
-
 - (void)setSPDYBypass:(BOOL)bypass
 {
     [SPDYProtocol setProperty:@(bypass) forKey:@"SPDYBypass" inRequest:self];
-}
-
-- (NSInputStream *)SPDYBodyStream
-{
-    return [SPDYProtocol propertyForKey:@"SPDYBodyStream" inRequest:self];
 }
 
 - (void)setSPDYBodyStream:(NSInputStream *)SPDYBodyStream
@@ -163,11 +143,6 @@
     } else {
         [SPDYProtocol setProperty:SPDYBodyStream forKey:@"SPDYBodyStream" inRequest:self];
     }
-}
-
-- (NSString *)SPDYBodyFile
-{
-    return [SPDYProtocol propertyForKey:@"SPDYBodyFile" inRequest:self];
 }
 
 - (void)setSPDYBodyFile:(NSString *)SPDYBodyFile
