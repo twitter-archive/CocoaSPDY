@@ -1,7 +1,10 @@
 # CocoaSPDY
 #### A SPDY/3.1 framework for iOS and Mac OS X
 
-[![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=master)](https://travis-ci.org/twitter/CocoaSPDY)
+Branch | Build | Code Coverage
+------ | ----- | -------------
+master | [![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=master)](https://travis-ci.org/twitter/CocoaSPDY) | [![Coverage Status](https://coveralls.io/repos/twitter/CocoaSPDY/badge.png?branch=master)](https://coveralls.io/r/twitter/CocoaSPDY?branch=master) 
+develop | [![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=develop)](https://travis-ci.org/twitter/CocoaSPDY) | [![Coverage Status](https://coveralls.io/repos/twitter/CocoaSPDY/badge.png?branch=develop)](https://coveralls.io/r/twitter/CocoaSPDY?branch=develop)
 
 ### [Download v1.0.2](https://github.com/twitter/CocoaSPDY/releases/download/v1.0.2/SPDY.framework.tar.gz)
 

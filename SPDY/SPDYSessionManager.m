@@ -21,6 +21,7 @@
 #import "SPDYProtocol.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
+#import "SPDYSessionPool.h"
 #import "SPDYStreamManager.h"
 #import "SPDYStream.h"
 #import "NSURLRequest+SPDYURLRequest.h"
@@ -35,14 +36,6 @@ static dispatch_queue_t reachabilityQueue;
 
 static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
 
-@interface SPDYSessionPool : NSObject
-@property (nonatomic, assign, readonly) NSUInteger count;
-@property (nonatomic, assign) NSUInteger pendingCount;
-- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager cellular:(bool)cellular error:(NSError **)pError;
-- (NSUInteger)remove:(SPDYSession *)session;
-- (SPDYSession *)nextSession;
-@end
-
 @interface SPDYSessionManager () <SPDYSessionDelegate, SPDYStreamDelegate>
 @property (nonatomic) NSArray *runLoopModes;
 @property (nonatomic) NSRunLoop *runLoop;
@@ -50,83 +43,6 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 - (void)session:(SPDYSession *)session connectedToNetwork:(bool)cellular;
 - (void)sessionClosed:(SPDYSession *)session;
 - (void)streamCanceled:(SPDYStream *)stream;
-@end
-
-@implementation SPDYSessionPool
-{
-    NSMutableArray *_sessions;
-}
-
-- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager cellular:(bool)cellular error:(NSError **)pError
-{
-    self = [super init];
-    if (self) {
-        SPDYConfiguration *configuration = [SPDYProtocol currentConfiguration];
-        NSUInteger size = configuration.sessionPoolSize;
-        _pendingCount = size;
-        _sessions = [[NSMutableArray alloc] initWithCapacity:size];
-        for (NSUInteger i = 0; i < size; i++) {
-            SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin
-                                                              delegate:manager
-                                                         configuration:configuration
-                                                              cellular:cellular
-                                                                 error:pError];
-            if (!session) {
-                return nil;
-            }
-            [_sessions addObject:session];
-        }
-    }
-    return self;
-}
-
-- (bool)contains:(SPDYSession *)session
-{
-    return [_sessions containsObject:session];
-}
-
-- (void)add:(SPDYSession *)session
-{
-    [_sessions addObject:session];
-}
-
-- (NSUInteger)count
-{
-    return _sessions.count;
-}
-
-- (NSUInteger)remove:(SPDYSession *)session
-{
-    [_sessions removeObject:session];
-    return _sessions.count;
-}
-
-- (SPDYSession *)nextSession
-{
-    SPDYSession *session;
-
-    if (_sessions.count == 0) {
-        return nil;
-    }
-
-    session = _sessions[0];
-    NSAssert(session.isOpen, @"Should never contain closed sessions.");
-
-    // TODO: clean this up
-    while (!session.isOpen) {
-        if ([self remove:session] == 0) return nil;
-        session = _sessions[0];
-    }
-
-    // Rotate
-    if (_sessions.count > 1) {
-        [_sessions removeObjectAtIndex:0];
-        [_sessions addObject:session];
-    }
-
-    return session;
-}
-
 @end
 
 @implementation SPDYSessionManager
@@ -193,7 +109,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         _runLoop = [NSRunLoop currentRunLoop];
 
         NSString *currentMode = [_runLoop currentMode];
-        if ([currentMode isEqual:NSDefaultRunLoopMode]) {
+        if (currentMode == nil || [currentMode isEqual:NSDefaultRunLoopMode]) {
             _runLoopModes = @[NSDefaultRunLoopMode];
         } else {
             _runLoopModes = @[NSDefaultRunLoopMode, currentMode];
@@ -388,10 +304,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     stream.delegate = self;
 }
 
-@end
-
-
-static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *pManager)
+- (void)_updateReachability:(SCNetworkReachabilityFlags)flags
 {
     if ((flags & kSCNetworkReachabilityFlagsReachable) == 0) {
         SPDY_DEBUG(@"reachability updated: offline");
@@ -403,10 +316,18 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     SPDY_DEBUG(@"reachability updated: %@", __cellular ? @"WWAN" : @"WLAN");
 #endif
 
+    [self _dispatch];
+}
+
+@end
+
+
+static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *pManager)
+{
     if (pManager) {
         @autoreleasepool {
             SPDYSessionManager * volatile manager = (__bridge SPDYSessionManager *)pManager;
-            [manager.runLoop performSelector:@selector(_dispatch)
+            [manager.runLoop performSelector:@selector(_updateReachability)
                                       target:manager
                                     argument:nil
                                        order:0

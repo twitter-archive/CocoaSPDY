@@ -11,11 +11,9 @@
 
 #import <Foundation/Foundation.h>
 
-@class SPDYConfiguration;
-@class SPDYSession;
-@class SPDYStreamManager;
+@protocol SPDYSessionDelegate;
 
-@interface SPDYSessionManager : NSObject
+@interface SPDYSessionManager : NSObject <SPDYSessionDelegate>
 
 + (SPDYSessionManager *)localManagerForOrigin:(SPDYOrigin *)origin;
 - (void)queueStream:(SPDYStream *)stream;

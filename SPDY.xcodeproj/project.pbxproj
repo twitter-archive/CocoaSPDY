@@ -96,6 +96,9 @@
 		5C04570019B033E9009E0AC2 /* SPDYSocketOps.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */; };
 		5C04570319B033EA009E0AC2 /* SPDYSocketOps.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */; };
 		5C04570519B043CB009E0AC2 /* SPDYOriginEndpointTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C04570419B043CB009E0AC2 /* SPDYOriginEndpointTest.m */; };
+		5C210A0A1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C210A091A5F48C500ADB538 /* SPDYSessionPool.m */; };
+		5C210A0B1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C210A091A5F48C500ADB538 /* SPDYSessionPool.m */; };
+		5C210A0C1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C210A091A5F48C500ADB538 /* SPDYSessionPool.m */; };
 		5C2229591952257800CAF160 /* SPDYURLRequestTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C2229581952257800CAF160 /* SPDYURLRequestTest.m */; };
 		5C2A211D19F9CA0E00D0EA76 /* SPDYLoggingTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C2A211C19F9CA0E00D0EA76 /* SPDYLoggingTest.m */; };
 		5C427F0F1A1C7C4D0072403D /* SPDYSenTestLog.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C427F0E1A1C7C4D0072403D /* SPDYSenTestLog.m */; };
@@ -114,6 +117,8 @@
 		5C9A0BD01A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
 		5C9A0BD11A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
 		5C9A0BD21A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
+		5CA0B9C61A6454950068ABD9 /* SPDYProtocolTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0B9C51A6454950068ABD9 /* SPDYProtocolTest.m */; };
+		5CA0B9C81A6486F10068ABD9 /* SPDYSettingsStoreTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0B9C71A6486F10068ABD9 /* SPDYSettingsStoreTest.m */; };
 		5CF0A2C91A089BC500B6D141 /* SPDYMetadataTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */; };
 		5CF0A2CC1A0952D900B6D141 /* SPDYMockURLProtocolClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CF0A2CB1A0952D900B6D141 /* SPDYMockURLProtocolClient.m */; };
 		7774C1318AB029C6BCEF84D6 /* SPDYSessionTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774C2026A4DE9957D75F629 /* SPDYSessionTest.m */; };
@@ -179,6 +184,8 @@
 		5C0456FC19B033D5009E0AC2 /* SPDYSocketOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYSocketOps.h; sourceTree = "<group>"; };
 		5C0456FE19B033E9009E0AC2 /* SPDYSocketOps.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSocketOps.m; sourceTree = "<group>"; };
 		5C04570419B043CB009E0AC2 /* SPDYOriginEndpointTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOriginEndpointTest.m; sourceTree = "<group>"; };
+		5C210A081A5F408200ADB538 /* SPDYSessionPool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SPDYSessionPool.h; sourceTree = "<group>"; };
+		5C210A091A5F48C500ADB538 /* SPDYSessionPool.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSessionPool.m; sourceTree = "<group>"; };
 		5C2229581952257800CAF160 /* SPDYURLRequestTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYURLRequestTest.m; sourceTree = "<group>"; };
 		5C2A211C19F9CA0E00D0EA76 /* SPDYLoggingTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYLoggingTest.m; sourceTree = "<group>"; };
 		5C427F0E1A1C7C4D0072403D /* SPDYSenTestLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSenTestLog.m; sourceTree = "<group>"; };
@@ -192,6 +199,8 @@
 		5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYCanonicalRequest.m; sourceTree = "<group>"; };
 		5C9A0BCB1A363B7700CF2D3D /* SPDYOriginEndpointManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYOriginEndpointManager.h; sourceTree = "<group>"; };
 		5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOriginEndpointManager.m; sourceTree = "<group>"; };
+		5CA0B9C51A6454950068ABD9 /* SPDYProtocolTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYProtocolTest.m; sourceTree = "<group>"; };
+		5CA0B9C71A6486F10068ABD9 /* SPDYSettingsStoreTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSettingsStoreTest.m; sourceTree = "<group>"; };
 		5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMetadataTest.m; sourceTree = "<group>"; };
 		5CF0A2CA1A0952BA00B6D141 /* SPDYMockURLProtocolClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYMockURLProtocolClient.h; sourceTree = "<group>"; };
 		5CF0A2CB1A0952D900B6D141 /* SPDYMockURLProtocolClient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMockURLProtocolClient.m; sourceTree = "<group>"; };
@@ -275,8 +284,10 @@
 				5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */,
 				5C04570419B043CB009E0AC2 /* SPDYOriginEndpointTest.m */,
 				0679F3CE186217FC006F122E /* SPDYOriginTest.m */,
+				5CA0B9C51A6454950068ABD9 /* SPDYProtocolTest.m */,
 				25959A3E1937DE3900FC9731 /* SPDYSessionManagerTest.m */,
 				7774C2026A4DE9957D75F629 /* SPDYSessionTest.m */,
+				5CA0B9C71A6486F10068ABD9 /* SPDYSettingsStoreTest.m */,
 				5C0456F819B03278009E0AC2 /* SPDYSocketOpsTest.m */,
 				5C5EA4741A119CAB0058FB64 /* SPDYSocketTest.m */,
 				5C427F101A1D57890072403D /* SPDYStopwatchTest.m */,
@@ -397,6 +408,8 @@
 				D2CC14C41618DBF2002E37CF /* SPDYSession.m */,
 				D2CC14CC161A5826002E37CF /* SPDYSessionManager.h */,
 				D2CC14CD161A5826002E37CF /* SPDYSessionManager.m */,
+				5C210A081A5F408200ADB538 /* SPDYSessionPool.h */,
+				5C210A091A5F48C500ADB538 /* SPDYSessionPool.m */,
 				06FC94121694B92400FC95DF /* SPDYSettingsStore.h */,
 				06FC94131694B92400FC95DF /* SPDYSettingsStore.m */,
 				D2CC14CF161A9EE9002E37CF /* SPDYSocket.h */,
@@ -650,9 +663,12 @@
 			files = (
 				5C0456FF19B033E9009E0AC2 /* SPDYSocketOps.m in Sources */,
 				06FDA20616717DF100137DBD /* SPDYSocket.m in Sources */,
+				5CA0B9C81A6486F10068ABD9 /* SPDYSettingsStoreTest.m in Sources */,
+				5C210A0A1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */,
 				5C2A211D19F9CA0E00D0EA76 /* SPDYLoggingTest.m in Sources */,
 				06FDA20916717DF100137DBD /* SPDYFrame.m in Sources */,
 				06FDA20B16717DF100137DBD /* SPDYFrameDecoder.m in Sources */,
+				5CA0B9C61A6454950068ABD9 /* SPDYProtocolTest.m in Sources */,
 				0679F3CF186217FC006F122E /* SPDYOriginTest.m in Sources */,
 				06FDA20D16717DF100137DBD /* SPDYProtocol.m in Sources */,
 				06FDA20F16717DF100137DBD /* SPDYSession.m in Sources */,
@@ -713,6 +729,7 @@
 				0651EC4616F3FA1400CE44D2 /* SPDYStream.m in Sources */,
 				062EA643175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */,
 				061C8E9617C5954400D22083 /* SPDYStreamManager.m in Sources */,
+				5C210A0B1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */,
 				06B290CF1861018A00540A03 /* SPDYOrigin.m in Sources */,
 				5C04570019B033E9009E0AC2 /* SPDYSocketOps.m in Sources */,
 				7774C868441241542B0A90C0 /* SPDYStopwatch.m in Sources */,
@@ -741,6 +758,7 @@
 				0651EC2C16F3FA0B00CE44D2 /* SPDYStream.m in Sources */,
 				062EA645175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */,
 				061C8E9817C5954400D22083 /* SPDYStreamManager.m in Sources */,
+				5C210A0C1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */,
 				06B290D21861018A00540A03 /* SPDYOrigin.m in Sources */,
 				5C04570319B033EA009E0AC2 /* SPDYSocketOps.m in Sources */,
 				7774CDD84A5D07F8DE5B8684 /* SPDYStopwatch.m in Sources */,
