@@ -228,6 +228,7 @@ static CFIndex FixEmptyPath(NSURL *url, NSMutableData *urlData, CFIndex bytesIns
     return bytesInserted;
 }
 
+#if 0
 __attribute__((unavailable)) static CFIndex DeleteDefaultPort(NSURL *url, NSMutableData *urlData, CFIndex bytesInserted)
     // If the user specified the default port (80 for HTTP, 443 for HTTPS), remove it from the URL.
 
@@ -272,6 +273,7 @@ __attribute__((unavailable)) static CFIndex DeleteDefaultPort(NSURL *url, NSMuta
     }
     return bytesInserted;
 }
+#endif
 
 #pragma mark * Other request canonicalization
 

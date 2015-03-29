@@ -327,7 +327,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if (pManager) {
         @autoreleasepool {
             SPDYSessionManager * volatile manager = (__bridge SPDYSessionManager *)pManager;
-            [manager.runLoop performSelector:@selector(_updateReachability)
+            [manager.runLoop performSelector:@selector(_updateReachability:)
                                       target:manager
                                     argument:nil
                                        order:0

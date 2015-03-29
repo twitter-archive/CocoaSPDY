@@ -6,7 +6,7 @@ Branch | Build | Code Coverage
 master | [![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=master)](https://travis-ci.org/twitter/CocoaSPDY) | [![Coverage Status](https://coveralls.io/repos/twitter/CocoaSPDY/badge.png?branch=master)](https://coveralls.io/r/twitter/CocoaSPDY?branch=master) 
 develop | [![Build Status](https://travis-ci.org/twitter/CocoaSPDY.png?branch=develop)](https://travis-ci.org/twitter/CocoaSPDY) | [![Coverage Status](https://coveralls.io/repos/twitter/CocoaSPDY/badge.png?branch=develop)](https://coveralls.io/r/twitter/CocoaSPDY?branch=develop)
 
-### [Download v1.0.2](https://github.com/twitter/CocoaSPDY/releases/download/v1.0.2/SPDY.framework.tar.gz)
+### [Download v1.1](https://github.com/twitter/CocoaSPDY/releases/download/v1.1/SPDY.framework.tar.gz)
 
 ## The SPDY protocol
 The short version is that [SPDY](http://en.wikipedia.org/wiki/SPDY) can make your HTTP requests faster. Sometimes a lot faster. For more details, see the following:
@@ -85,7 +85,6 @@ We are always looking for people to get involved with the project.
 In the near future, we will be working on:
 
 * [Server Push](https://github.com/twitter/CocoaSPDY/issues/1)
-* [Discretionary/Deferrable Request Scheduling](https://github.com/twitter/CocoaSPDY/issues/2)
 
 ## Adopters
 
@@ -101,6 +100,7 @@ send a [pull request](https://github.com/twitter/CocoaSPDY/pulls).
 ## Authors
 * Michael Schore <https://twitter.com/goaway>
 * Jeffrey Pinner <https://twitter.com/jpinner>
+* Kevin Goodier <https://twitter.com/thegreenjohnny>
 
 ## License
 Copyright 2014 Twitter, Inc. and other contributors.
