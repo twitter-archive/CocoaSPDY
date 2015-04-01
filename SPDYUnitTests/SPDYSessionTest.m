@@ -22,7 +22,6 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYStream.h"
 #import "SPDYMockURLProtocolClient.h"
-#import "SPDYMetadata.h"
 
 @interface SPDYSessionTest : SenTestCase
 @end
@@ -166,9 +165,9 @@
     STAssertNotNil(_mockURLProtocolClient.lastError, nil);
 
     // Was metadata populated for the error?
-    NSDictionary *metadata = [SPDYProtocol metadataForError:_mockURLProtocolClient.lastError];
-    STAssertEqualObjects(metadata[SPDYMetadataVersionKey], @"3.1", nil);
-    STAssertEqualObjects(metadata[SPDYMetadataStreamIdKey], @"3", nil);
+    SPDYMetadata *metadata = [SPDYProtocol metadataForError:_mockURLProtocolClient.lastError];
+    STAssertEqualObjects(metadata.version, @"3.1", nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)3, nil);
 }
 
 - (void)testReceivedMetadataForSingleShortRequest
@@ -180,11 +179,11 @@
     STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
     STAssertNotNil(_mockURLProtocolClient.lastResponse, nil);
 
-    NSDictionary *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
-    STAssertEqualObjects(metadata[SPDYMetadataVersionKey], @"3.1", nil);
-    STAssertEqualObjects(metadata[SPDYMetadataStreamIdKey], @"1", nil);
-    STAssertTrue([metadata[SPDYMetadataStreamRxBytesKey] integerValue] > 0, nil);
-    STAssertTrue([metadata[SPDYMetadataStreamTxBytesKey] integerValue] > 0, nil);
+    SPDYMetadata *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
+    STAssertEqualObjects(metadata.version, @"3.1", nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
+    STAssertTrue(metadata.rxBytes > 0, nil);
+    STAssertTrue(metadata.txBytes > 0, nil);
 }
 
 - (void)testReceiveGOAWAYAfterStreamsClosedDoesCloseSession

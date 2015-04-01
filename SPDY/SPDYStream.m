@@ -18,7 +18,7 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYDefinitions.h"
-#import "SPDYMetadata.h"
+#import "SPDYMetadataUtils.h"
 #import "SPDYProtocol.h"
 #import "SPDYStopwatch.h"
 #import "SPDYStream.h"
@@ -175,7 +175,7 @@
         }
 
         NSMutableDictionary *userInfo = [[error userInfo] mutableCopy];
-        [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:userInfo];
+        [SPDYMetadataUtils setMetadata:_metadata forAssociatedDictionary:userInfo];
         NSError *errorWithMetadata = [[NSError alloc] initWithDomain:error.domain
                                                                 code:error.code
                                                             userInfo:userInfo];
@@ -359,7 +359,7 @@
         _zlibStreamStatus = inflateInit2(&_zlibStream, MAX_WBITS + 32);
     }
 
-    [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:allHTTPHeaders];
+    [SPDYMetadataUtils setMetadata:_metadata forAssociatedDictionary:allHTTPHeaders];
 
     NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:requestURL
                                                               statusCode:statusCode

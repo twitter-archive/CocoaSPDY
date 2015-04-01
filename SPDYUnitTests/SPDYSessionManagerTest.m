@@ -13,7 +13,6 @@
 #import <Foundation/Foundation.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import "NSURLRequest+SPDYURLRequest.h"
-#import "SPDYMetadata.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYSessionPool.h"

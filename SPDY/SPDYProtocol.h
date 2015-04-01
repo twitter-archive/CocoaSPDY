@@ -15,51 +15,61 @@
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
 
-/**
-  SPDY metadata is returned in the HTTP response headers, or if those are not available due to an
-  error, then they are returned in the userInfo dictionary in the NSError. Both are NSDictionary
-  objects, and the values are stored under the following keys.
-*/
-
-// SPDY version, e.g. "3.1"
-extern NSString *const SPDYMetadataVersionKey;
-
-// Boolean indicating whether session is over cellular or WIFI
-extern NSString *const SPDYMetadataSessionIsCellularKey;
-
-// IP address of remote side
-extern NSString *const SPDYMetadataSessionRemoteAddressKey;
-
-// TCP port of remote side
-extern NSString *const SPDYMetadataSessionRemotePortKey;
-
-// Indicates connection used a proxy server
-extern NSString *const SPDYMetadataSessionViaProxyKey;
-
-// Indicates state of proxy configuration. See SPDYProxyStatus in SPDYError.h.
-extern NSString *const SPDYMetadataSessionProxyStatusKey;
-
-// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
-extern NSString *const SPDYMetadataSessionLatencyKey;
-
-// SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
-extern NSString *const SPDYMetadataStreamBlockedMsKey;
-
-// SPDY stream creation time relative to session connection time.
-extern NSString *const SPDYMetadataStreamConnectedMsKey;
-
-// SPDY request stream id, e.g. "1"
-extern NSString *const SPDYMetadataStreamIdKey;
-
-// SPDY stream bytes received. Includes all SPDY headers and bodies.
-extern NSString *const SPDYMetadataStreamRxBytesKey;
-
-// SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
-extern NSString *const SPDYMetadataStreamTxBytesKey;
-
 @class SPDYConfiguration;
 
 @protocol SPDYTLSTrustEvaluator;
+
+typedef enum {
+    SPDYProxyStatusNone = 0,        // direct connection
+    SPDYProxyStatusManual,          // manually configured HTTPS proxy
+    SPDYProxyStatusManualInvalid,   // manually configured proxy but not supported
+    SPDYProxyStatusManualWithAuth,  // manually configured HTTPS proxy that needs auth
+    SPDYProxyStatusAuto,            // proxy auto-config URL, resolved to 1 or more HTTPS proxies
+    SPDYProxyStatusAutoInvalid,     // proxy auto-config URL, did not resolve to supported HTTPS proxy
+    SPDYProxyStatusAutoWithAuth,    // proxy auto-config URL, resolved to 1 or more HTTPS proxies needing auth
+    SPDYProxyStatusConfig,          // info provided in SPDYConfiguration, not from system
+    SPDYProxyStatusConfigWithAuth   // info provided in SPDYConfiguration, proxy needs auth
+} SPDYProxyStatus;
+
+@interface SPDYMetadata : NSObject
+
+// SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
+@property (nonatomic) NSUInteger blockedMs;
+
+// Boolean indicating whether session is over cellular or WIFI
+@property (nonatomic) BOOL cellular;
+
+// SPDY stream creation time relative to session connection time.
+@property (nonatomic) NSUInteger connectedMs;
+
+// IP address of remote side
+@property (nonatomic, copy) NSString *hostAddress;
+
+// TCP port of remote side
+@property (nonatomic) NSUInteger hostPort;
+
+// SPDY session latency, in milliseconds, as measured by pings, e.g. "150". Default -1.
+@property (nonatomic) NSInteger latencyMs;
+
+// Indicates state of proxy configuration
+@property (nonatomic) SPDYProxyStatus proxyStatus;
+
+// SPDY stream bytes received. Includes all SPDY headers and bodies.
+@property (nonatomic) NSUInteger rxBytes;
+
+// SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
+@property (nonatomic) NSUInteger txBytes;
+
+// SPDY request stream id, e.g. "1"
+@property (nonatomic) NSUInteger streamId;
+
+// SPDY version, e.g. "3.1"
+@property (nonatomic, copy) NSString *version;
+
+// Indicates connection used a proxy server
+@property (nonatomic) BOOL viaProxy;
+
+@end
 
 /**
   Client implementation of the SPDY/3.1 draft protocol.
@@ -117,14 +127,14 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
   Should be called during the connectionDidFinishLoading callback only, and use at any other
   time is undefined. Returns nil if response is nil or no metadata is available.
 */
-+ (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
++ (SPDYMetadata *)metadataForResponse:(NSURLResponse *)response;
 
 /*
   Retrieve the SPDY metadata from the error returned in connection:didFailWithError. Should be
   called during that callback only, and use at any other time is undefined. Returns nil if error is
   nil or no metadata is available.
  */
-+ (NSDictionary *)metadataForError:(NSError *)error;
++ (SPDYMetadata *)metadataForError:(NSError *)error;
 
 /**
   Register an alias for the specified origin.
