@@ -30,6 +30,7 @@
 - (void)testSystemTimeDoesMarchForward
 {
     SPDYTimeInterval t1 = [SPDYStopwatch currentSystemTime];
+    // Real sleep just to make sure currentSystemTime works
     usleep(INTERVAL_USEC);
     SPDYTimeInterval t2 = [SPDYStopwatch currentSystemTime];
     STAssertTrue(t2 > t1, nil);
@@ -39,6 +40,7 @@
 - (void)testAbsoluteTimeDoesMarchForward
 {
     SPDYTimeInterval t1 = [SPDYStopwatch currentAbsoluteTime];
+    // Real sleep just to make sure currentAbsoluteTime works
     usleep(INTERVAL_USEC);
     SPDYTimeInterval t2 = [SPDYStopwatch currentAbsoluteTime];
     STAssertTrue(t2 > t1, nil);
@@ -48,7 +50,7 @@
 - (void)testStopwatchElapsed
 {
     SPDYStopwatch *stopwatch = [[SPDYStopwatch alloc] init];
-    usleep(INTERVAL_USEC);
+    [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed = stopwatch.elapsedSeconds;
     STAssertTrue(elapsed >= INTERVAL_SEC, @"expect %f to be >= to %f", elapsed, INTERVAL_SEC);
     STAssertTrue(elapsed < UPPER_BOUND_SEC, nil);
@@ -57,9 +59,9 @@
 - (void)testStopwatchMultipleElapsed
 {
     SPDYStopwatch *stopwatch = [[SPDYStopwatch alloc] init];
-    usleep(INTERVAL_USEC);
+    [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed1 = stopwatch.elapsedSeconds;
-    usleep(INTERVAL_USEC);
+    [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed2 = stopwatch.elapsedSeconds;
     STAssertTrue(elapsed1 >= INTERVAL_SEC, @"expect %f to be >= to %f", elapsed1, INTERVAL_SEC);
     STAssertTrue(elapsed2 >= 2 * INTERVAL_SEC, @"expect %f to be >= to %f", elapsed2, 2 * INTERVAL_SEC);
@@ -69,12 +71,32 @@
 - (void)testStopwatchMultipleReset
 {
     SPDYStopwatch *stopwatch = [[SPDYStopwatch alloc] init];
-    usleep(INTERVAL_USEC);
+    [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed1 = stopwatch.elapsedSeconds;
-    usleep(INTERVAL_USEC);
+    [SPDYStopwatch sleep:INTERVAL_SEC];
     [stopwatch reset];
     SPDYTimeInterval elapsed2 = stopwatch.elapsedSeconds;
     STAssertTrue(elapsed2 < elapsed1, nil);
+}
+
+- (void)testStopwatchStartTime
+{
+    SPDYTimeInterval startTime = [SPDYStopwatch currentAbsoluteTime];
+    SPDYTimeInterval startSystemTime = [SPDYStopwatch currentSystemTime];
+
+    SPDYStopwatch *stopwatch = [[SPDYStopwatch alloc] init];
+    STAssertTrue(stopwatch.startTime >= startTime, nil);
+    STAssertTrue(stopwatch.startSystemTime >= startSystemTime, nil);
+
+    [SPDYStopwatch sleep:INTERVAL_SEC];
+    [stopwatch reset];
+
+    startTime += INTERVAL_SEC;
+    startSystemTime += INTERVAL_SEC;
+    STAssertTrue(stopwatch.startTime >= startTime, nil);
+    STAssertTrue(stopwatch.startSystemTime >= startSystemTime, nil);
+    STAssertTrue(stopwatch.startTime < (startTime + UPPER_BOUND_SEC), nil);
+    STAssertTrue(stopwatch.startSystemTime < (startSystemTime + UPPER_BOUND_SEC), nil);
 }
 
 @end

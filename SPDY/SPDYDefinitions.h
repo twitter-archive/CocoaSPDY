@@ -69,6 +69,7 @@ typedef struct {
 
 typedef uint32_t SPDYPingId;
 typedef uint32_t SPDYStreamId;
+typedef double SPDYTimeInterval;
 
 static const SPDYStreamId kSPDYSessionStreamId = 0;
 

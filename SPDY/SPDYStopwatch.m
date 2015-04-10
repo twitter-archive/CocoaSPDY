@@ -13,17 +13,18 @@
 #import "SPDYStopwatch.h"
 
 @implementation SPDYStopwatch
-{
-    SPDYTimeInterval _startTime;
-}
 
 static dispatch_once_t __initTimebase;
+static dispatch_queue_t __stopwatchQueue;
 static double __machTimebaseToSeconds;
 static mach_timebase_info_data_t __machTimebase;
+static SPDYTimeInterval __currentTimeOffset;
 
 + (void)initialize
 {
     dispatch_once(&__initTimebase, ^{
+        __stopwatchQueue = dispatch_queue_create("com.twitter.SPDYStopwatchQueue", DISPATCH_QUEUE_SERIAL);
+        __currentTimeOffset = 0;
         kern_return_t status = mach_timebase_info(&__machTimebase);
         // Everything will be 0 if this fails.
         if (status != KERN_SUCCESS) {
@@ -36,20 +37,42 @@ static mach_timebase_info_data_t __machTimebase;
 
 + (SPDYTimeInterval)currentSystemTime
 {
+    SPDYTimeInterval __block offset = 0;
+#if COVERAGE
+    dispatch_sync(__stopwatchQueue, ^{
+        offset = __currentTimeOffset;
+    });
+#endif
     uint64_t now = mach_absolute_time();
-    return (SPDYTimeInterval)now * __machTimebaseToSeconds;
+    return (SPDYTimeInterval)now * __machTimebaseToSeconds + offset;
 }
 
 + (SPDYTimeInterval)currentAbsoluteTime
 {
-    return CFAbsoluteTimeGetCurrent();
+    SPDYTimeInterval __block offset = 0;
+#if COVERAGE
+    dispatch_sync(__stopwatchQueue, ^{
+        offset = __currentTimeOffset;
+    });
+#endif
+    return CFAbsoluteTimeGetCurrent() + offset;
 }
+
+#if COVERAGE
++ (void)sleep:(SPDYTimeInterval)delay
+{
+    dispatch_async(__stopwatchQueue, ^{
+        __currentTimeOffset += delay;
+    });
+}
+#endif
 
 - (id)init
 {
     self = [super init];
     if (self) {
         _startTime = [SPDYStopwatch currentAbsoluteTime];
+        _startSystemTime = [SPDYStopwatch currentSystemTime];
     }
     return self;
 }
@@ -57,6 +80,7 @@ static mach_timebase_info_data_t __machTimebase;
 - (void)reset
 {
     _startTime = [SPDYStopwatch currentAbsoluteTime];
+    _startSystemTime = [SPDYStopwatch currentSystemTime];
 }
 
 - (SPDYTimeInterval)elapsedSeconds
