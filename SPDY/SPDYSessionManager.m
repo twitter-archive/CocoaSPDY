@@ -107,6 +107,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         _origin = origin;
         _pendingStreams = [[SPDYStreamManager alloc] init];
         _runLoop = [NSRunLoop currentRunLoop];
+        _basePool = [[SPDYSessionPool alloc] init];
+        _wwanPool = [[SPDYSessionPool alloc] init];
 
         NSString *currentMode = [_runLoop currentMode];
         if (currentMode == nil || [currentMode isEqual:NSDefaultRunLoopMode]) {
@@ -195,40 +197,66 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 #pragma mark private methods
 
+- (void)_fillSessionPool:(SPDYSessionPool *)sessionPool cellular:(bool)cellular
+{
+    NSError *error = nil;
+
+    SPDYConfiguration *configuration = [SPDYProtocol currentConfiguration];
+    NSUInteger size = configuration.sessionPoolSize;
+
+    while (sessionPool.count < size) {
+        SPDYSession *session = [[SPDYSession alloc] initWithOrigin:_origin
+                                                          delegate:self
+                                                     configuration:configuration
+                                                          cellular:cellular
+                                                             error:&error];
+
+        if (!session || error) {
+            if (sessionPool.count == 0) {
+                for (SPDYStream *stream in _pendingStreams) {
+                    stream.delegate = nil;
+                    SPDYProtocol *protocol = stream.protocol;
+                    [protocol.client URLProtocol:protocol didFailWithError:error];
+                }
+                [_pendingStreams removeAllStreams];
+                return;
+            } else {
+                SPDY_WARNING(@"failed allocating extra session to pool: %@", error);
+                continue;
+            }
+        }
+
+        [sessionPool add:session];
+        sessionPool.pendingCount += 1;
+    }
+}
+
 - (void)_dispatch
 {
     if (_dispatchTimer) _dispatchTimer = nil;
     if (_pendingStreams.count == 0) return;
 
     bool cellular = __cellular;
-    SPDYSessionPool * __strong *activePool = cellular ? &_wwanPool : &_basePool;
+    SPDYSessionPool *activePool = cellular ? _wwanPool : _basePool;
 
-    if (!*activePool || (*activePool).count == 0) {
-        NSError *pError;
-        *activePool = [[SPDYSessionPool alloc] initWithOrigin:_origin manager:self cellular:cellular error:&pError];
-        if (pError) {
-            for (SPDYStream *stream in _pendingStreams) {
-                stream.delegate = nil;
-                SPDYProtocol *protocol = stream.protocol;
-                [protocol.client URLProtocol:protocol didFailWithError:pError];
-            }
-            [_pendingStreams removeAllStreams];
-        }
-
+    if (activePool.count == 0) {
+        [self _fillSessionPool:activePool cellular:cellular];
+        // Once the sessions finish connecting, we'll dispatch again. Until then let's keep
+        // the pending streams pending.
         return;
     }
 
     SPDYSession *session;
-    double allocation = 1.0 / ((*activePool).pendingCount + 1);
+    double allocation = 1.0 / (activePool.pendingCount + 1);
     double holdback = 1.0 - allocation;
 
-    for (int i = 0; _pendingStreams.count > 0 && i < (*activePool).count; i++) {
-        session = [*activePool nextSession];
+    for (int i = 0; _pendingStreams.count > 0 && i < activePool.count; i++) {
+        session = [activePool nextSession];
 
-        // TODO: clean this up
+        // TODO: by all accounts this should never happen; keeping cleanup temporarily
+        NSAssert(session, @"session pool should have sessions");
         if (!session) {
-            *activePool = nil;
-            [self _dispatch];
+            [self _fillSessionPool:activePool cellular:cellular];
             return;
         }
 
@@ -263,12 +291,14 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if ([_basePool contains:session]) {
         _basePool.pendingCount -= 1;
         if (cellular) {
+            SPDY_WARNING(@"moving session from wifi to cellular pool based on socket status");
             [_basePool remove:session];
             [_wwanPool add:session];
         }
     } else if ([_wwanPool contains:session]) {
         _wwanPool.pendingCount -= 1;
         if (!cellular) {
+            SPDY_WARNING(@"moving session from cellular to wifi pool based on socket status");
             [_wwanPool remove:session];
             [_basePool add:session];
         }

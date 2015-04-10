@@ -13,36 +13,19 @@
 #error "This file requires ARC support."
 #endif
 
-#import "SPDYProtocol.h"
 #import "SPDYSession.h"
-#import "SPDYSessionManager.h"
 #import "SPDYSessionPool.h"
-#import "SPDYStream.h"
 
 @implementation SPDYSessionPool
 {
     NSMutableArray *_sessions;
 }
 
-- (id)initWithOrigin:(SPDYOrigin *)origin manager:(SPDYSessionManager *)manager cellular:(bool)cellular error:(NSError **)pError
+- (id)init
 {
     self = [super init];
     if (self) {
-        SPDYConfiguration *configuration = [SPDYProtocol currentConfiguration];
-        NSUInteger size = configuration.sessionPoolSize;
-        _pendingCount = size;
-        _sessions = [[NSMutableArray alloc] initWithCapacity:size];
-        for (NSUInteger i = 0; i < size; i++) {
-            SPDYSession *session = [[SPDYSession alloc] initWithOrigin:origin
-                                                              delegate:manager
-                                                         configuration:configuration
-                                                              cellular:cellular
-                                                                 error:pError];
-            if (!session) {
-                return nil;
-            }
-            [_sessions addObject:session];
-        }
+        _sessions = [[NSMutableArray alloc] init];
     }
     return self;
 }

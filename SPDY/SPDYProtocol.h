@@ -24,6 +24,9 @@ extern NSString *const SPDYOriginUnregisteredNotification;
 // SPDY version, e.g. "3.1"
 extern NSString *const SPDYMetadataVersionKey;
 
+// Boolean indicating whether session is over cellular or WIFI
+extern NSString *const SPDYMetadataSessionIsCellularKey;
+
 // IP address of remote side
 extern NSString *const SPDYMetadataSessionRemoteAddressKey;
 

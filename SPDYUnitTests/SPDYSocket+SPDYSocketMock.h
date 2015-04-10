@@ -43,6 +43,7 @@ extern SPDYFrameDecoder *socketMock_frameDecoder;
 //@property (nonatomic) NSArray *responseStubs;
 
 + (void)performSwizzling:(BOOL)performSwizzling;
+- (void)setCellular:(bool)cellular;
 
 #pragma mark - SPDYSocketDelegate call forwarding
 - (void)performDelegateCall_socketWillDisconnectWithError:(NSError *)error;

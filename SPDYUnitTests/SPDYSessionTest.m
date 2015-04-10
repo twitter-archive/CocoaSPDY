@@ -22,6 +22,7 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYStream.h"
 #import "SPDYMockURLProtocolClient.h"
+#import "SPDYMetadata.h"
 
 @interface SPDYSessionTest : SenTestCase
 @end
@@ -44,9 +45,6 @@
     SPDYMockFrameEncoderDelegate *_testEncoderDelegate;
     SPDYMockFrameDecoderDelegate *_mockDecoderDelegate;
     SPDYMockURLProtocolClient *_mockURLProtocolClient;
-
-    // From SPDYExtendedDelegate callbacks. Reset every test.
-    NSDictionary *_lastMetadata;
 }
 
 #pragma mark Test Helpers
@@ -54,7 +52,6 @@
 - (void)setUp {
     [super setUp];
     [SPDYSocket performSwizzling:YES];
-    _lastMetadata = nil;
     _protocolList = [[NSMutableArray alloc] initWithCapacity:1];
 
     NSError *error = nil;
@@ -465,6 +462,27 @@
     STAssertNil(redirectRequest.HTTPBodyStream, nil);
     STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-length"], nil);
     STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-type"], nil);
+}
+
+- (void)testNetworkChangesWhenSocketConnectsDoesUpdateActiveStreamMetadata
+{
+    // Queue stream to session (set to WIFI)
+    SPDYStream *stream = [self mockSynStreamAndReplyWithId:1 last:NO];
+    STAssertTrue(_session.isOpen, nil);
+    STAssertFalse(stream.closed, nil);
+
+    SPDYMetadata *metadata = [stream metadata];
+    STAssertFalse(metadata.cellular, nil);
+
+    // Then force socket connection on different network.
+    [_session.socket setCellular:YES];
+    [_session.socket performDelegateCall_socketDidConnectToHost:_origin.host port:_origin.port];
+
+    STAssertTrue(_session.isOpen, nil);
+    STAssertFalse(stream.closed, nil);
+
+    metadata = [stream metadata];
+    STAssertTrue(metadata.cellular, nil);
 }
 
 @end
