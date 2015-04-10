@@ -1,5 +1,5 @@
 //
-//  SPDYMetadataUtils.m
+//  SPDYMetadata+Utils.m
 //  SPDY
 //
 //  Copyright (c) 2014 Twitter, Inc. All rights reserved.
@@ -10,12 +10,11 @@
 //
 
 #import <objc/runtime.h>
-#import "SPDYMetadataUtils.h"
-#import "SPDYProtocol.h"
+#import "SPDYMetadata+Utils.h"
 
 static const char *kMetadataAssociatedObjectKey = "SPDYMetadataAssociatedObject";
 
-@implementation SPDYMetadataUtils
+@implementation SPDYMetadata (Utils)
 
 /**
   Note about the SPDYMetadata identifier:

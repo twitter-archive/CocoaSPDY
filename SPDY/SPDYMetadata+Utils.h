@@ -1,5 +1,5 @@
 //
-//  SPDYMetadataUtils.h
+//  SPDYMetadata+Utils.h
 //  SPDY
 //
 //  Copyright (c) 2014 Twitter, Inc. All rights reserved.
@@ -9,9 +9,9 @@
 //  Created by Kevin Goodier
 //
 
-@class SPDYMetadata;
+#import "SPDYProtocol.h"
 
-@interface SPDYMetadataUtils : NSObject
+@interface SPDYMetadata (Utils)
 
 + (void)setMetadata:(SPDYMetadata *)metadata forAssociatedDictionary:(NSMutableDictionary *)dictionary;
 + (SPDYMetadata *)metadataForAssociatedDictionary:(NSDictionary *)dictionary;

@@ -17,7 +17,7 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
-#import "SPDYMetadataUtils.h"
+#import "SPDYMetadata+Utils.h"
 #import "SPDYOrigin.h"
 #import "SPDYProtocol.h"
 #import "SPDYSession.h"
@@ -191,13 +191,13 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 + (SPDYMetadata *)metadataForResponse:(NSURLResponse *)response
 {
     NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-    SPDYMetadata *metadata = [SPDYMetadataUtils metadataForAssociatedDictionary:httpResponse.allHeaderFields];
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:httpResponse.allHeaderFields];
     return metadata;
 }
 
 + (SPDYMetadata *)metadataForError:(NSError *)error
 {
-    SPDYMetadata *metadata = [SPDYMetadataUtils metadataForAssociatedDictionary:error.userInfo];
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:error.userInfo];
     return metadata;
 }
 

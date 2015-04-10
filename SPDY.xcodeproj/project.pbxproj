@@ -116,9 +116,9 @@
 		5C9A0BD21A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
 		5CA0B9C61A6454950068ABD9 /* SPDYProtocolTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0B9C51A6454950068ABD9 /* SPDYProtocolTest.m */; };
 		5CA0B9C81A6486F10068ABD9 /* SPDYSettingsStoreTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0B9C71A6486F10068ABD9 /* SPDYSettingsStoreTest.m */; };
-		5CE43CE11AD74FC900E73FAC /* SPDYMetadataUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadataUtils.m */; };
-		5CE43CE21AD74FC900E73FAC /* SPDYMetadataUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadataUtils.m */; };
-		5CE43CE31AD74FCA00E73FAC /* SPDYMetadataUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadataUtils.m */; };
+		5CE43CE11AD74FC900E73FAC /* SPDYMetadata+Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */; };
+		5CE43CE21AD74FC900E73FAC /* SPDYMetadata+Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */; };
+		5CE43CE31AD74FCA00E73FAC /* SPDYMetadata+Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */; };
 		5CF0A2C91A089BC500B6D141 /* SPDYMetadataTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */; };
 		5CF0A2CC1A0952D900B6D141 /* SPDYMockURLProtocolClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CF0A2CB1A0952D900B6D141 /* SPDYMockURLProtocolClient.m */; };
 		7774C1318AB029C6BCEF84D6 /* SPDYSessionTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774C2026A4DE9957D75F629 /* SPDYSessionTest.m */; };
@@ -199,8 +199,8 @@
 		5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOriginEndpointManager.m; sourceTree = "<group>"; };
 		5CA0B9C51A6454950068ABD9 /* SPDYProtocolTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYProtocolTest.m; sourceTree = "<group>"; };
 		5CA0B9C71A6486F10068ABD9 /* SPDYSettingsStoreTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSettingsStoreTest.m; sourceTree = "<group>"; };
-		5CE43CDE1AD74E2200E73FAC /* SPDYMetadataUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYMetadataUtils.h; sourceTree = "<group>"; };
-		5CE43CDF1AD74E2200E73FAC /* SPDYMetadataUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMetadataUtils.m; sourceTree = "<group>"; };
+		5CE43CDE1AD74E2200E73FAC /* SPDYMetadata+Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SPDYMetadata+Utils.h"; sourceTree = "<group>"; };
+		5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "SPDYMetadata+Utils.m"; sourceTree = "<group>"; };
 		5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMetadataTest.m; sourceTree = "<group>"; };
 		5CF0A2CA1A0952BA00B6D141 /* SPDYMockURLProtocolClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYMockURLProtocolClient.h; sourceTree = "<group>"; };
 		5CF0A2CB1A0952D900B6D141 /* SPDYMockURLProtocolClient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMockURLProtocolClient.m; sourceTree = "<group>"; };
@@ -394,8 +394,8 @@
 				4FE891C7065B348CC7EF4BFC /* SPDYHeaderBlockDecompressor.h */,
 				4FE895BE087AC28BBBC857F9 /* SPDYHeaderBlockDecompressor.m */,
 				06811C9A1715DC85000D1677 /* SPDYLogger.h */,
-				5CE43CDE1AD74E2200E73FAC /* SPDYMetadataUtils.h */,
-				5CE43CDF1AD74E2200E73FAC /* SPDYMetadataUtils.m */,
+				5CE43CDE1AD74E2200E73FAC /* SPDYMetadata+Utils.h */,
+				5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */,
 				06B290CC1861018900540A03 /* SPDYOrigin.h */,
 				06B290CD1861018900540A03 /* SPDYOrigin.m */,
 				5C5EA4691A119B630058FB64 /* SPDYOriginEndpoint.h */,
@@ -695,7 +695,7 @@
 				062EA642175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */,
 				5C5EA46E1A119B630058FB64 /* SPDYOriginEndpoint.m in Sources */,
 				25959A3F1937DE3900FC9731 /* SPDYSessionManagerTest.m in Sources */,
-				5CE43CE11AD74FC900E73FAC /* SPDYMetadataUtils.m in Sources */,
+				5CE43CE11AD74FC900E73FAC /* SPDYMetadata+Utils.m in Sources */,
 				061C8E9517C5954400D22083 /* SPDYStreamManager.m in Sources */,
 				06B290CE1861018900540A03 /* SPDYOrigin.m in Sources */,
 				7774C1F1E544793907908882 /* SPDYMockFrameEncoderDelegate.m in Sources */,
@@ -727,7 +727,7 @@
 				5C9A0BD11A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */,
 				0651EC4616F3FA1400CE44D2 /* SPDYStream.m in Sources */,
 				062EA643175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */,
-				5CE43CE21AD74FC900E73FAC /* SPDYMetadataUtils.m in Sources */,
+				5CE43CE21AD74FC900E73FAC /* SPDYMetadata+Utils.m in Sources */,
 				061C8E9617C5954400D22083 /* SPDYStreamManager.m in Sources */,
 				5C210A0B1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */,
 				06B290CF1861018A00540A03 /* SPDYOrigin.m in Sources */,
@@ -756,7 +756,7 @@
 				5C9A0BD21A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */,
 				0651EC2C16F3FA0B00CE44D2 /* SPDYStream.m in Sources */,
 				062EA645175D4CD3003BC1CE /* SPDYCommonLogger.m in Sources */,
-				5CE43CE31AD74FCA00E73FAC /* SPDYMetadataUtils.m in Sources */,
+				5CE43CE31AD74FCA00E73FAC /* SPDYMetadata+Utils.m in Sources */,
 				061C8E9817C5954400D22083 /* SPDYStreamManager.m in Sources */,
 				5C210A0C1A5F48C500ADB538 /* SPDYSessionPool.m in Sources */,
 				06B290D21861018A00540A03 /* SPDYOrigin.m in Sources */,

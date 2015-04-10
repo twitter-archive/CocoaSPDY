@@ -10,7 +10,7 @@
 //
 
 #import <SenTestingKit/SenTestingKit.h>
-#import "SPDYMetadataUtils.h"
+#import "SPDYMetadata+Utils.h"
 #import "SPDYProtocol.h"
 
 @interface SPDYMetadataTest : SenTestCase
@@ -73,8 +73,8 @@
     SPDYMetadata *originalMetadata = [self createTestMetadata];
     NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
 
-    [SPDYMetadataUtils setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
-    SPDYMetadata *metadata = [SPDYMetadataUtils metadataForAssociatedDictionary:associatedDictionary];
+    [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
 
     STAssertNotNil(metadata, nil);
     STAssertEqualObjects(metadata.version, @"3.2", nil);
@@ -91,9 +91,9 @@
     originalMetadata2.version = @"3.3";
     NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
 
-    [SPDYMetadataUtils setMetadata:originalMetadata1 forAssociatedDictionary:associatedDictionary];
-    [SPDYMetadataUtils setMetadata:originalMetadata2 forAssociatedDictionary:associatedDictionary];
-    SPDYMetadata *metadata = [SPDYMetadataUtils metadataForAssociatedDictionary:associatedDictionary];
+    [SPDYMetadata setMetadata:originalMetadata1 forAssociatedDictionary:associatedDictionary];
+    [SPDYMetadata setMetadata:originalMetadata2 forAssociatedDictionary:associatedDictionary];
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
 
     // Last one wins
     STAssertNotNil(metadata, nil);
@@ -107,7 +107,7 @@
 - (void)testAssociatedDictionaryWhenEmpty
 {
     NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
-    SPDYMetadata *metadata = [SPDYMetadataUtils metadataForAssociatedDictionary:associatedDictionary];
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
     STAssertNil(metadata, nil);
 }
 
@@ -118,10 +118,10 @@
     @autoreleasepool {
         SPDYMetadata *originalMetadata = [self createTestMetadata];
         weakOriginalMetadata = originalMetadata;
-        [SPDYMetadataUtils setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
+        [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
     }
 
-    SPDYMetadata *metadata = [SPDYMetadataUtils metadataForAssociatedDictionary:associatedDictionary];
+    SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
 
     // Since the identifier maintains a reference, these will be alive
     STAssertNotNil(weakOriginalMetadata, nil);
@@ -135,7 +135,7 @@
         SPDYMetadata *originalMetadata = [self createTestMetadata];
         weakOriginalMetadata = originalMetadata;
         NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
-        [SPDYMetadataUtils setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
+        [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
     }
 
     STAssertNil(weakOriginalMetadata, nil);
@@ -149,11 +149,11 @@
     @autoreleasepool {
         SPDYMetadata *originalMetadata = [self createTestMetadata];
         weakOriginalMetadata = originalMetadata;
-        [SPDYMetadataUtils setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
+        [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
 
         // Pull metadata out and keep a strong reference. To ensure this reference is the same
         // as the original one put in.
-        metadata = [SPDYMetadataUtils metadataForAssociatedDictionary:associatedDictionary];
+        metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
     }
 
     STAssertNotNil(weakOriginalMetadata, nil);
