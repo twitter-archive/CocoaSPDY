@@ -69,6 +69,56 @@ typedef enum {
 // Indicates connection used a proxy server
 @property (nonatomic) BOOL viaProxy;
 
+// The following measurements, presented in seconds, use mach_absolute_time() and are point-in-time
+// relative to whatever base mach_absolute_time() uses. They use the following function to convert
+// to seconds:
+//     mach_timebase_info(&tb);
+//     mach_absolute_time() * ((double)tb.numer / ((double)tb.denom * 1000000000.0));
+//
+// These timings are best consumed relative to timeSessionConnected, for a session-relative view of
+// all requests, or timeStreamCreated, for a stream-relative view. A value of 0 for any of them
+// means it was not set. Unless an error occurs or a stream is otherwise terminated early, all
+// timings will be set. timeStreamCreated and timeStreamClosed will always be set.
+
+// Time when TCP socket connected to origin
+@property (nonatomic) NSTimeInterval timeSessionConnected;
+
+// Time when SPDY first received the new request from NSURL system
+@property (nonatomic) NSTimeInterval timeStreamCreated;
+
+// Time just prior to SPDY sending the SYN_STREAM frame
+@property (nonatomic) NSTimeInterval timeStreamRequestStarted;
+
+// Time just after SPDY sent the SYN_STREAM frame
+@property (nonatomic) NSTimeInterval timeStreamRequestLastHeader;
+
+// Time just prior to SPDY sending the first DATA frame (if any)
+@property (nonatomic) NSTimeInterval timeStreamRequestFirstData;
+
+// Time just after SPDY sent the last DATA frame (if any)
+@property (nonatomic) NSTimeInterval timeStreamRequestLastData;
+
+// Time just prior to SPDY sending the last frame of the request
+@property (nonatomic) NSTimeInterval timeStreamRequestEnded;
+
+// Time just after SPDY received the SYN_REPLY frame
+@property (nonatomic) NSTimeInterval timeStreamResponseStarted;
+
+// Time just after SPDY received the final HEADERS frame (if any)
+@property (nonatomic) NSTimeInterval timeStreamResponseLastHeader;
+
+// Time just after SPDY received the first DATA frame (if any)
+@property (nonatomic) NSTimeInterval timeStreamResponseFirstData;
+
+// Time just after SPDY received the last DATA frame (if any)
+@property (nonatomic) NSTimeInterval timeStreamResponseLastData;
+
+// Time just after SPDY received the last frame of the response
+@property (nonatomic) NSTimeInterval timeStreamResponseEnded;
+
+// Time when SPDY closed the stream, whether due to error or last frame received
+@property (nonatomic) NSTimeInterval timeStreamClosed;
+
 @end
 
 /**

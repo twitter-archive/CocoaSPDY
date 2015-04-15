@@ -81,6 +81,8 @@
         _receivedReply = NO;
         _metadata = [[SPDYMetadata alloc] init];
         _blockedStopwatch = [[SPDYStopwatch alloc] init];
+
+        _metadata.timeStreamCreated = [SPDYStopwatch currentSystemTime];
     }
     return self;
 }
@@ -196,6 +198,7 @@
     }
 
     _localSideClosed = localSideClosed;
+    _metadata.timeStreamRequestEnded = [SPDYStopwatch currentSystemTime];
 
     if (_localSideClosed && _remoteSideClosed) {
         [self _close];
@@ -205,6 +208,7 @@
 - (void)setRemoteSideClosed:(bool)remoteSideClosed
 {
     _remoteSideClosed = remoteSideClosed;
+    _metadata.timeStreamResponseEnded = [SPDYStopwatch currentSystemTime];
 
     if (_localSideClosed && _remoteSideClosed) {
         [self _close];
