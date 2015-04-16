@@ -34,40 +34,40 @@ typedef enum {
 @interface SPDYMetadata : NSObject
 
 // SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
-@property (nonatomic) NSUInteger blockedMs;
+@property (nonatomic, readonly) NSUInteger blockedMs;
 
 // Boolean indicating whether session is over cellular or WIFI
-@property (nonatomic) BOOL cellular;
+@property (nonatomic, readonly) BOOL cellular;
 
 // SPDY stream creation time relative to session connection time.
-@property (nonatomic) NSUInteger connectedMs;
+@property (nonatomic, readonly) NSUInteger connectedMs;
 
 // IP address of remote side
-@property (nonatomic, copy) NSString *hostAddress;
+@property (nonatomic, copy, readonly) NSString *hostAddress;
 
 // TCP port of remote side
-@property (nonatomic) NSUInteger hostPort;
+@property (nonatomic, readonly) NSUInteger hostPort;
 
 // SPDY session latency, in milliseconds, as measured by pings, e.g. "150". Default -1.
-@property (nonatomic) NSInteger latencyMs;
+@property (nonatomic, readonly) NSInteger latencyMs;
 
 // Indicates state of proxy configuration
-@property (nonatomic) SPDYProxyStatus proxyStatus;
+@property (nonatomic, readonly) SPDYProxyStatus proxyStatus;
 
 // SPDY stream bytes received. Includes all SPDY headers and bodies.
-@property (nonatomic) NSUInteger rxBytes;
+@property (nonatomic, readonly) NSUInteger rxBytes;
 
 // SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
-@property (nonatomic) NSUInteger txBytes;
+@property (nonatomic, readonly) NSUInteger txBytes;
 
 // SPDY request stream id, e.g. "1"
-@property (nonatomic) NSUInteger streamId;
+@property (nonatomic, readonly) NSUInteger streamId;
 
 // SPDY version, e.g. "3.1"
-@property (nonatomic, copy) NSString *version;
+@property (nonatomic, copy, readonly) NSString *version;
 
 // Indicates connection used a proxy server
-@property (nonatomic) BOOL viaProxy;
+@property (nonatomic, readonly) BOOL viaProxy;
 
 // The following measurements, presented in seconds, use mach_absolute_time() and are point-in-time
 // relative to whatever base mach_absolute_time() uses. They use the following function to convert
@@ -81,43 +81,43 @@ typedef enum {
 // timings will be set. timeStreamCreated and timeStreamClosed will always be set.
 
 // Time when TCP socket connected to origin
-@property (nonatomic) NSTimeInterval timeSessionConnected;
+@property (nonatomic, readonly) NSTimeInterval timeSessionConnected;
 
 // Time when SPDY first received the new request from NSURL system
-@property (nonatomic) NSTimeInterval timeStreamCreated;
+@property (nonatomic, readonly) NSTimeInterval timeStreamCreated;
 
 // Time just prior to SPDY sending the SYN_STREAM frame
-@property (nonatomic) NSTimeInterval timeStreamRequestStarted;
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestStarted;
 
 // Time just after SPDY sent the SYN_STREAM frame
-@property (nonatomic) NSTimeInterval timeStreamRequestLastHeader;
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestLastHeader;
 
 // Time just prior to SPDY sending the first DATA frame (if any)
-@property (nonatomic) NSTimeInterval timeStreamRequestFirstData;
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestFirstData;
 
 // Time just after SPDY sent the last DATA frame (if any)
-@property (nonatomic) NSTimeInterval timeStreamRequestLastData;
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestLastData;
 
 // Time just prior to SPDY sending the last frame of the request
-@property (nonatomic) NSTimeInterval timeStreamRequestEnded;
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestEnded;
 
 // Time just after SPDY received the SYN_REPLY frame
-@property (nonatomic) NSTimeInterval timeStreamResponseStarted;
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseStarted;
 
 // Time just after SPDY received the final HEADERS frame (if any)
-@property (nonatomic) NSTimeInterval timeStreamResponseLastHeader;
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseLastHeader;
 
 // Time just after SPDY received the first DATA frame (if any)
-@property (nonatomic) NSTimeInterval timeStreamResponseFirstData;
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseFirstData;
 
 // Time just after SPDY received the last DATA frame (if any)
-@property (nonatomic) NSTimeInterval timeStreamResponseLastData;
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseLastData;
 
 // Time just after SPDY received the last frame of the response
-@property (nonatomic) NSTimeInterval timeStreamResponseEnded;
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseEnded;
 
 // Time when SPDY closed the stream, whether due to error or last frame received
-@property (nonatomic) NSTimeInterval timeStreamClosed;
+@property (nonatomic, readonly) NSTimeInterval timeStreamClosed;
 
 @end
 

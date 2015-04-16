@@ -20,6 +20,7 @@
 #import "SPDYCommonLogger.h"
 #import "SPDYFrameDecoder.h"
 #import "SPDYFrameEncoder.h"
+#import "SPDYMetadata+Utils.h"
 #import "SPDYOrigin.h"
 #import "SPDYOriginEndpoint.h"
 #import "SPDYProtocol.h"
