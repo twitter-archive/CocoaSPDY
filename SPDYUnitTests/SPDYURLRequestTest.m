@@ -286,18 +286,21 @@
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
     NSInputStream *stream = [[NSInputStream alloc] initWithData:[NSData new]];
+    NSURLSession *urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
 
     request.SPDYPriority = 1;
     request.SPDYDeferrableInterval = 3.95;
     request.SPDYBypass = YES;
     request.SPDYBodyStream = stream;
     request.SPDYBodyFile = @"Bodyfile.json";
+    request.SPDYURLSession = urlSession;
 
     STAssertEquals(request.SPDYPriority, (NSUInteger)1, nil);
     STAssertEquals(request.SPDYDeferrableInterval, (double)3.95, nil);
     STAssertEquals(request.SPDYBypass, (BOOL)YES, nil);
     STAssertEquals(request.SPDYBodyStream, stream, nil);
     STAssertEquals(request.SPDYBodyFile, @"Bodyfile.json", nil);
+    STAssertEquals(request.SPDYURLSession, urlSession, nil);
 
     NSMutableURLRequest *mutableCopy = [request mutableCopy];
 
@@ -306,6 +309,7 @@
     STAssertEquals(mutableCopy.SPDYBypass, (BOOL)YES, nil);
     STAssertEquals(mutableCopy.SPDYBodyStream, stream, nil);
     STAssertEquals(mutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
+    STAssertEquals(mutableCopy.SPDYURLSession, urlSession, nil);
 
     NSURLRequest *immutableCopy = [request copy];
 
@@ -314,6 +318,41 @@
     STAssertEquals(immutableCopy.SPDYBypass, (BOOL)TRUE, nil);
     STAssertEquals(immutableCopy.SPDYBodyStream, stream, nil);
     STAssertEquals(immutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
+    STAssertEquals(immutableCopy.SPDYURLSession, urlSession, nil);
+}
+
+- (void)testRequestCopyDoesRetainProperties
+{
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+    NSInputStream *stream = [[NSInputStream alloc] initWithData:[NSData new]];
+    NSURLSession *urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+
+    request.SPDYBodyStream = stream;
+    request.SPDYBodyFile = @"Bodyfile.json";
+    request.SPDYURLSession = urlSession;
+
+    NSInputStream __weak *weakStream = stream;
+    NSURLSession __weak *weakURLSession = urlSession;
+    NSMutableURLRequest __weak *weakRequest = request;
+    NSURLRequest *immutableCopy = [request copy];
+
+    @autoreleasepool {
+        stream = nil;
+        urlSession = nil;
+        request = nil;
+    }
+
+    STAssertNil(request, nil);
+    STAssertNil(weakRequest, nil);  // totally gone
+    STAssertNil(stream, nil);
+    STAssertNil(urlSession, nil);
+
+    STAssertNotNil(weakStream, nil);  // still around
+    STAssertEquals(immutableCopy.SPDYBodyStream, weakStream, nil);
+    STAssertEqualObjects(immutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
+    STAssertNotNil(weakURLSession, nil);  // still around
+    STAssertEquals(immutableCopy.SPDYURLSession, weakURLSession, nil);
 }
 
 - (void)testCanonicalRequestAddsUserAgent

@@ -23,7 +23,7 @@
 #import "SPDYMetadata.h"
 #import "SPDYOrigin.h"
 #import "SPDYOriginEndpoint.h"
-#import "SPDYProtocol.h"
+#import "SPDYProtocol+Project.h"
 #import "SPDYSettingsStore.h"
 #import "SPDYSocket.h"
 #import "SPDYStopwatch.h"

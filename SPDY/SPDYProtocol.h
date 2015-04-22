@@ -145,6 +145,11 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 */
 + (void)unregisterAllAliases;
 
+/**
+  Get the SPDY metadata from a protocol instance.
+ */
+- (NSDictionary *)metadata;
+
 @end
 
 /**
@@ -286,5 +291,24 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
   the system-configured proxy information and forces use of a proxy.
 */
 @property NSInteger proxyPort;
+
+@end
+
+/**
+  Protocol that may be implemented by the delegate property of NSURLSession.
+ 
+  This will provide additional context for the request, if desired. Implementing
+  it is optional, and only applies for NSURLSession-based requests. All calls 
+  made using the NSOperationQueue set in delegateQueue in NSURLSession, or else 
+  the mainQueue if one is not set.
+*/
+@protocol SPDYURLSessionDelegate <NSObject>
+
+/**
+  Called just before the request is dispatched and provides the SPDYProtocol 
+  instance handling the request.
+*/
+@optional
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didStartLoadingRequest:(NSURLRequest *)request withSPDYProtocol:(SPDYProtocol *)protocol;
 
 @end
