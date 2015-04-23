@@ -324,35 +324,65 @@
 - (void)testRequestCopyDoesRetainProperties
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    NSInputStream *stream = [[NSInputStream alloc] initWithData:[NSData new]];
-    NSURLSession *urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
 
-    request.SPDYBodyStream = stream;
-    request.SPDYBodyFile = @"Bodyfile.json";
-    request.SPDYURLSession = urlSession;
-
-    NSInputStream __weak *weakStream = stream;
-    NSURLSession __weak *weakURLSession = urlSession;
-    NSMutableURLRequest __weak *weakRequest = request;
-    NSURLRequest *immutableCopy = [request copy];
+    NSMutableURLRequest __weak *weakRequest;
+    NSInputStream __weak *weakStream;
+    NSString __weak *weakBodyFile;
+    NSURLSession __weak *weakURLSession;
+    NSURLRequest *immutableCopy;
 
     @autoreleasepool {
-        stream = nil;
-        urlSession = nil;
-        request = nil;
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+        request.SPDYBodyStream = [[NSInputStream alloc] initWithData:[NSData new]];
+        request.SPDYBodyFile = [NSString stringWithFormat:@"Bodyfile.json"];
+        request.SPDYURLSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+
+        weakRequest = request;
+        weakStream = request.SPDYBodyStream;
+        weakBodyFile = request.SPDYBodyFile;
+        weakURLSession = request.SPDYURLSession;
+
+       immutableCopy = [request copy];
     }
 
-    STAssertNil(request, nil);
     STAssertNil(weakRequest, nil);  // totally gone
-    STAssertNil(stream, nil);
-    STAssertNil(urlSession, nil);
-
     STAssertNotNil(weakStream, nil);  // still around
-    STAssertEquals(immutableCopy.SPDYBodyStream, weakStream, nil);
-    STAssertEqualObjects(immutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
+    STAssertNotNil(weakBodyFile, nil);  // still around
     STAssertNotNil(weakURLSession, nil);  // still around
+
+    STAssertEquals(immutableCopy.SPDYBodyStream, weakStream, nil);
+    STAssertEquals(immutableCopy.SPDYBodyFile, weakBodyFile, nil);
     STAssertEquals(immutableCopy.SPDYURLSession, weakURLSession, nil);
+}
+
+- (void)testRequestCacheEqualityDoesIgnoreProperties
+{
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+
+    // Build request with headers & properties
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
+    [request addValue:@"Bar" forHTTPHeaderField:@"Foo"];
+    request.SPDYPriority = 2;
+    request.SPDYURLSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+    request.SPDYBodyFile = @"Bodyfile.json";
+
+    // Build response
+    NSDictionary *responseHeaders = @{@"Content-Length": @"1000", @"Cache-Control": @"max-age=3600", @"TestHeader": @"TestValue"};
+    NSMutableData *responseData = [[NSMutableData alloc] initWithCapacity:1000];
+    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:responseHeaders];
+    NSCachedURLResponse *cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:response data:responseData];
+
+    // Cache it
+    NSURLCache *cache = [[NSURLCache alloc] initWithMemoryCapacity:512000 diskCapacity:10000000 diskPath:@"testcache"];
+    [cache storeCachedResponse:cachedResponse forRequest:request];
+
+    // New request, no properties or headers
+    NSMutableURLRequest *newRequest = [[NSMutableURLRequest alloc] initWithURL:url];
+    NSCachedURLResponse *newCachedResponse = [cache cachedResponseForRequest:newRequest];
+
+    STAssertNotNil(newCachedResponse, nil);
+    STAssertNil(newRequest.SPDYURLSession, nil);
+    STAssertEqualObjects(((NSHTTPURLResponse *)newCachedResponse.response).allHeaderFields[@"TestHeader"], @"TestValue", nil);
 }
 
 - (void)testCanonicalRequestAddsUserAgent

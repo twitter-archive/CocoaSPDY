@@ -60,6 +60,9 @@ static dispatch_once_t initConfig;
 @property (nonatomic) BOOL abortOnFailure;
 @end
 
+@interface SPDYProtocolContext : NSObject <SPDYProtocolContext>
+@end
+
 @implementation SPDYAssertionHandler
 
 - (instancetype)init
@@ -110,9 +113,31 @@ static dispatch_once_t initConfig;
 
 @end
 
+@implementation SPDYProtocolContext
+{
+    SPDYMetadata *_metadata;
+}
+
+- (id)initWithStream:(SPDYStream *)stream
+{
+    self = [super init];
+    if (self) {
+        _metadata = stream.metadata;
+    }
+    return self;
+}
+
+- (NSDictionary *)metadata
+{
+    return [_metadata dictionary];
+}
+
+@end
+
 @implementation SPDYProtocol
 {
     SPDYStream *_stream;
+    SPDYProtocolContext *_context;
     NSURLSession *_associatedSession;
     NSURLSessionTask *_associatedSessionTask;
     struct {
@@ -357,6 +382,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
     // Create the stream
     _stream = [[SPDYStream alloc] initWithProtocol:self];
+    _context = [[SPDYProtocolContext alloc] initWithStream:_stream];
 
     if (request.SPDYURLSession) {
         [self detectSessionAndTaskThenContinueWithOrigin:origin];
@@ -399,10 +425,10 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
                     _associatedSession = session;
 
                     id<SPDYURLSessionDelegate> delegate = (id)session.delegate;
-                    if ([delegate respondsToSelector:@selector(URLSession:task:didStartLoadingRequest:withSPDYProtocol:)]) {
+                    if ([delegate respondsToSelector:@selector(URLSession:task:didStartLoadingRequest:withContext:)]) {
                         NSOperationQueue *queue = session.delegateQueue;
                         [(queue) ?: [NSOperationQueue mainQueue] addOperationWithBlock:^{
-                            [delegate URLSession:session task:matchingTask didStartLoadingRequest:request withSPDYProtocol:self];
+                            [delegate URLSession:session task:matchingTask didStartLoadingRequest:request withContext:_context];
                         }];
                     }
                 }
@@ -441,11 +467,6 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 - (NSURLSessionTask *)associatedSessionTask
 {
     return _associatedSessionTask;
-}
-
-- (NSDictionary *)metadata
-{
-    return _stream.metadata.dictionary;
 }
 
 @end

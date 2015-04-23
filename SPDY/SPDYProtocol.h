@@ -145,11 +145,6 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 */
 + (void)unregisterAllAliases;
 
-/**
-  Get the SPDY metadata from a protocol instance.
- */
-- (NSDictionary *)metadata;
-
 @end
 
 /**
@@ -295,6 +290,24 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 @end
 
 /**
+  SPDYProtocolContext is provided by the SPDYURLSessionDelegate protocol when
+  the request starts loading. It can be used by the app to retrieve additional
+  information about the request instance.
+*/
+
+@protocol SPDYProtocolContext <NSObject>
+
+/**
+  Get the SPDY metadata from a protocol instance. This should only be called 
+  once a request has either completed or returned an error. Use at any other
+  time has undefined behavior. The use of this, metadataForResponse, and 
+  metadataForError are all interchangeable.
+ */
+- (NSDictionary *)metadata;
+
+@end
+
+/**
   Protocol that may be implemented by the delegate property of NSURLSession.
  
   This will provide additional context for the request, if desired. Implementing
@@ -309,6 +322,6 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
   instance handling the request.
 */
 @optional
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didStartLoadingRequest:(NSURLRequest *)request withSPDYProtocol:(SPDYProtocol *)protocol;
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didStartLoadingRequest:(NSURLRequest *)request withContext:(id<SPDYProtocolContext>)context;
 
 @end

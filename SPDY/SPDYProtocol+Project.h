@@ -11,6 +11,6 @@
 @interface SPDYProtocol (Project)
 
 @property (nonatomic, readonly) NSURLSession *associatedSession;
-@property (nonatomic, readonly) NSURLSessionTask *associatedSessionTask;
+@property (nonatomic, readonly, weak) NSURLSessionTask *associatedSessionTask;
 
 @end
