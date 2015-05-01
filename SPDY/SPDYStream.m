@@ -19,7 +19,7 @@
 #import "SPDYCommonLogger.h"
 #import "SPDYDefinitions.h"
 #import "SPDYMetadata.h"
-#import "SPDYProtocol.h"
+#import "SPDYProtocol+Project.h"
 #import "SPDYStopwatch.h"
 #import "SPDYStream.h"
 
@@ -332,8 +332,29 @@
     }
 
     NSURL *requestURL = _protocol.request.URL;
+    BOOL cookiesOn = NO;
+    NSHTTPCookieStorage *cookieStore = nil;
 
-    if (_protocol.request.HTTPShouldHandleCookies) {
+    NSURLSessionConfiguration *config = _protocol.associatedSession.configuration;
+    if (config) {
+        switch (config.HTTPCookieAcceptPolicy) {
+            case NSHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain:
+                if ([_protocol.request.URL.host compare:_protocol.request.mainDocumentURL.host options:NSCaseInsensitiveSearch] != NSOrderedSame) {
+                    break;
+                } // else, fall through
+            case NSHTTPCookieAcceptPolicyAlways:
+                cookieStore = config.HTTPCookieStorage;
+                cookiesOn = (cookieStore != nil);
+                break;
+            case NSHTTPCookieAcceptPolicyNever:
+                break;
+        }
+    } else {
+        cookiesOn = _protocol.request.HTTPShouldHandleCookies;
+        cookieStore = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+    }
+
+    if (cookiesOn) {
         NSString *httpSetCookie = allHTTPHeaders[@"set-cookie"];
         if (httpSetCookie) {
             // HTTP header field names are supposed to be case-insensitive, but
@@ -346,9 +367,9 @@
             NSArray *cookies = [NSHTTPCookie cookiesWithResponseHeaderFields:cookieHeaders
                                                                       forURL:requestURL];
 
-            [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookies:cookies
-                                                               forURL:requestURL
-                                                      mainDocumentURL:_protocol.request.mainDocumentURL];
+            [cookieStore setCookies:cookies
+                             forURL:requestURL
+                    mainDocumentURL:_protocol.request.mainDocumentURL];
         }
     }
 

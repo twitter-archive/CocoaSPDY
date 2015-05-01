@@ -14,12 +14,13 @@
 #endif
 
 #import <arpa/inet.h>
+#import <Foundation/Foundation.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYMetadata.h"
 #import "SPDYOrigin.h"
-#import "SPDYProtocol.h"
+#import "SPDYProtocol+Project.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYStream.h"
@@ -51,8 +52,15 @@ static NSMutableDictionary *certificates;
 static dispatch_queue_t configQueue;
 static dispatch_once_t initConfig;
 
+@interface NSURLRequest (SPDYURLRequest_Internal)
+- (NSString *)SPDYURLSessionRequestIdentifier;
+@end
+
 @interface SPDYAssertionHandler : NSAssertionHandler
 @property (nonatomic) BOOL abortOnFailure;
+@end
+
+@interface SPDYProtocolContext : NSObject <SPDYProtocolContext>
 @end
 
 @implementation SPDYAssertionHandler
@@ -105,9 +113,37 @@ static dispatch_once_t initConfig;
 
 @end
 
+@implementation SPDYProtocolContext
+{
+    SPDYMetadata *_metadata;
+}
+
+- (id)initWithStream:(SPDYStream *)stream
+{
+    self = [super init];
+    if (self) {
+        _metadata = stream.metadata;
+    }
+    return self;
+}
+
+- (NSDictionary *)metadata
+{
+    return [_metadata dictionary];
+}
+
+@end
+
 @implementation SPDYProtocol
 {
     SPDYStream *_stream;
+    SPDYProtocolContext *_context;
+    NSURLSession *_associatedSession;
+    NSURLSessionTask *_associatedSessionTask;
+    struct {
+        BOOL didStartLoading:1;
+        BOOL didStopLoading:1;
+    } _flags;
 }
 
 static SPDYConfiguration *currentConfiguration;
@@ -309,6 +345,16 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 - (void)startLoading
 {
+    // Only allow one startLoading call. iOS 8 using NSURLSession has exhibited different
+    // behavior, by calling startLoading, then stopLoading, then startLoading, etc, over and
+    // over. This happens asynchronously when using a NSURLSessionDataTaskDelegate after the
+    // URLSession:dataTask:didReceiveResponse:completionHandler: callback.
+    if (_flags.didStartLoading) {
+        SPDY_WARNING(@"start loading already called, ignoring %@", self.request.URL.absoluteString);
+        return;
+    }
+    _flags.didStartLoading = 1;
+
     // Add an assertion handler to this NSURL thread if one doesn't exist. Without it, assertions
     // will get swallowed on iOS. OSX seems to behave properly without it, but it's safer to
     // just always set this.
@@ -317,18 +363,10 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         currentThreadDictionary[NSAssertionHandlerKey] = [[SPDYAssertionHandler alloc] init];
     }
 
-    // Only allow one startLoading call. iOS 8 using NSURLSession has exhibited different
-    // behavior, by calling startLoading, then stopLoading, then startLoading, etc, over and
-    // over. This happens asynchronously when using a NSURLSessionDataTaskDelegate after the
-    // URLSession:dataTask:didReceiveResponse:completionHandler: callback.
-    if (_stream) {
-        SPDY_WARNING(@"start loading already called, ignoring %@", self.request.URL.absoluteString);
-        return;
-    }
-
     NSURLRequest *request = self.request;
     SPDY_INFO(@"start loading %@", request.URL.absoluteString);
 
+    // Check the origin
     NSError *error;
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithURL:request.URL error:&error];
     if (!origin) {
@@ -336,14 +374,75 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         return;
     }
 
+    // Check for an alias
     SPDYOrigin *aliasedOrigin = [SPDYProtocol originForAlias:origin];
     if (aliasedOrigin) {
         origin = aliasedOrigin;
     }
 
-    SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
+    // Create the stream
     _stream = [[SPDYStream alloc] initWithProtocol:self];
-    [manager queueStream:_stream];
+    _context = [[SPDYProtocolContext alloc] initWithStream:_stream];
+
+    if (request.SPDYURLSession) {
+        [self detectSessionAndTaskThenContinueWithOrigin:origin];
+    } else {
+        // Start the stream
+        SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
+        [manager queueStream:_stream];
+    }
+}
+
+- (void)detectSessionAndTaskThenContinueWithOrigin:(SPDYOrigin *)origin
+{
+    NSURLRequest *request = self.request;
+    NSURLSession *session = request.SPDYURLSession;
+    NSString *sessionRequestIdentifier = request.SPDYURLSessionRequestIdentifier;
+
+    NSAssert(session != nil, @"%@ should never be called without an associated %@", NSStringFromSelector(_cmd), NSStringFromSelector(@selector(SPDYURLSession)));
+
+    CFRunLoopRef clientRunLoop = CFRunLoopGetCurrent();
+    CFRetain(clientRunLoop);
+
+    [session getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks) {
+        NSURLSessionTask *matchingTask = nil;
+        NSMutableArray *tasks = [NSMutableArray array];
+        [tasks addObjectsFromArray:dataTasks];
+        [tasks addObjectsFromArray:uploadTasks];
+        [tasks addObjectsFromArray:downloadTasks];
+
+        for (NSURLSessionTask *task in tasks) {
+            if ([task.currentRequest.SPDYURLSessionRequestIdentifier isEqualToString:sessionRequestIdentifier]) {
+                matchingTask = task;
+                break;
+            }
+        }
+
+        dispatch_block_t continueBlock = ^{
+            if (!_flags.didStopLoading) {
+                if (matchingTask) {
+                    _associatedSessionTask = matchingTask;
+                    _associatedSession = session;
+
+                    id<SPDYURLSessionDelegate> delegate = (id)session.delegate;
+                    if ([delegate respondsToSelector:@selector(URLSession:task:didStartLoadingRequest:withContext:)]) {
+                        NSOperationQueue *queue = session.delegateQueue;
+                        [(queue) ?: [NSOperationQueue mainQueue] addOperationWithBlock:^{
+                            [delegate URLSession:session task:matchingTask didStartLoadingRequest:request withContext:_context];
+                        }];
+                    }
+                }
+
+                // Start the stream
+                SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
+                [manager queueStream:_stream];
+            }
+        };
+
+        CFRunLoopPerformBlock(clientRunLoop, kCFRunLoopDefaultMode, continueBlock);
+        CFRunLoopWakeUp(clientRunLoop);
+        CFRelease(clientRunLoop);
+    }];
 }
 
 - (void)stopLoading
@@ -353,6 +452,21 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     if (_stream && !_stream.closed) {
         [_stream cancel];
     }
+    _flags.didStopLoading = 1;
+    _associatedSession = nil;
+    _associatedSessionTask = nil;
+}
+
+#pragma mark Properties
+
+- (NSURLSession *)associatedSession
+{
+    return _associatedSession;
+}
+
+- (NSURLSessionTask *)associatedSessionTask
+{
+    return _associatedSessionTask;
 }
 
 @end
