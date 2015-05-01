@@ -24,7 +24,8 @@
 // It may sleep for much longer if a big context switch occurs, so we use a large band here
 // as we aren't mocking out the underlying time system call.
 #define INTERVAL_USEC   100000
-#define INTERVAL_SEC    0.1
+#define INTERVAL_SEC    0.1000
+#define LOWER_BOUND_SEC 0.0999
 #define UPPER_BOUND_SEC (INTERVAL_SEC * 100)
 
 - (void)testSystemTimeDoesMarchForward
@@ -52,7 +53,7 @@
     SPDYStopwatch *stopwatch = [[SPDYStopwatch alloc] init];
     [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed = stopwatch.elapsedSeconds;
-    STAssertTrue(elapsed >= INTERVAL_SEC, @"expect %f to be >= to %f", elapsed, INTERVAL_SEC);
+    STAssertTrue(elapsed >= LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed, LOWER_BOUND_SEC);
     STAssertTrue(elapsed < UPPER_BOUND_SEC, nil);
 }
 
@@ -63,8 +64,8 @@
     SPDYTimeInterval elapsed1 = stopwatch.elapsedSeconds;
     [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed2 = stopwatch.elapsedSeconds;
-    STAssertTrue(elapsed1 >= INTERVAL_SEC, @"expect %f to be >= to %f", elapsed1, INTERVAL_SEC);
-    STAssertTrue(elapsed2 >= 2 * INTERVAL_SEC, @"expect %f to be >= to %f", elapsed2, 2 * INTERVAL_SEC);
+    STAssertTrue(elapsed1 >= LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed1, LOWER_BOUND_SEC);
+    STAssertTrue(elapsed2 >= 2 * LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed2, 2 * LOWER_BOUND_SEC);
     STAssertTrue(elapsed1 < elapsed2, @"expect %f to be < %f", elapsed1, elapsed2);
 }
 
@@ -91,8 +92,8 @@
     [SPDYStopwatch sleep:INTERVAL_SEC];
     [stopwatch reset];
 
-    startTime += INTERVAL_SEC;
-    startSystemTime += INTERVAL_SEC;
+    startTime += LOWER_BOUND_SEC;
+    startSystemTime += LOWER_BOUND_SEC;
     STAssertTrue(stopwatch.startTime >= startTime, nil);
     STAssertTrue(stopwatch.startSystemTime >= startSystemTime, nil);
     STAssertTrue(stopwatch.startTime < (startTime + UPPER_BOUND_SEC), nil);
