@@ -130,6 +130,9 @@
 		7774CD9416661E40D76713F5 /* SPDYStopwatch.h in Headers */ = {isa = PBXBuildFile; fileRef = 7774CE030BB898D2BE3D320D /* SPDYStopwatch.h */; };
 		7774CDD84A5D07F8DE5B8684 /* SPDYStopwatch.m in Sources */ = {isa = PBXBuildFile; fileRef = 7774CE34A3AA067D98DA7ECC /* SPDYStopwatch.m */; };
 		7774CF887055793F373F0D5E /* SPDYStopwatch.h in Headers */ = {isa = PBXBuildFile; fileRef = 7774CE030BB898D2BE3D320D /* SPDYStopwatch.h */; };
+		8B40E8AA1AE1B95C000A0F0F /* SPDYProtocol+Project.h in Headers */ = {isa = PBXBuildFile; fileRef = 8B40E8A81AE1B95C000A0F0F /* SPDYProtocol+Project.h */; };
+		8B40E8AB1AE1B95C000A0F0F /* SPDYProtocol+Project.h in Headers */ = {isa = PBXBuildFile; fileRef = 8B40E8A81AE1B95C000A0F0F /* SPDYProtocol+Project.h */; };
+		8B40E8AC1AE1B95C000A0F0F /* SPDYProtocol+Project.h in Headers */ = {isa = PBXBuildFile; fileRef = 8B40E8A81AE1B95C000A0F0F /* SPDYProtocol+Project.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -211,6 +214,7 @@
 		7774CD0A3295C8E314D6E3FF /* SPDYMockFrameEncoderDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYMockFrameEncoderDelegate.h; sourceTree = "<group>"; };
 		7774CE030BB898D2BE3D320D /* SPDYStopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYStopwatch.h; sourceTree = "<group>"; };
 		7774CE34A3AA067D98DA7ECC /* SPDYStopwatch.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYStopwatch.m; sourceTree = "<group>"; };
+		8B40E8A81AE1B95C000A0F0F /* SPDYProtocol+Project.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SPDYProtocol+Project.h"; sourceTree = "<group>"; };
 		D2CC14B216179B43002E37CF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		D2CC14B816179B43002E37CF /* SPDY-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY-Prefix.pch"; sourceTree = "<group>"; };
 		D2CC14C01618CF62002E37CF /* SPDYProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYProtocol.h; sourceTree = "<group>"; };
@@ -374,11 +378,11 @@
 		D2CC14B416179B43002E37CF /* SPDY */ = {
 			isa = PBXGroup;
 			children = (
-				5C6B0D271A3A3E8400334BFA /* SPDYCanonicalRequest.h */,
-				5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */,
 				069D0E99168268F10037D8AF /* NSURLRequest+SPDYURLRequest.h */,
 				069D0E9A168268F10037D8AF /* NSURLRequest+SPDYURLRequest.m */,
 				D2CC14B816179B43002E37CF /* SPDY-Prefix.pch */,
+				5C6B0D271A3A3E8400334BFA /* SPDYCanonicalRequest.h */,
+				5C6B0D281A3A3E8400334BFA /* SPDYCanonicalRequest.m */,
 				062EA63E175D4CD3003BC1CE /* SPDYCommonLogger.h */,
 				062EA63F175D4CD3003BC1CE /* SPDYCommonLogger.m */,
 				062EA63C175D1A15003BC1CE /* SPDYDefinitions.h */,
@@ -404,6 +408,7 @@
 				5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */,
 				D2CC14C01618CF62002E37CF /* SPDYProtocol.h */,
 				D2CC14C11618CF62002E37CF /* SPDYProtocol.m */,
+				8B40E8A81AE1B95C000A0F0F /* SPDYProtocol+Project.h */,
 				D2CC14C31618DBF2002E37CF /* SPDYSession.h */,
 				D2CC14C41618DBF2002E37CF /* SPDYSession.m */,
 				D2CC14CC161A5826002E37CF /* SPDYSessionManager.h */,
@@ -437,6 +442,7 @@
 			files = (
 				0540DAAB19CB7FF000673796 /* NSURLRequest+SPDYURLRequest.h in Headers */,
 				0540DAAC19CB7FF900673796 /* SPDYError.h in Headers */,
+				8B40E8AB1AE1B95C000A0F0F /* SPDYProtocol+Project.h in Headers */,
 				0540DAAD19CB800C00673796 /* SPDYLogger.h in Headers */,
 				0540DAAE19CB801900673796 /* SPDYProtocol.h in Headers */,
 				0540DAAF19CB802600673796 /* SPDYTLSTrustEvaluator.h in Headers */,
@@ -452,6 +458,7 @@
 			files = (
 				05C7CEB919CB456D0032D681 /* NSURLRequest+SPDYURLRequest.h in Headers */,
 				0540DAA719CB7FD600673796 /* SPDYError.h in Headers */,
+				8B40E8AA1AE1B95C000A0F0F /* SPDYProtocol+Project.h in Headers */,
 				05C7CEBA19CB45760032D681 /* SPDYLogger.h in Headers */,
 				05C7CEBB19CB45820032D681 /* SPDYProtocol.h in Headers */,
 				05C7CEBC19CB458F0032D681 /* SPDYTLSTrustEvaluator.h in Headers */,
@@ -467,6 +474,7 @@
 			files = (
 				064A05D616F8E3AD008C7D08 /* NSURLRequest+SPDYURLRequest.h in Headers */,
 				06811C971714D426000D1677 /* SPDYError.h in Headers */,
+				8B40E8AC1AE1B95C000A0F0F /* SPDYProtocol+Project.h in Headers */,
 				06811C9B1715DC85000D1677 /* SPDYLogger.h in Headers */,
 				064A05C716F7C313008C7D08 /* SPDYProtocol.h in Headers */,
 				06E7BF131824371F004DB65D /* SPDYTLSTrustEvaluator.h in Headers */,
@@ -625,7 +633,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\n\n#Variables\nIOS_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/lib${PROJECT_NAME}.iphoneos.a\"\nSIM_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphonesimulator/lib${PROJECT_NAME}.iphoneos.a\"\nOSX_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.macosx.a\"\nIOS_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/${PRODUCT_NAME}.framework\"\nOSX_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}/${PRODUCT_NAME}.framework\"\n\nSPDY_CONFIG=\"${BUILD_DIR}/${CONFIGURATION}/spdy_install.config\"\nSPDY_INSTALL_SCRIPT=\"${BUILD_DIR}/${CONFIGURATION}/spdy_install.sh\"\n\n#Install Functions\ninstall_iphoneos(){\n  rm -rf \"${IOS_FRAMEWORK_PATH}\"\n  cp -fR \"${OSX_FRAMEWORK_PATH}\" \"${IOS_FRAMEWORK_PATH}\"\n\n  static_libs=( \"${IOS_LIB_PATH}\" \"${SIM_LIB_PATH}\" )\n  install \"${IOS_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall_macosx(){\n  static_libs=( \"${OSX_LIB_PATH}\" )\n  install \"${OSX_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall() {\n  output_dir=$1\n  shift\n  static_libraries=($@)\n\n  mkdir -p \"${output_dir}\"\n\n  lipo \"${static_libraries[@]}\" -create -output \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n\n  if [[ $CONFIGURATION == \"Release\" ]]; then\n    strip -S \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n  fi\n\n  ln -fs \"${output_dir}/Versions/Current/${PRODUCT_NAME}\" \"${output_dir}/${PRODUCT_NAME}\"\n}\n\n#Script\nif [ -f \"${SPDY_CONFIG}\" ]; then\n  source \"${SPDY_CONFIG}\"\nfi\n\nif [ -n \"${SPDY_INSTALL_SDK}\" ]; then\n  if [[ $SPDY_INSTALL_SDK == \"iphoneos\" ]]; then\n    install_iphoneos\n  elif [[ $SPDY_INSTALL_SDK == \"macosx\" ]]; then\n    install_macosx\n  fi\nelse\n  install_iphoneos\n  install_macosx\nfi\n\nif [ -f \"${SPDY_INSTALL_SCRIPT}\" ]; then\n  source \"${SPDY_INSTALL_SCRIPT}\"\nfi\n";
+			shellScript = "set -e\n\n\n#Variables\nIOS_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/lib${PROJECT_NAME}.iphoneos.a\"\nSIM_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphonesimulator/lib${PROJECT_NAME}.iphoneos.a\"\nOSX_LIB_PATH=\"${BUILD_DIR}/${CONFIGURATION}/lib${PROJECT_NAME}.macosx.a\"\nIOS_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}-iphoneos/${PRODUCT_NAME}.framework\"\nOSX_FRAMEWORK_PATH=\"${BUILD_DIR}/${CONFIGURATION}/${PRODUCT_NAME}.framework\"\n\nSPDY_CONFIG=\"${BUILD_DIR}/${CONFIGURATION}/spdy_install.config\"\nSPDY_INSTALL_SCRIPT=\"${BUILD_DIR}/${CONFIGURATION}/spdy_install.sh\"\n\n#Install Functions\ninstall_iphoneos(){\n  rm -rf \"${IOS_FRAMEWORK_PATH}\"\n  cp -fR \"${OSX_FRAMEWORK_PATH}\" \"${IOS_FRAMEWORK_PATH}\"\n\n  static_libs=( \"${IOS_LIB_PATH}\" \"${SIM_LIB_PATH}\" )\n  install \"${IOS_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall_macosx(){\n  static_libs=( \"${OSX_LIB_PATH}\" )\n  install \"${OSX_FRAMEWORK_PATH}\" \"${static_libs[@]}\"\n}\n\ninstall() {\n  output_dir=$1\n  shift\n  static_libraries=($@)\n\n  mkdir -p \"${output_dir}\"\n\n  lipo \"${static_libraries[@]}\" -create -output \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n\n  if [[ $CONFIGURATION == \"Release\" ]]; then\n    strip -S \"${output_dir}/Versions/A/${PRODUCT_NAME}\"\n  fi\n\n  ln -fs \"Versions/Current/${PRODUCT_NAME}\" \"${output_dir}/${PRODUCT_NAME}\"\n}\n\n#Script\nif [ -f \"${SPDY_CONFIG}\" ]; then\n  source \"${SPDY_CONFIG}\"\nfi\n\nif [ -n \"${SPDY_INSTALL_SDK}\" ]; then\n  if [[ $SPDY_INSTALL_SDK == \"iphoneos\" ]]; then\n    install_iphoneos\n  elif [[ $SPDY_INSTALL_SDK == \"macosx\" ]]; then\n    install_macosx\n  fi\nelse\n  install_iphoneos\n  install_macosx\nfi\n\nif [ -f \"${SPDY_INSTALL_SCRIPT}\" ]; then\n  source \"${SPDY_INSTALL_SCRIPT}\"\nfi\n";
 		};
 		064EFB1116715C9F002F0AEC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;

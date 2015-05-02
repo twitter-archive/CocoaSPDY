@@ -53,9 +53,18 @@
 @property (nonatomic, readonly) BOOL SPDYBypass;
 
 /**
+  Contextual NSURLSession that was associated with this request. The application
+  should set this if using NSURLSession to load the request in order to provide
+  proper per-request configuration information, and if support for the
+  extended SPDYURLSessionDelegate is desired.
+ */
+@property (nonatomic, readonly) NSURLSession *SPDYURLSession;
+
+/**
   Request header fields canonicalized to SPDY format.
 */
 - (NSDictionary *)allSPDYHeaderFields;
+
 @end
 
 @interface NSMutableURLRequest (SPDYURLRequest)
@@ -64,4 +73,5 @@
 @property (nonatomic) NSTimeInterval SPDYDeferrableInterval;
 @property (nonatomic) NSUInteger SPDYPriority;
 @property (nonatomic) BOOL SPDYBypass;
+@property (nonatomic) NSURLSession *SPDYURLSession;
 @end

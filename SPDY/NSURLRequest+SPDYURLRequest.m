@@ -13,6 +13,7 @@
 #error "This file requires ARC support."
 #endif
 
+#import <objc/runtime.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYProtocol.h"
 
@@ -41,6 +42,16 @@
 - (NSString *)SPDYBodyFile
 {
     return [SPDYProtocol propertyForKey:@"SPDYBodyFile" inRequest:self];
+}
+
+- (NSURLSession *)SPDYURLSession
+{
+    return [self spdy_indirectObjectForKey:@"SPDYURLSession"];
+}
+
+- (NSString *)SPDYURLSessionRequestIdentifier
+{
+    return [SPDYProtocol propertyForKey:@"SPDYURLSession" inRequest:self];
 }
 
 - (NSDictionary *)allSPDYHeaderFields
@@ -100,21 +111,44 @@
         }
     }
 
-    // The current implementation here will always override cookies retrieved from shared storage
-    // by those set manually in headers, even when HTTPShouldHandleCookies is set to true.
+    // The current implementation here will always override cookies retrieved from cookie storage
+    // by those set manually in headers.
     // TODO: confirm behavior for Cocoa's API and send cookies from both sources, as appropriate
-    if (self.HTTPShouldHandleCookies) {
+    BOOL cookiesOn = NO;
+    NSHTTPCookieStorage *cookieStore = nil;
+
+    NSURLSessionConfiguration *config = self.SPDYURLSession.configuration;
+    if (config) {
+        if (config.HTTPShouldSetCookies) {
+            cookieStore = config.HTTPCookieStorage;
+            cookiesOn = (cookieStore != nil);
+        }
+    } else {
+        cookiesOn = self.HTTPShouldHandleCookies;
+        cookieStore = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+    }
+
+    if (cookiesOn) {
         NSString *requestCookies = spdyHeaders[@"cookie"];
         if (!requestCookies || requestCookies.length == 0) {
-            NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:url];
+            NSArray *cookies = [cookieStore cookiesForURL:url];
             if (cookies.count > 0) {
                 NSDictionary *cookieHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
-                spdyHeaders[@"cookie"] = cookieHeaders[@"Cookie"];
+                NSString *cookie = cookieHeaders[@"Cookie"];
+                if (cookie) {
+                    spdyHeaders[@"cookie"] = cookie;
+                }
             }
         }
     }
 
     return spdyHeaders;
+}
+
+- (id)spdy_indirectObjectForKey:(NSString *)key
+{
+    NSString *contextString = [SPDYProtocol propertyForKey:key inRequest:self];
+    return (contextString) ? objc_getAssociatedObject(contextString, @selector(spdy_indirectObjectForKey:)) : nil;
 }
 
 @end
@@ -151,6 +185,22 @@
         [SPDYProtocol removePropertyForKey:@"SPDYBodyFile" inRequest:self];
     } else {
         [SPDYProtocol setProperty:SPDYBodyFile forKey:@"SPDYBodyFile" inRequest:self];
+    }
+}
+
+- (void)setSPDYURLSession:(NSURLSession *)SPDYURLSession
+{
+    [self spdy_setIndirectObject:SPDYURLSession forKey:@"SPDYURLSession"];
+}
+
+- (void)spdy_setIndirectObject:(id)object forKey:(NSString *)key
+{
+    if (object == nil) {
+        [SPDYProtocol removePropertyForKey:key inRequest:self];
+    } else {
+        NSString *contextString = [[NSUUID UUID] UUIDString];
+        objc_setAssociatedObject(contextString, @selector(spdy_indirectObjectForKey:), object, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [SPDYProtocol setProperty:contextString forKey:key inRequest:self];
     }
 }
 

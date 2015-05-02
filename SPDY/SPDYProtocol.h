@@ -348,3 +348,40 @@ typedef enum {
 @property NSInteger proxyPort;
 
 @end
+
+/**
+  SPDYProtocolContext is provided by the SPDYURLSessionDelegate protocol when
+  the request starts loading. It can be used by the app to retrieve additional
+  information about the request instance.
+*/
+
+@protocol SPDYProtocolContext <NSObject>
+
+/**
+  Get the SPDY metadata from a protocol instance. This should only be called
+  once a request has either completed or returned an error. Use at any other
+  time has undefined behavior. The use of this, metadataForResponse, and
+  metadataForError are all interchangeable.
+ */
+- (SPDYMetadata *)metadata;
+
+@end
+
+/**
+  Protocol that may be implemented by the delegate property of NSURLSession.
+
+  This will provide additional context for the request, if desired. Implementing
+  it is optional, and only applies for NSURLSession-based requests. All calls
+  made using the NSOperationQueue set in delegateQueue in NSURLSession, or else
+  the mainQueue if one is not set.
+*/
+@protocol SPDYURLSessionDelegate <NSObject>
+
+/**
+  Called just before the request is dispatched and provides the SPDYProtocol
+  instance handling the request.
+*/
+@optional
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didStartLoadingRequest:(NSURLRequest *)request withContext:(id<SPDYProtocolContext>)context;
+
+@end
