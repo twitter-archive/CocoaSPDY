@@ -10,6 +10,7 @@
 //
 
 #import "SPDYError.h"
+#import "SPDYProtocol.h"
 
 @class SPDYOrigin;
 @class SPDYOriginEndpoint;

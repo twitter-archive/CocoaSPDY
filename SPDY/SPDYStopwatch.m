@@ -13,13 +13,13 @@
 #import "SPDYStopwatch.h"
 
 @implementation SPDYStopwatch
-{
-    SPDYTimeInterval _startTime;
-}
 
 static dispatch_once_t __initTimebase;
 static double __machTimebaseToSeconds;
 static mach_timebase_info_data_t __machTimebase;
+#if COVERAGE
+static SPDYTimeInterval __currentTimeOffset;
+#endif
 
 + (void)initialize
 {
@@ -31,25 +31,43 @@ static mach_timebase_info_data_t __machTimebase;
             __machTimebase.denom = 1;
         }
         __machTimebaseToSeconds = (double)__machTimebase.numer / ((double)__machTimebase.denom * 1000000000.0);
+#if COVERAGE
+        __currentTimeOffset = 0;
+#endif
     });
 }
 
 + (SPDYTimeInterval)currentSystemTime
 {
-    uint64_t now = mach_absolute_time();
-    return (SPDYTimeInterval)now * __machTimebaseToSeconds;
+#if COVERAGE
+    return (SPDYTimeInterval)mach_absolute_time() * __machTimebaseToSeconds + __currentTimeOffset;
+#else
+    return (SPDYTimeInterval)mach_absolute_time() * __machTimebaseToSeconds;
+#endif
 }
 
 + (SPDYTimeInterval)currentAbsoluteTime
 {
+#if COVERAGE
+    return CFAbsoluteTimeGetCurrent() + __currentTimeOffset;
+#else
     return CFAbsoluteTimeGetCurrent();
+#endif
 }
+
+#if COVERAGE
++ (void)sleep:(SPDYTimeInterval)delay
+{
+    __currentTimeOffset += delay;
+}
+#endif
 
 - (id)init
 {
     self = [super init];
     if (self) {
         _startTime = [SPDYStopwatch currentAbsoluteTime];
+        _startSystemTime = [SPDYStopwatch currentSystemTime];
     }
     return self;
 }
@@ -57,6 +75,7 @@ static mach_timebase_info_data_t __machTimebase;
 - (void)reset
 {
     _startTime = [SPDYStopwatch currentAbsoluteTime];
+    _startSystemTime = [SPDYStopwatch currentSystemTime];
 }
 
 - (SPDYTimeInterval)elapsedSeconds

@@ -12,17 +12,17 @@
 
 #import <SenTestingKit/SenTestingKit.h>
 #import <Foundation/Foundation.h>
-#import "SPDYOrigin.h"
-#import "SPDYSession.h"
-#import "SPDYSocket+SPDYSocketMock.h"
+#import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYFrame.h"
 #import "SPDYMockFrameEncoderDelegate.h"
-#import "SPDYProtocol.h"
 #import "SPDYMockFrameDecoderDelegate.h"
-#import "NSURLRequest+SPDYURLRequest.h"
-#import "SPDYStream.h"
 #import "SPDYMockURLProtocolClient.h"
-#import "SPDYMetadata.h"
+#import "SPDYOrigin.h"
+#import "SPDYProtocol.h"
+#import "SPDYSession.h"
+#import "SPDYSocket+SPDYSocketMock.h"
+#import "SPDYStopwatch.h"
+#import "SPDYStream.h"
 
 @interface SPDYSessionTest : SenTestCase
 @end
@@ -166,9 +166,9 @@
     STAssertNotNil(_mockURLProtocolClient.lastError, nil);
 
     // Was metadata populated for the error?
-    NSDictionary *metadata = [SPDYProtocol metadataForError:_mockURLProtocolClient.lastError];
-    STAssertEqualObjects(metadata[SPDYMetadataVersionKey], @"3.1", nil);
-    STAssertEqualObjects(metadata[SPDYMetadataStreamIdKey], @"3", nil);
+    SPDYMetadata *metadata = [SPDYProtocol metadataForError:_mockURLProtocolClient.lastError];
+    STAssertEqualObjects(metadata.version, @"3.1", nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)3, nil);
 }
 
 - (void)testReceivedMetadataForSingleShortRequest
@@ -180,11 +180,46 @@
     STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
     STAssertNotNil(_mockURLProtocolClient.lastResponse, nil);
 
-    NSDictionary *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
-    STAssertEqualObjects(metadata[SPDYMetadataVersionKey], @"3.1", nil);
-    STAssertEqualObjects(metadata[SPDYMetadataStreamIdKey], @"1", nil);
-    STAssertTrue([metadata[SPDYMetadataStreamRxBytesKey] integerValue] > 0, nil);
-    STAssertTrue([metadata[SPDYMetadataStreamTxBytesKey] integerValue] > 0, nil);
+    SPDYMetadata *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
+    STAssertEqualObjects(metadata.version, @"3.1", nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
+    STAssertTrue(metadata.rxBytes > 0, nil);
+    STAssertTrue(metadata.txBytes > 0, nil);
+}
+
+- (void)testReceivedStreamTimingsMetadataForSingleShortRequest
+{
+    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    [_session openStream:stream];
+    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    [_mockDecoderDelegate clear];
+
+    [SPDYStopwatch sleep:1.0];
+    [self mockServerSynReplyWithId:1 last:NO];
+
+    [SPDYStopwatch sleep:1.0];
+    NSMutableData *data = [NSMutableData dataWithLength:1];
+    [self mockServerDataWithId:1 data:data last:NO];
+    [SPDYStopwatch sleep:1.0];
+    [self mockServerDataWithId:1 data:data last:YES];
+
+    // These fields aren't yet exposed externally; when they are, this code should change.
+    SPDYMetadata *metadata = stream.metadata;
+    STAssertEqualObjects(metadata.version, @"3.1", nil);
+    STAssertTrue(metadata.timeSessionConnected > 0, nil);
+    STAssertTrue(metadata.timeStreamCreated >= metadata.timeSessionConnected, nil);
+    STAssertTrue(metadata.timeStreamRequestStarted >= metadata.timeStreamCreated, nil);
+    STAssertTrue(metadata.timeStreamRequestLastHeader >= metadata.timeStreamRequestStarted, nil);
+    STAssertTrue(metadata.timeStreamRequestFirstData == 0, nil);
+    STAssertTrue(metadata.timeStreamRequestLastData == 0, nil);
+    STAssertTrue(metadata.timeStreamRequestEnded >= metadata.timeStreamRequestStarted, nil);
+
+    STAssertTrue(metadata.timeStreamResponseStarted >= metadata.timeStreamRequestEnded + 1.0, nil);
+    STAssertTrue(metadata.timeStreamResponseLastHeader >= metadata.timeStreamResponseStarted, nil);
+    STAssertTrue(metadata.timeStreamResponseFirstData >= metadata.timeStreamResponseLastHeader + 1.0, nil);
+    STAssertTrue(metadata.timeStreamResponseLastData >= metadata.timeStreamResponseFirstData + 1.0, nil);
+    STAssertTrue(metadata.timeStreamResponseEnded >= metadata.timeStreamResponseStarted + 2.0, nil);
+    STAssertTrue(metadata.timeStreamClosed >= metadata.timeStreamResponseEnded, nil);
 }
 
 - (void)testReceiveGOAWAYAfterStreamsClosedDoesCloseSession

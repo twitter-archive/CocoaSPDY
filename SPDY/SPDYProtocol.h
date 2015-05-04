@@ -15,51 +15,111 @@
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
 
-/**
-  SPDY metadata is returned in the HTTP response headers, or if those are not available due to an
-  error, then they are returned in the userInfo dictionary in the NSError. Both are NSDictionary
-  objects, and the values are stored under the following keys.
-*/
-
-// SPDY version, e.g. "3.1"
-extern NSString *const SPDYMetadataVersionKey;
-
-// Boolean indicating whether session is over cellular or WIFI
-extern NSString *const SPDYMetadataSessionIsCellularKey;
-
-// IP address of remote side
-extern NSString *const SPDYMetadataSessionRemoteAddressKey;
-
-// TCP port of remote side
-extern NSString *const SPDYMetadataSessionRemotePortKey;
-
-// Indicates connection used a proxy server
-extern NSString *const SPDYMetadataSessionViaProxyKey;
-
-// Indicates state of proxy configuration. See SPDYProxyStatus in SPDYError.h.
-extern NSString *const SPDYMetadataSessionProxyStatusKey;
-
-// SPDY session latency, in milliseconds, as measured by pings, e.g. "150"
-extern NSString *const SPDYMetadataSessionLatencyKey;
-
-// SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
-extern NSString *const SPDYMetadataStreamBlockedMsKey;
-
-// SPDY stream creation time relative to session connection time.
-extern NSString *const SPDYMetadataStreamConnectedMsKey;
-
-// SPDY request stream id, e.g. "1"
-extern NSString *const SPDYMetadataStreamIdKey;
-
-// SPDY stream bytes received. Includes all SPDY headers and bodies.
-extern NSString *const SPDYMetadataStreamRxBytesKey;
-
-// SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
-extern NSString *const SPDYMetadataStreamTxBytesKey;
-
 @class SPDYConfiguration;
 
 @protocol SPDYTLSTrustEvaluator;
+
+typedef enum {
+    SPDYProxyStatusNone = 0,        // direct connection
+    SPDYProxyStatusManual,          // manually configured HTTPS proxy
+    SPDYProxyStatusManualInvalid,   // manually configured proxy but not supported
+    SPDYProxyStatusManualWithAuth,  // manually configured HTTPS proxy that needs auth
+    SPDYProxyStatusAuto,            // proxy auto-config URL, resolved to 1 or more HTTPS proxies
+    SPDYProxyStatusAutoInvalid,     // proxy auto-config URL, did not resolve to supported HTTPS proxy
+    SPDYProxyStatusAutoWithAuth,    // proxy auto-config URL, resolved to 1 or more HTTPS proxies needing auth
+    SPDYProxyStatusConfig,          // info provided in SPDYConfiguration, not from system
+    SPDYProxyStatusConfigWithAuth   // info provided in SPDYConfiguration, proxy needs auth
+} SPDYProxyStatus;
+
+@interface SPDYMetadata : NSObject
+
+// SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
+@property (nonatomic, readonly) NSUInteger blockedMs;
+
+// Boolean indicating whether session is over cellular or WIFI
+@property (nonatomic, readonly) BOOL cellular;
+
+// SPDY stream creation time relative to session connection time.
+@property (nonatomic, readonly) NSUInteger connectedMs;
+
+// IP address of remote side
+@property (nonatomic, copy, readonly) NSString *hostAddress;
+
+// TCP port of remote side
+@property (nonatomic, readonly) NSUInteger hostPort;
+
+// SPDY session latency, in milliseconds, as measured by pings, e.g. "150". Default -1.
+@property (nonatomic, readonly) NSInteger latencyMs;
+
+// Indicates state of proxy configuration
+@property (nonatomic, readonly) SPDYProxyStatus proxyStatus;
+
+// SPDY stream bytes received. Includes all SPDY headers and bodies.
+@property (nonatomic, readonly) NSUInteger rxBytes;
+
+// SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
+@property (nonatomic, readonly) NSUInteger txBytes;
+
+// SPDY request stream id, e.g. "1"
+@property (nonatomic, readonly) NSUInteger streamId;
+
+// SPDY version, e.g. "3.1"
+@property (nonatomic, copy, readonly) NSString *version;
+
+// Indicates connection used a proxy server
+@property (nonatomic, readonly) BOOL viaProxy;
+
+// The following measurements, presented in seconds, use mach_absolute_time() and are point-in-time
+// relative to whatever base mach_absolute_time() uses. They use the following function to convert
+// to seconds:
+//     mach_timebase_info(&tb);
+//     mach_absolute_time() * ((double)tb.numer / ((double)tb.denom * 1000000000.0));
+//
+// These timings are best consumed relative to timeSessionConnected, for a session-relative view of
+// all requests, or timeStreamCreated, for a stream-relative view. A value of 0 for any of them
+// means it was not set. Unless an error occurs or a stream is otherwise terminated early, all
+// timings will be set. timeStreamCreated and timeStreamClosed will always be set.
+
+// Time when TCP socket connected to origin
+@property (nonatomic, readonly) NSTimeInterval timeSessionConnected;
+
+// Time when SPDY first received the new request from NSURL system
+@property (nonatomic, readonly) NSTimeInterval timeStreamCreated;
+
+// Time just prior to SPDY sending the SYN_STREAM frame
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestStarted;
+
+// Time just after SPDY sent the SYN_STREAM frame
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestLastHeader;
+
+// Time just prior to SPDY sending the first DATA frame (if any)
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestFirstData;
+
+// Time just after SPDY sent the last DATA frame (if any)
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestLastData;
+
+// Time just prior to SPDY sending the last frame of the request
+@property (nonatomic, readonly) NSTimeInterval timeStreamRequestEnded;
+
+// Time just after SPDY received the SYN_REPLY frame
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseStarted;
+
+// Time just after SPDY received the final HEADERS frame (if any)
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseLastHeader;
+
+// Time just after SPDY received the first DATA frame (if any)
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseFirstData;
+
+// Time just after SPDY received the last DATA frame (if any)
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseLastData;
+
+// Time just after SPDY received the last frame of the response
+@property (nonatomic, readonly) NSTimeInterval timeStreamResponseEnded;
+
+// Time when SPDY closed the stream, whether due to error or last frame received
+@property (nonatomic, readonly) NSTimeInterval timeStreamClosed;
+
+@end
 
 /**
   Client implementation of the SPDY/3.1 draft protocol.
@@ -117,14 +177,14 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
   Should be called during the connectionDidFinishLoading callback only, and use at any other
   time is undefined. Returns nil if response is nil or no metadata is available.
 */
-+ (NSDictionary *)metadataForResponse:(NSURLResponse *)response;
++ (SPDYMetadata *)metadataForResponse:(NSURLResponse *)response;
 
 /*
   Retrieve the SPDY metadata from the error returned in connection:didFailWithError. Should be
   called during that callback only, and use at any other time is undefined. Returns nil if error is
   nil or no metadata is available.
  */
-+ (NSDictionary *)metadataForError:(NSError *)error;
++ (SPDYMetadata *)metadataForError:(NSError *)error;
 
 /**
   Register an alias for the specified origin.
@@ -298,27 +358,27 @@ extern NSString *const SPDYMetadataStreamTxBytesKey;
 @protocol SPDYProtocolContext <NSObject>
 
 /**
-  Get the SPDY metadata from a protocol instance. This should only be called 
+  Get the SPDY metadata from a protocol instance. This should only be called
   once a request has either completed or returned an error. Use at any other
-  time has undefined behavior. The use of this, metadataForResponse, and 
+  time has undefined behavior. The use of this, metadataForResponse, and
   metadataForError are all interchangeable.
  */
-- (NSDictionary *)metadata;
+- (SPDYMetadata *)metadata;
 
 @end
 
 /**
   Protocol that may be implemented by the delegate property of NSURLSession.
- 
+
   This will provide additional context for the request, if desired. Implementing
-  it is optional, and only applies for NSURLSession-based requests. All calls 
-  made using the NSOperationQueue set in delegateQueue in NSURLSession, or else 
+  it is optional, and only applies for NSURLSession-based requests. All calls
+  made using the NSOperationQueue set in delegateQueue in NSURLSession, or else
   the mainQueue if one is not set.
 */
 @protocol SPDYURLSessionDelegate <NSObject>
 
 /**
-  Called just before the request is dispatched and provides the SPDYProtocol 
+  Called just before the request is dispatched and provides the SPDYProtocol
   instance handling the request.
 */
 @optional

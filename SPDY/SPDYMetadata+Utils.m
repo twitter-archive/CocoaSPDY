@@ -1,23 +1,20 @@
 //
-//  SPDYMetadata.m
+//  SPDYMetadata+Utils.m
 //  SPDY
 //
 //  Copyright (c) 2014 Twitter, Inc. All rights reserved.
 //  Licensed under the Apache License v2.0
 //  http://www.apache.org/licenses/LICENSE-2.0
 //
-//  Created by Michael Schore
+//  Created by Kevin Goodier
 //
 
 #import <objc/runtime.h>
-#import "SPDYCommonLogger.h"
-#import "SPDYMetadata.h"
-#import "SPDYProtocol.h"
-#import "SPDYStopwatch.h"
+#import "SPDYMetadata+Utils.h"
 
 static const char *kMetadataAssociatedObjectKey = "SPDYMetadataAssociatedObject";
 
-@implementation SPDYMetadata
+@implementation SPDYMetadata (Utils)
 
 /**
   Note about the SPDYMetadata identifier:
@@ -32,45 +29,6 @@ static const char *kMetadataAssociatedObjectKey = "SPDYMetadataAssociatedObject"
 */
 
 static NSString * const SPDYMetadataIdentifierKey = @"x-spdy-metadata-identifier";
-
-- (id)init
-{
-    self = [super init];
-    if (self) {
-        _version = @"3.1";
-        _latencyMs = -1;
-    }
-    return self;
-}
-
-- (NSDictionary *)dictionary
-{
-    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithDictionary:@{
-        SPDYMetadataVersionKey : _version,
-        SPDYMetadataStreamTxBytesKey : [@(_txBytes) stringValue],
-        SPDYMetadataStreamRxBytesKey : [@(_rxBytes) stringValue],
-        SPDYMetadataStreamConnectedMsKey : [@(_connectedMs) stringValue],
-        SPDYMetadataStreamBlockedMsKey : [@(_blockedMs) stringValue],
-        SPDYMetadataSessionViaProxyKey : [@(_viaProxy) stringValue],
-        SPDYMetadataSessionProxyStatusKey : [@(_proxyStatus) stringValue],
-        SPDYMetadataSessionIsCellularKey : [@(_cellular) stringValue],
-    }];
-
-    if (_streamId > 0) {
-        dict[SPDYMetadataStreamIdKey] = [@(_streamId) stringValue];
-    }
-
-    if (_latencyMs > -1) {
-        dict[SPDYMetadataSessionLatencyKey] = [@(_latencyMs) stringValue];
-    }
-
-    if ([_hostAddress length] > 0) {
-        dict[SPDYMetadataSessionRemoteAddressKey] = _hostAddress;
-        dict[SPDYMetadataSessionRemotePortKey] = [@(_hostPort) stringValue];
-    }
-
-    return dict;
-}
 
 + (void)setMetadata:(SPDYMetadata *)metadata forAssociatedDictionary:(NSMutableDictionary *)dictionary
 {

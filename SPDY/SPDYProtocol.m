@@ -18,7 +18,7 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
-#import "SPDYMetadata.h"
+#import "SPDYMetadata+Utils.h"
 #import "SPDYOrigin.h"
 #import "SPDYProtocol+Project.h"
 #import "SPDYSession.h"
@@ -32,18 +32,6 @@ NSString *const SPDYCodecErrorDomain = @"SPDYCodecErrorDomain";
 NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
-NSString *const SPDYMetadataVersionKey = @"x-spdy-version";
-NSString *const SPDYMetadataSessionIsCellularKey = @"x-spdy-session-is-cellular";
-NSString *const SPDYMetadataSessionRemoteAddressKey = @"x-spdy-session-remote-address";
-NSString *const SPDYMetadataSessionRemotePortKey = @"x-spdy-session-remote-port";
-NSString *const SPDYMetadataSessionViaProxyKey = @"x-spdy-session-via-proxy";
-NSString *const SPDYMetadataSessionProxyStatusKey = @"x-spdy-session-proxy-status";
-NSString *const SPDYMetadataSessionLatencyKey = @"x-spdy-session-latency";
-NSString *const SPDYMetadataStreamBlockedMsKey = @"x-spdy-stream-blocked-ms";
-NSString *const SPDYMetadataStreamConnectedMsKey = @"x-spdy-stream-connected-ms";
-NSString *const SPDYMetadataStreamIdKey = @"x-spdy-stream-id";
-NSString *const SPDYMetadataStreamRxBytesKey = @"x-spdy-stream-rx-bytes";
-NSString *const SPDYMetadataStreamTxBytesKey = @"x-spdy-stream-tx-bytes";
 
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
 
@@ -113,6 +101,20 @@ static dispatch_once_t initConfig;
 
 @end
 
+@implementation SPDYMetadata
+
+- (id)init
+{
+    self = [super init];
+    if (self) {
+        _version = @"3.1";
+        _latencyMs = -1;
+    }
+    return self;
+}
+
+@end
+
 @implementation SPDYProtocolContext
 {
     SPDYMetadata *_metadata;
@@ -127,9 +129,9 @@ static dispatch_once_t initConfig;
     return self;
 }
 
-- (NSDictionary *)metadata
+- (SPDYMetadata *)metadata
 {
-    return [_metadata dictionary];
+    return _metadata;
 }
 
 @end
@@ -222,17 +224,17 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     return [evaluator evaluateServerTrust:trust forHost:host];
 }
 
-+ (NSDictionary *)metadataForResponse:(NSURLResponse *)response
++ (SPDYMetadata *)metadataForResponse:(NSURLResponse *)response
 {
     NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:httpResponse.allHeaderFields];
-    return [metadata dictionary];
+    return metadata;
 }
 
-+ (NSDictionary *)metadataForError:(NSError *)error
++ (SPDYMetadata *)metadataForError:(NSError *)error
 {
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:error.userInfo];
-    return [metadata dictionary];
+    return metadata;
 }
 
 + (void)registerAlias:(NSString *)aliasString forOrigin:(NSString *)originString

@@ -9,12 +9,23 @@
 //  Created by Kevin Goodier.
 //
 
-typedef double SPDYTimeInterval;
+#import "SPDYDefinitions.h"
 
 @interface SPDYStopwatch : NSObject
+
 + (SPDYTimeInterval)currentSystemTime;
 + (SPDYTimeInterval)currentAbsoluteTime;
+
+@property (nonatomic, readonly) SPDYTimeInterval startTime;
+@property (nonatomic, readonly) SPDYTimeInterval startSystemTime;
+
 - (id)init;
 - (void)reset;
 - (SPDYTimeInterval)elapsedSeconds;
+
+// Unit tests only
+#if COVERAGE
++ (void)sleep:(SPDYTimeInterval)delay;
+#endif
+
 @end

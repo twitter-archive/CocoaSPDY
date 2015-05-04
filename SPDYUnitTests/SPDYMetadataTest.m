@@ -10,7 +10,7 @@
 //
 
 #import <SenTestingKit/SenTestingKit.h>
-#import "SPDYMetadata.h"
+#import "SPDYMetadata+Utils.h"
 #import "SPDYProtocol.h"
 
 @interface SPDYMetadataTest : SenTestCase
@@ -46,45 +46,24 @@
     return metadata;
 }
 
+- (void)verifyTestMetadata:(SPDYMetadata *)metadata
+{
+    STAssertNotNil(metadata, nil);
+    STAssertEqualObjects(metadata.version, @"3.2", nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
+    STAssertEquals(metadata.latencyMs, (NSInteger)100, nil);
+    STAssertEquals(metadata.txBytes, (NSUInteger)200, nil);
+    STAssertEquals(metadata.rxBytes, (NSUInteger)300, nil);
+    STAssertEquals(metadata.cellular, YES, nil);
+    STAssertEquals(metadata.blockedMs, (NSUInteger)400, nil);
+    STAssertEquals(metadata.connectedMs, (NSUInteger)500, nil);
+    STAssertEqualObjects(metadata.hostAddress, @"1.2.3.4", nil);
+    STAssertEquals(metadata.hostPort, (NSUInteger)1, nil);
+    STAssertEquals(metadata.viaProxy, YES, nil);
+    STAssertEquals(metadata.proxyStatus, SPDYProxyStatusManual, nil);
+}
+
 #pragma mark Tests
-
-- (void)testSerializeToDictionaryDefault
-{
-    SPDYMetadata *metadata = [[SPDYMetadata alloc] init];
-    NSDictionary *dict = [metadata dictionary];
-
-    STAssertEqualObjects(dict[SPDYMetadataVersionKey], @"3.1", nil);
-    STAssertNil(dict[SPDYMetadataStreamIdKey], nil);
-    STAssertNil(dict[SPDYMetadataSessionLatencyKey], nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamTxBytesKey], @"0", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamRxBytesKey], @"0", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamBlockedMsKey], @"0", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"0", nil);
-    STAssertNil(dict[SPDYMetadataSessionRemoteAddressKey], nil);
-    STAssertNil(dict[SPDYMetadataSessionRemotePortKey], nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionViaProxyKey], @"0", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionProxyStatusKey], @"0", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionIsCellularKey], @"0", nil);
-}
-
-- (void)testSerializeToDictionary
-{
-    SPDYMetadata *metadata = [self createTestMetadata];
-    NSDictionary *dict = [metadata dictionary];
-
-    STAssertEqualObjects(dict[SPDYMetadataVersionKey], @"3.2", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamIdKey], @"1", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionLatencyKey], @"100", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamTxBytesKey], @"200", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamRxBytesKey], @"300", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamBlockedMsKey], @"400", nil);
-    STAssertEqualObjects(dict[SPDYMetadataStreamConnectedMsKey], @"500", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionRemoteAddressKey], @"1.2.3.4", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionRemotePortKey], @"1", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionViaProxyKey], @"1", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionProxyStatusKey], @"1", nil);
-    STAssertEqualObjects(dict[SPDYMetadataSessionIsCellularKey], @"1", nil);
-}
 
 - (void)testMemberRetention
 {
@@ -102,9 +81,8 @@
 
     STAssertNil(weakString, nil);
 
-    NSDictionary *dict = [metadata dictionary];
-    STAssertEqualObjects(dict[SPDYMetadataSessionRemoteAddressKey], @"10.11.12.13", nil);
-    STAssertEqualObjects(dict[SPDYMetadataVersionKey], @"SPDY/3.1", nil);
+    STAssertEqualObjects(metadata.hostAddress, @"10.11.12.13", nil);
+    STAssertEqualObjects(metadata.version, @"SPDY/3.1", nil);
 }
 
 - (void)testAssociatedDictionary
@@ -115,12 +93,7 @@
     [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
 
-    STAssertNotNil(metadata, nil);
-    STAssertEqualObjects(metadata.version, @"3.2", nil);
-    STAssertEquals(metadata.streamId, (SPDYStreamId)1, nil);
-    STAssertEquals(metadata.latencyMs, (NSInteger)100, nil);
-    STAssertEquals(metadata.txBytes, (NSUInteger)200, nil);
-    STAssertEquals(metadata.rxBytes, (NSUInteger)300, nil);
+    [self verifyTestMetadata:metadata];
 }
 
 - (void)testAssociatedDictionaryLastOneWins
@@ -137,7 +110,7 @@
     // Last one wins
     STAssertNotNil(metadata, nil);
     STAssertEqualObjects(metadata.version, @"3.3", nil);
-    STAssertEquals(metadata.streamId, (SPDYStreamId)1, nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
     STAssertEquals(metadata.latencyMs, (NSInteger)100, nil);
     STAssertEquals(metadata.txBytes, (NSUInteger)200, nil);
     STAssertEquals(metadata.rxBytes, (NSUInteger)300, nil);
@@ -197,6 +170,32 @@
 
     STAssertNotNil(weakOriginalMetadata, nil);
     STAssertNotNil(metadata, nil);
+}
+
+- (void)testAssociatedDictionaryDoesMutateOriginal
+{
+    // We don't necessarily want to allow mutating the original, but this documents the behavior.
+    // The public SPDYMetadata interface exposes all properties as readonly.
+    NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
+    SPDYMetadata *metadata;
+
+    SPDYMetadata *originalMetadata = [self createTestMetadata];
+    [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
+
+    metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
+    metadata.version = @"3.3";
+    metadata.streamId = 2;
+    metadata.cellular = NO;
+    metadata.proxyStatus = SPDYProxyStatusAuto;
+
+    // If not mutating
+    //[self verifyTestMetadata:originalMetadata];
+
+    // If mutating
+    STAssertEqualObjects(metadata.version, @"3.3", nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)2, nil);
+    STAssertEquals(metadata.cellular, NO, nil);
+    STAssertEquals(metadata.proxyStatus, SPDYProxyStatusAuto, nil);
 }
 
 @end

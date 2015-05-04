@@ -20,7 +20,7 @@
 #import "SPDYCommonLogger.h"
 #import "SPDYFrameDecoder.h"
 #import "SPDYFrameEncoder.h"
-#import "SPDYMetadata.h"
+#import "SPDYMetadata+Utils.h"
 #import "SPDYOrigin.h"
 #import "SPDYOriginEndpoint.h"
 #import "SPDYProtocol+Project.h"
@@ -190,6 +190,7 @@
     if (_sessionLatency >= 0) {
         stream.metadata.latencyMs = (NSInteger)(_sessionLatency * 1000);
     }
+    stream.metadata.timeSessionConnected = _connectedStopwatch.startSystemTime;
     stream.metadata.connectedMs = _connectedStopwatch.elapsedSeconds * 1000;
     stream.metadata.hostAddress = _socket.connectedHost;
     stream.metadata.hostPort = _socket.connectedPort;
@@ -200,6 +201,8 @@
                sendWindowSize:_initialSendWindowSize
             receiveWindowSize:_initialReceiveWindowSize];
     _activeStreams[streamId] = stream;
+
+    stream.metadata.timeStreamRequestStarted = [SPDYStopwatch currentSystemTime];
 
     if (!stream.hasDataPending) {
         [self _sendSynStream:stream streamId:streamId closeLocal:YES];
@@ -438,6 +441,10 @@
     // below for partial data frame chunking. Don't double-add.
     if (stream) {
         stream.metadata.rxBytes += dataFrame.encodedLength;
+        if (stream.metadata.timeStreamResponseFirstData == 0) {
+            stream.metadata.timeStreamResponseFirstData = [SPDYStopwatch currentSystemTime];
+        }
+        stream.metadata.timeStreamResponseLastData = [SPDYStopwatch currentSystemTime];
     }
 
     // Check if session flow control is violated
@@ -578,6 +585,12 @@
     stream.receiveWindowSize = _initialReceiveWindowSize;
     stream.metadata.rxBytes += synStreamFrame.encodedLength;
 
+    SPDYTimeInterval now = [SPDYStopwatch currentSystemTime];
+    stream.metadata.timeStreamRequestStarted = now;
+    stream.metadata.timeStreamRequestLastHeader = now;
+    stream.metadata.timeStreamResponseStarted = now;
+    stream.metadata.timeStreamResponseLastHeader = now;
+
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
 }
@@ -602,6 +615,8 @@
     }
 
     stream.metadata.rxBytes += synReplyFrame.encodedLength;
+    stream.metadata.timeStreamResponseStarted = [SPDYStopwatch currentSystemTime];
+    stream.metadata.timeStreamResponseLastHeader = [SPDYStopwatch currentSystemTime];
 
     // While we prefer to record latencyMs at stream open time, the ping response may not have been
     // received yet. It will have been received by this point however.
@@ -617,17 +632,7 @@
         return;
     }
 
-    // Add some of the metadata as headers, to ease the transition to the new delegate way.
-    // This should be removed in the future.
-    NSMutableDictionary *headers = [synReplyFrame.headers mutableCopy];
-    headers[SPDYMetadataVersionKey] = @"3.1";
-    headers[SPDYMetadataStreamIdKey] = [[NSString alloc] initWithFormat:@"%u", streamId];
-    if (_sessionLatency > -1) {
-        NSString *sessionLatencyMs = [@((int)(_sessionLatency * 1000)) stringValue];
-        headers[SPDYMetadataSessionLatencyKey] = sessionLatencyMs;
-    }
-
-    [stream didReceiveResponse:headers];
+    [stream didReceiveResponse:synReplyFrame.headers];
 
     if (!stream.closed) {
         stream.remoteSideClosed = synReplyFrame.last;
@@ -785,6 +790,7 @@
 
     if (stream) {
         stream.metadata.rxBytes += headersFrame.encodedLength;
+        stream.metadata.timeStreamResponseLastHeader = [SPDYStopwatch currentSystemTime];
     }
 
     if (!stream || stream.remoteSideClosed) {
@@ -862,6 +868,16 @@
 - (void)streamClosed:(SPDYStream *)stream
 {
     stream.delegate = nil;
+
+    SPDYTimeInterval now = [SPDYStopwatch currentSystemTime];
+    if (stream.metadata.timeStreamRequestStarted > 0 && stream.metadata.timeStreamRequestEnded == 0) {
+        stream.metadata.timeStreamRequestEnded = now;
+    }
+    if (stream.metadata.timeStreamResponseStarted > 0 && stream.metadata.timeStreamResponseEnded == 0) {
+        stream.metadata.timeStreamResponseEnded = now;
+    }
+    stream.metadata.timeStreamClosed = now;
+
     [_activeStreams removeStreamWithStreamId:stream.streamId];
     if (!_receivedGoAwayFrame) {
         [_delegate session:self capacityIncreased:1];
@@ -926,6 +942,7 @@
 
     NSError *error;
     NSInteger result = [_frameEncoder encodeSynStreamFrame:synStreamFrame error:&error];
+    stream.metadata.timeStreamRequestLastHeader = [SPDYStopwatch currentSystemTime];
     if (result <= 0) {
         SPDY_ERROR(@"error encoding SYN_STREAM.%u%@",streamId, synStreamFrame.last ? @"!" : @"");
         [stream closeWithError:error];
@@ -959,6 +976,11 @@
             NSInteger result = [_frameEncoder encodeDataFrame:dataFrame];
             SPDY_DEBUG(@"sent DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
 
+            if (stream.metadata.timeStreamRequestFirstData == 0) {
+                stream.metadata.timeStreamRequestFirstData = [SPDYStopwatch currentSystemTime];
+            }
+            stream.metadata.timeStreamRequestLastData = [SPDYStopwatch currentSystemTime]; // keeps updating as we go
+
             // On-the-wire byte accounting
             if (result > 0) {
                 stream.metadata.txBytes += result;
@@ -991,6 +1013,11 @@
         dataFrame.last = YES;
         NSInteger result = [_frameEncoder encodeDataFrame:dataFrame];
         SPDY_DEBUG(@"sent DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
+
+        if (stream.metadata.timeStreamRequestFirstData == 0) {
+            stream.metadata.timeStreamRequestFirstData = [SPDYStopwatch currentSystemTime];
+        }
+        stream.metadata.timeStreamRequestLastData = [SPDYStopwatch currentSystemTime]; // keeps updating as we go
 
         if (result > 0) {
             stream.metadata.txBytes += result;
