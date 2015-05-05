@@ -199,6 +199,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 - (void)_fillSessionPool:(SPDYSessionPool *)sessionPool cellular:(bool)cellular
 {
+    NSParameterAssert(sessionPool);
     NSError *error = nil;
 
     SPDYConfiguration *configuration = [SPDYProtocol currentConfiguration];
@@ -312,13 +313,9 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     SPDY_DEBUG(@"session closed: %@", session);
 
     if ([_basePool contains:session]) {
-        if ([_basePool remove:session] == 0) {
-            _basePool = nil;
-        }
+        [_basePool remove:session];
     } else if ([_wwanPool contains:session]) {
-        if ([_wwanPool remove:session] == 0) {
-            _wwanPool = nil;
-        }
+        [_wwanPool remove:session];
     }
 
 //    SPDYSessionPool * __strong *pool = session.isCellular ? &_wwanPool : &_basePool;
@@ -343,8 +340,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 #if TARGET_OS_IPHONE
     __cellular = (flags & kSCNetworkReachabilityFlagsIsWWAN) != 0;
-    SPDY_DEBUG(@"reachability updated: %@", __cellular ? @"WWAN" : @"WLAN");
 #endif
+    SPDY_DEBUG(@"reachability updated: %@", __cellular ? @"WWAN" : @"WLAN");
 
     [self _dispatch];
 }
