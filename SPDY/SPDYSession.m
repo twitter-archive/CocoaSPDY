@@ -112,12 +112,12 @@
             _configuration = configuration;
             _socket = socket;
             _origin = origin;
-            SPDY_INFO(@"session connecting to %@", _origin);
+            SPDY_INFO(@"%@ connecting to %@", self, _origin);
 
             _cellular = cellular;
 
             if ([_origin.scheme isEqualToString:@"https"]) {
-                SPDY_DEBUG(@"session using TLS");
+                SPDY_DEBUG(@"%@ using TLS", self);
                 [_socket secureWithTLS:configuration.tlsSettings];
             }
 
@@ -292,11 +292,11 @@
 - (void)socket:(SPDYSocket *)socket didConnectToHost:(NSString *)host port:(in_port_t)port
 {
     [_connectedStopwatch reset];
-    SPDY_INFO(@"session connected to %@ (%@:%u)", _origin, host, port);
+    SPDY_INFO(@"%@ connected to %@ (%@:%u)", self, _origin, host, port);
 
     if (_cellular != socket.isCellular) {
-        SPDY_WARNING(@"session expected network type %@ but socket is %@",
-                _cellular ? @"cellular" : @"wifi",
+        SPDY_WARNING(@"%@ expected network type %@ but socket is %@",
+                self, _cellular ? @"cellular" : @"wifi",
                 socket.isCellular ? @"cellular" : @"wifi");
 
         _cellular = socket.isCellular;
@@ -374,7 +374,7 @@
 
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error
 {
-    SPDY_WARNING(@"session connection error: %@", error);
+    SPDY_WARNING(@"%@ connection error: %@", error, self);
     for (SPDYStream *stream in _activeStreams) {
         stream.delegate = nil;
         [stream closeWithError:error];
@@ -384,7 +384,7 @@
 
 - (void)socketDidDisconnect:(SPDYSocket *)socket
 {
-    SPDY_INFO(@"session connection closed");
+    SPDY_INFO(@"%@ connection closed", self);
 
     _connected = NO;
     _disconnected = YES;
