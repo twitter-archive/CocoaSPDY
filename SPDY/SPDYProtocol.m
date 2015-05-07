@@ -603,6 +603,7 @@ static SPDYConfiguration *defaultConfiguration;
     defaultConfiguration.enableProxy = YES;
     defaultConfiguration.proxyHost = nil;
     defaultConfiguration.proxyPort = 0;
+    defaultConfiguration.enforceSessionPoolCorrectness = NO;
 }
 
 + (SPDYConfiguration *)defaultConfiguration
@@ -624,6 +625,7 @@ static SPDYConfiguration *defaultConfiguration;
     copy.enableProxy = _enableProxy;
     copy.proxyHost = _proxyHost;
     copy.proxyPort = _proxyPort;
+    copy.enforceSessionPoolCorrectness = _enforceSessionPoolCorrectness;
     return copy;
 }
 

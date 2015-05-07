@@ -276,19 +276,26 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     // all the conditions when a socket will use one or the other. However, there are
     // normal edge cases where we DO need to move the session, so let's try it.
 
+    SPDYConfiguration *configuration = [SPDYProtocol currentConfiguration];
+    BOOL moveSession = configuration.enforceSessionPoolCorrectness;
+
     if ([_basePool contains:session]) {
         _basePool.pendingCount -= 1;
         if (cellular) {
-            SPDY_WARNING(@"%@ is in wifi pool but socket connected over cellular", session);
-            [_basePool remove:session];
-            [_wwanPool add:session];
+            SPDY_WARNING(@"%@ is in wifi pool but socket connected over cellular, %@moving", session, moveSession ? @"" : @"not ");
+            if (moveSession) {
+                [_basePool remove:session];
+                [_wwanPool add:session];
+            }
         }
     } else if ([_wwanPool contains:session]) {
         _wwanPool.pendingCount -= 1;
         if (!cellular) {
-            SPDY_WARNING(@"%@ is in cellular pool but socket connected over wifi", session);
-            [_wwanPool remove:session];
-            [_basePool add:session];
+            SPDY_WARNING(@"%@ is in cellular pool but socket connected over wifi, %@ moving", session, moveSession ? @"" : @"not ");
+            if (moveSession) {
+                [_wwanPool remove:session];
+                [_basePool add:session];
+            }
         }
     }
 

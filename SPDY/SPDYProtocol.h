@@ -347,6 +347,15 @@ typedef enum {
 */
 @property NSInteger proxyPort;
 
+/**
+  Set whether a session is moved to the correct pool or not.
+ 
+  Default is NO. If YES, a new session will be moved to the correct pool based
+  on whether it used WIFI or WWAN. This is an advanced setting for
+  experimentation and may be removed in the future.
+*/
+@property BOOL enforceSessionPoolCorrectness;
+
 @end
 
 /**

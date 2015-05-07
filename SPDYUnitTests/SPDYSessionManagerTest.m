@@ -303,8 +303,14 @@
     STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
 }
 
-- (void)testSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool
+- (void)_commonSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool:(BOOL)moveSession
 {
+    SPDYConfiguration *configuration = [SPDYConfiguration defaultConfiguration];
+    configuration.sessionPoolSize = 1;
+    configuration.enableTCPNoDelay = NO;
+    configuration.enforceSessionPoolCorrectness = moveSession;
+    [SPDYProtocol setConfiguration:configuration];
+
     NSString *url = [self nextOriginUrl];
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:url error:nil];
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
@@ -329,20 +335,45 @@
     STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
     STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
 
+    // Session in WIFI pool connects over WWAN
     [socket setCellular:YES];
     SPDYSession *session = [[sessionManager basePool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
 
-    // Session gets moved into new pool and is dispatched
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)2, nil);
+    if (moveSession) {
+        // Session gets moved into new pool and is dispatched
+        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+        STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
+        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)2, nil);
+    } else {
+        // Session is not moved into new pool and request is not dispatched (WWAN session still connecting)
+        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
+        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
+        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    }
+
     STAssertTrue(session.isOpen, nil);
     STAssertFalse(stream.closed, nil);
 }
 
-- (void)testSocketReachabilityChangesAfterQueueingStreamThenGlobalReachabilityChangesDoesUpdateSessionPool
+- (void)testSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool
 {
+    [self _commonSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool:YES];
+}
+
+- (void)testSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesNotUpdateSessionPool
+{
+    [self _commonSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool:NO];
+}
+
+- (void)_commonSocketReachabilityChangesAfterQueueingStreamThenGlobalReachabilityChangesDoesUpdateSessionPool:(BOOL)moveSession
+{
+    SPDYConfiguration *configuration = [SPDYConfiguration defaultConfiguration];
+    configuration.sessionPoolSize = 1;
+    configuration.enableTCPNoDelay = NO;
+    configuration.enforceSessionPoolCorrectness = moveSession;
+    [SPDYProtocol setConfiguration:configuration];
+
     NSString *url = [self nextOriginUrl];
     SPDYOrigin *origin = [[SPDYOrigin alloc] initWithString:url error:nil];
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
@@ -369,13 +400,22 @@
     SPDYSession *session = [[sessionManager basePool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
 
-    // Session gets moved into new pool, but the dispatch is for the previous pool. It will allocate
-    // a new session but not dispatch the stream.
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    if (moveSession) {
+        // Session gets moved into new pool, but the dispatch is for the previous pool. It will allocate
+        // a new session but not dispatch the stream.
+        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
+        STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)1, nil);
+        STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
+        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
+        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    } else {
+        // Session is not moved into new pool, dispatch happens. No additional session is created.
+        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+        STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)0, nil);
+        STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
+        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
+        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    }
 
     // Now the dispatch of the pending stream will happen (to the cellular pool)
     [sessionManager _updateReachability:(kSCNetworkReachabilityFlagsReachable | kSCNetworkReachabilityFlagsIsWWAN)];
@@ -385,6 +425,17 @@
 
     SPDYMetadata *metadata = [stream metadata];
     STAssertTrue(metadata.cellular, nil);
+
+}
+
+- (void)testSocketReachabilityChangesAfterQueueingStreamThenGlobalReachabilityChangesDoesUpdateSessionPool
+{
+    [self _commonSocketReachabilityChangesAfterQueueingStreamThenGlobalReachabilityChangesDoesUpdateSessionPool:YES];
+}
+
+- (void)testSocketReachabilityChangesAfterQueueingStreamThenGlobalReachabilityChangesDoesNotUpdateSessionPool
+{
+    [self _commonSocketReachabilityChangesAfterQueueingStreamThenGlobalReachabilityChangesDoesUpdateSessionPool:NO];
 }
 
 @end
