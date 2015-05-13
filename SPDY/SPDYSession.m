@@ -374,7 +374,7 @@
 
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error
 {
-    SPDY_WARNING(@"%@ connection error: %@", error, self);
+    SPDY_WARNING(@"%@ connection error: %@", self, error);
     for (SPDYStream *stream in _activeStreams) {
         stream.delegate = nil;
         [stream closeWithError:error];
