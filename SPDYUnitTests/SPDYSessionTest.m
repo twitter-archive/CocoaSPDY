@@ -374,7 +374,8 @@
             @"location":@"/newpath"};
     NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked/newpath"];
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
@@ -405,7 +406,8 @@
             @"location":@"https://mocked2/newpath"};
     NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked2/newpath"];
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
@@ -432,7 +434,8 @@
             @"location":@"/newpath?param=value&foo=1"};
     NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked/newpath?param=value&foo=1"];
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;

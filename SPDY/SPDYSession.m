@@ -35,7 +35,7 @@
 // buffer.
 #define DEFAULT_WINDOW_SIZE            65536
 #define INITIAL_INPUT_BUFFER_SIZE      65536
-#define LOCAL_MAX_CONCURRENT_STREAMS   0
+#define LOCAL_MAX_CONCURRENT_STREAMS   32
 #define REMOTE_MAX_CONCURRENT_STREAMS  INT32_MAX
 
 @interface SPDYSession () <SPDYFrameDecoderDelegate, SPDYFrameEncoderDelegate, SPDYStreamDelegate, SPDYSocketDelegate>
@@ -568,7 +568,9 @@
      */
 
     SPDYStreamId streamId = synStreamFrame.streamId;
-    SPDY_DEBUG(@"received SYN_STREAM.%u", streamId);
+    SPDYStreamId associatedToStreamId = synStreamFrame.associatedToStreamId;
+    SPDYStream *associatedStream = _activeStreams[associatedToStreamId];
+    SPDY_DEBUG(@"received SYN_STREAM.%u associated %u", streamId, associatedToStreamId);
 
     // Stream-IDs must be monotonically increasing
     if (streamId <= _lastGoodStreamId) {
@@ -576,26 +578,50 @@
         return;
     }
 
+    // Session must be active and still have room for incoming streams
     if (_receivedGoAwayFrame || _activeStreams.remoteCount >= _localMaxConcurrentStreams) {
         [self _sendRstStream:SPDY_STREAM_REFUSED_STREAM streamId:streamId];
         return;
     }
 
-    SPDYStream *stream = [[SPDYStream alloc] init];
-    stream.priority = synStreamFrame.priority;
-    stream.remoteSideClosed = synStreamFrame.last;
-    stream.sendWindowSize = _initialSendWindowSize;
-    stream.receiveWindowSize = _initialReceiveWindowSize;
+    // If a client receives a server push stream with stream-id 0,
+    // it MUST issue a session error (Section 2.4.1) with the status code PROTOCOL_ERROR.
+    // Also the SYN_STREAM MUST include an Associated-To-Stream-ID,
+    // and MUST set the FLAG_UNIDIRECTIONAL flag.
+    // TODO: confirm shutting down the connection is the right thing to do for all these cases.
+    // If no associated stream, send GOAWAY or just refuse stream?
+    if (streamId == 0 || associatedToStreamId == 0 || !synStreamFrame.unidirectional || !associatedStream) {
+        [self _closeWithStatus:SPDY_SESSION_PROTOCOL_ERROR];
+        return;
+    }
+
+    // TODO: Browsers receiving a pushed response MUST validate that the server is authorized to
+    // push the URL using the browser same-origin policy. For example, a SPDY connection to
+    // www.foo.com is generally not permitted to push a response for www.evil.com.
+
+    SPDYStream *stream = [[SPDYStream alloc] initWithAssociatedStream:associatedStream
+                                                             priority:synStreamFrame.priority];
+
     stream.metadata.rxBytes += synStreamFrame.encodedLength;
 
     SPDYTimeInterval now = [SPDYStopwatch currentSystemTime];
     stream.metadata.timeStreamRequestStarted = now;
     stream.metadata.timeStreamRequestLastHeader = now;
     stream.metadata.timeStreamResponseStarted = now;
-    stream.metadata.timeStreamResponseLastHeader = now;
+
+    [stream startWithStreamId:streamId
+               sendWindowSize:_initialSendWindowSize
+            receiveWindowSize:_initialReceiveWindowSize];
 
     _lastGoodStreamId = streamId;
     _activeStreams[streamId] = stream;
+
+    [stream mergeHeaders:synStreamFrame.headers];
+    [stream didReceivePushRequest];
+
+    if (!stream.closed) {
+        stream.remoteSideClosed = synStreamFrame.last;
+    }
 }
 
 - (void)didReadSynReplyFrame:(SPDYSynReplyFrame *)synReplyFrame frameDecoder:(SPDYFrameDecoder *)frameDecoder
@@ -634,7 +660,8 @@
         return;
     }
 
-    [stream didReceiveResponse:synReplyFrame.headers];
+    [stream mergeHeaders:synReplyFrame.headers];
+    [stream didReceiveResponse];
 
     if (!stream.closed) {
         stream.remoteSideClosed = synReplyFrame.last;
@@ -792,7 +819,6 @@
 
     if (stream) {
         stream.metadata.rxBytes += headersFrame.encodedLength;
-        stream.metadata.timeStreamResponseLastHeader = [SPDYStopwatch currentSystemTime];
     }
 
     if (!stream || stream.remoteSideClosed) {
@@ -800,7 +826,19 @@
         return;
     }
 
-    stream.remoteSideClosed = headersFrame.last;
+    // If the server sends a HEADER frame containing duplicate headers
+    // with a previous HEADERS frame for the same stream, the client must
+    // issue a stream error (Section 2.4.2) with error code PROTOCOL ERROR.
+    [stream mergeHeaders:headersFrame.headers];
+
+    if (!stream.closed) {
+        // This is the "response" for a push request
+        if (!stream.local) {
+            stream.metadata.timeStreamResponseLastHeader = [SPDYStopwatch currentSystemTime];
+            [stream didReceiveResponse];
+        }
+        stream.remoteSideClosed = headersFrame.last;
+    }
 }
 
 - (void)didReadWindowUpdateFrame:(SPDYWindowUpdateFrame *)windowUpdateFrame frameDecoder:(SPDYFrameDecoder *)frameDecoder

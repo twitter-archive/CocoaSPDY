@@ -34,7 +34,7 @@
     return self;
 }
 
-- (void)streamCanceled:(SPDYStream *)stream status:(SPDYStreamStatus)status;
+- (void)streamCanceled:(SPDYStream *)stream status:(SPDYStreamStatus)status
 {
     _calledStreamCanceled++;
     _lastStream = stream;
