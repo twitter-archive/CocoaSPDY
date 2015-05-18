@@ -150,8 +150,8 @@
     XCTAssertEqualObjects(endpoint.host, @"1.2.3.4");
     XCTAssertEqual(endpoint.port, (in_port_t)8888);
     XCTAssertEqualObjects(endpoint.origin.host, @"mytesthost.com");
-    XCTAssertNil(endpoint.user, @"actual: %@", nil);
-    XCTAssertNil(endpoint.password, @"actual: %@", nil);
+    XCTAssertNil(endpoint.user);
+    XCTAssertNil(endpoint.password);
 
     endpoint = [manager moveToNextEndpoint];
     XCTAssertEqual(endpoint.type, SPDYOriginEndpointTypeDirect);

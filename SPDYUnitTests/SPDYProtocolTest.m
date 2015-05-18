@@ -213,5 +213,62 @@
     [SPDYProtocol unregisterAlias:@"https://bare.twitter.com"];
 }
 
+- (void)testSetAndGetConfiguration
+{
+    SPDYConfiguration *c1 = [SPDYConfiguration defaultConfiguration];
+    c1.sessionPoolSize = 4;
+    c1.sessionReceiveWindow = 2000;
+    c1.streamReceiveWindow = 1000;
+    c1.headerCompressionLevel = 5;
+    c1.enableSettingsMinorVersion = NO;
+    c1.tlsSettings = @{@"Key1":@"Value1"};
+    c1.connectTimeout = 1.0;
+    c1.enableTCPNoDelay = YES;
+
+    [SPDYProtocol setConfiguration:c1];
+    SPDYConfiguration *c2 = [SPDYProtocol currentConfiguration];
+
+    XCTAssertEqual(c2.sessionPoolSize, (NSUInteger)4);
+    XCTAssertEqual(c2.sessionReceiveWindow, (NSUInteger)2000);
+    XCTAssertEqual(c2.streamReceiveWindow, (NSUInteger)1000);
+    XCTAssertEqual(c2.headerCompressionLevel, (NSUInteger)5);
+    XCTAssertEqual(c2.enableSettingsMinorVersion, NO);
+    XCTAssertEqual(c2.tlsSettings[@"Key1"], @"Value1");
+    XCTAssertEqual(c2.connectTimeout, 1.0);
+    XCTAssertEqual(c2.enableTCPNoDelay, YES);
+
+    // Reset
+    [SPDYProtocol setConfiguration:[SPDYConfiguration defaultConfiguration]];
+}
+
+- (void)testRegisterOrigin
+{
+    NSURL *url1 = [NSURL URLWithString:@"https://mocked.com:443/bar.json"];
+    NSURL *url2 = [NSURL URLWithString:@"https://mocked.com:8443/bar.json"];
+    NSURL *url3 = [NSURL URLWithString:@"https://unmocked.com:443/bar.json"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url1];
+    NSMutableURLRequest *request2 = [[NSMutableURLRequest alloc] initWithURL:url2];
+    NSMutableURLRequest *request3 = [[NSMutableURLRequest alloc] initWithURL:url3];
+
+    XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:request1]);
+    XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:request2]);
+    XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:request3]);
+
+    [SPDYURLConnectionProtocol registerOrigin:@"https://mocked.com:443"];
+    [SPDYURLConnectionProtocol registerOrigin:@"https://mocked.com:8443"];
+    XCTAssertTrue([SPDYURLConnectionProtocol canInitWithRequest:request1]);
+    XCTAssertTrue([SPDYURLConnectionProtocol canInitWithRequest:request2]);
+    XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:request3]);
+
+    [SPDYURLConnectionProtocol unregisterOrigin:@"https://mocked.com:8443"];
+    XCTAssertTrue([SPDYURLConnectionProtocol canInitWithRequest:request1]);
+    XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:request2]);
+    XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:request3]);
+
+    [SPDYURLConnectionProtocol unregisterAllOrigins];
+    [SPDYURLConnectionProtocol unregisterAllAliases];
+    XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:request1]);
+}
+
 @end
 

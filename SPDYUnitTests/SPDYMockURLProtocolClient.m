@@ -29,7 +29,7 @@
 - (void)URLProtocol:(NSURLProtocol *)urlProtocol didReceiveResponse:(NSURLResponse *)response cacheStoragePolicy:(NSURLCacheStoragePolicy)policy
 {
     _calledDidReceiveResponse++;
-    _lastResponse = response;
+    _lastResponse = (NSHTTPURLResponse *)response;
     _lastCacheStoragePolicy = policy;
 }
 

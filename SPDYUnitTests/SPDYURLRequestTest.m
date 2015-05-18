@@ -380,6 +380,179 @@
     XCTAssertEqualObjects(((NSHTTPURLResponse *)newCachedResponse.response).allHeaderFields[@"TestHeader"], @"TestValue");
 }
 
+#define EQUALITYTEST_SETUP() \
+NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"]; \
+NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url]; \
+NSMutableURLRequest *request2 = [[NSMutableURLRequest alloc] initWithURL:url]; \
+
+- (void)testEqualityForIdenticalIsYes
+{
+    EQUALITYTEST_SETUP();
+
+    request1.HTTPMethod = @"GET";
+    request2.HTTPMethod = @"GET";
+    request1.SPDYPriority = 2;
+    request2.SPDYPriority = 2;
+    [request1 setValue:@"Value1" forHTTPHeaderField:@"Header1"];
+    [request2 setValue:@"Value1" forHTTPHeaderField:@"Header1"];
+
+    XCTAssertTrue([request1 isEqual:request2]);
+    NSMutableSet *set = [[NSMutableSet alloc] init];
+    [set addObject:request1];
+    XCTAssertTrue([set containsObject:request2]);
+}
+
+- (void)testEqualityForHTTPBodySameDataIsYes
+{
+    EQUALITYTEST_SETUP();
+
+    NSMutableData *data = [[NSMutableData alloc] initWithLength:8];
+    request1.HTTPBody = data;
+    request2.HTTPBody = data;
+
+    XCTAssertTrue([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHTTPBodyNilDifferenceIsYes
+{
+    EQUALITYTEST_SETUP();
+    NSMutableData *data = [[NSMutableData alloc] initWithLength:8];
+    request1.HTTPBody = data;
+
+    XCTAssertTrue([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHTTPBodyDifferentDataIsYes
+{
+    EQUALITYTEST_SETUP();
+    NSMutableData *data = [[NSMutableData alloc] initWithLength:8];
+    NSMutableData *data2 = [[NSMutableData alloc] initWithLength:8];
+    request1.HTTPBody = data;
+    request2.HTTPBody = data2;
+
+    XCTAssertTrue([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHeaderNameDifferentCaseIsYes
+{
+    EQUALITYTEST_SETUP();
+    [request1 setValue:@"Value1" forHTTPHeaderField:@"Header1"];
+    [request2 setValue:@"Value1" forHTTPHeaderField:@"header1"];
+
+    XCTAssertTrue([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForTimeoutIntervalDifferentIsYes
+{
+    EQUALITYTEST_SETUP();
+    request1.timeoutInterval = 5;
+    request2.timeoutInterval = 6;
+
+    XCTAssertTrue([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHTTPMethodDifferentIsNo
+{
+    EQUALITYTEST_SETUP();
+
+    request1.HTTPMethod = @"GET";
+    request2.HTTPMethod = @"POST";
+
+    XCTAssertFalse([request1 isEqual:request2]);
+
+    NSMutableSet *set = [[NSMutableSet alloc] init];
+    [set addObject:request1];
+    XCTAssertFalse([set containsObject:request2]);
+}
+
+- (void)testEqualityForSPDYPriorityDifferentIsNo
+{
+    EQUALITYTEST_SETUP();
+
+    request1.HTTPMethod = @"GET";
+    request2.HTTPMethod = @"GET";
+    request1.SPDYPriority = 2;
+    request2.SPDYPriority = 3;
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForURLPathDifferentIsNo
+{
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSURL *url2 = [[NSURL alloc] initWithString:@"http://example.com/test/path2"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url];
+    NSMutableURLRequest *request2 = [[NSMutableURLRequest alloc] initWithURL:url2];
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForURLPathCaseDifferentIsNo
+{
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSURL *url2 = [[NSURL alloc] initWithString:@"http://example.com/test/PATH"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url];
+    NSMutableURLRequest *request2 = [[NSMutableURLRequest alloc] initWithURL:url2];
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForURLHostCaseDifferentIsNo
+{
+    NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
+    NSURL *url2 = [[NSURL alloc] initWithString:@"http://Example.com/test/path"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url];
+    NSMutableURLRequest *request2 = [[NSMutableURLRequest alloc] initWithURL:url2];
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHeaderNameDifferentIsNo
+{
+    EQUALITYTEST_SETUP();
+
+    [request1 setValue:@"Value1" forHTTPHeaderField:@"Header1"];
+    [request2 setValue:@"Value1" forHTTPHeaderField:@"Header2"];
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHeaderValueDifferentIsNo
+{
+    EQUALITYTEST_SETUP();
+    [request1 setValue:@"Value1" forHTTPHeaderField:@"Header1"];
+    [request2 setValue:@"Value2" forHTTPHeaderField:@"Header1"];
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHeaderValueDifferentCaseIsNo
+{
+    EQUALITYTEST_SETUP();
+    [request1 setValue:@"Value1" forHTTPHeaderField:@"Header1"];
+    [request2 setValue:@"value1" forHTTPHeaderField:@"Header1"];
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForCachePolicyDifferentIsNo
+{
+    EQUALITYTEST_SETUP();
+    request1.cachePolicy = NSURLCacheStorageAllowed;
+    request2.cachePolicy = NSURLCacheStorageNotAllowed;
+
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
+- (void)testEqualityForHTTPShouldHandleCookiesDifferentIsNo
+{
+    EQUALITYTEST_SETUP();
+    request1.HTTPShouldHandleCookies = YES;
+    request2.HTTPShouldHandleCookies = NO;
+    
+    XCTAssertFalse([request1 isEqual:request2]);
+}
+
 - (void)testCanonicalRequestAddsUserAgent
 {
     NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/" method:@"GET"];
@@ -433,6 +606,52 @@
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
     XCTAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com:80/");
+}
+
+- (void)testCanonicalRequestLowercaseHost
+{
+    NSURL *url1 = [NSURL URLWithString:@"https://Mocked.com/bar.json"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url1];
+    NSURLRequest *canonicalRequest1 = [SPDYProtocol canonicalRequestForRequest:request1];
+    XCTAssertEqualObjects(canonicalRequest1.URL.absoluteString, @"https://mocked.com/bar.json");
+}
+
+- (void)testCanonicalRequestPathMissing
+{
+    NSURL *url1 = [NSURL URLWithString:@"https://mocked.com"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url1];
+    NSURLRequest *canonicalRequest1 = [SPDYProtocol canonicalRequestForRequest:request1];
+    XCTAssertEqualObjects(canonicalRequest1.URL.absoluteString, @"https://mocked.com/");
+}
+
+- (void)testCanonicalRequestSchemeBad
+{
+    NSURL *url1 = [NSURL URLWithString:@"https:mocked.com"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url1];
+    NSURLRequest *canonicalRequest1 = [SPDYProtocol canonicalRequestForRequest:request1];
+    XCTAssertEqualObjects(canonicalRequest1.URL.absoluteString, @"https://mocked.com/");
+}
+
+- (void)testCanonicalRequestMissingHost
+{
+    NSURL *url1 = [NSURL URLWithString:@"https://:443/bar.json"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url1];
+    NSURLRequest *canonicalRequest1 = [SPDYProtocol canonicalRequestForRequest:request1];
+    XCTAssertEqualObjects(canonicalRequest1.URL.absoluteString, @"https://localhost:443/bar.json");
+}
+
+- (void)testCanonicalRequestHeaders
+{
+    NSURL *url1 = [NSURL URLWithString:@"https://mocked.com/bar.json"];
+    NSMutableURLRequest *request1 = [[NSMutableURLRequest alloc] initWithURL:url1];
+    request1.HTTPMethod = @"POST";
+    request1.SPDYBodyFile = @"bodyfile.txt";
+    NSURLRequest *canonicalRequest1 = [SPDYProtocol canonicalRequestForRequest:request1];
+    XCTAssertEqualObjects(canonicalRequest1.URL.absoluteString, @"https://mocked.com/bar.json");
+    XCTAssertEqualObjects(canonicalRequest1.allHTTPHeaderFields[@"Content-Type"], @"application/x-www-form-urlencoded");
+    XCTAssertEqualObjects(canonicalRequest1.allHTTPHeaderFields[@"Accept"], @"*/*");
+    XCTAssertEqualObjects(canonicalRequest1.allHTTPHeaderFields[@"Accept-Encoding"], @"gzip, deflate");
+    XCTAssertEqualObjects(canonicalRequest1.allHTTPHeaderFields[@"Accept-Language"], @"en-us");  // suspect
 }
 
 @end
