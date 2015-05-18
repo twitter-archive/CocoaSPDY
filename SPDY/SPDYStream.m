@@ -16,6 +16,7 @@
 #import <zlib.h>
 #import <objc/runtime.h>
 #import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYCacheStoragePolicy.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYDefinitions.h"
 #import "SPDYMetadata+Utils.h"
@@ -460,9 +461,10 @@
         return;
     }
 
+    NSURLCacheStoragePolicy cachePolicy = SPDYCacheStoragePolicy(_request, response);
     [_client URLProtocol:_protocol
       didReceiveResponse:response
-      cacheStoragePolicy:NSURLCacheStorageAllowed];
+      cacheStoragePolicy:cachePolicy];
 }
 
 - (void)didLoadData:(NSData *)data
