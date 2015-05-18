@@ -17,7 +17,7 @@
 @class SPDYStream;
 
 @protocol SPDYStreamDelegate<NSObject>
-- (void)streamCanceled:(SPDYStream *)stream;
+- (void)streamCanceled:(SPDYStream *)stream status:(SPDYStreamStatus)status;
 @optional
 - (void)streamClosed:(SPDYStream *)stream;
 - (void)streamDataAvailable:(SPDYStream *)stream;
@@ -52,6 +52,7 @@
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;
 - (void)cancel;
 - (void)closeWithError:(NSError *)error;
+- (void)abortWithError:(NSError *)error status:(SPDYStreamStatus)status;
 - (void)didReceiveResponse:(NSDictionary *)headers;
 - (void)didLoadData:(NSData *)data;
 - (void)markBlocked;

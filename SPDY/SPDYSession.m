@@ -487,8 +487,7 @@
     // Check if we received a data frame before receiving a SYN_REPLY
     if (stream.local && !stream.receivedReply) {
         SPDY_WARNING(@"received data before SYN_REPLY");
-        [self _sendRstStream:SPDY_STREAM_PROTOCOL_ERROR streamId:streamId];
-        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"received data before syn reply")];
+        [stream abortWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"received data before syn reply") status:SPDY_STREAM_PROTOCOL_ERROR];
         return;
     }
 
@@ -506,8 +505,7 @@
     // Note this can't currently happen in this implementation.
     // TODO: all of these variables are unsigned, how can this statement ever work?
     if (stream.receiveWindowSize - dataFrame.data.length < stream.receiveWindowSizeLowerBound) {
-        [self _sendRstStream:SPDY_STREAM_FLOW_CONTROL_ERROR streamId:streamId];
-        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"flow control window error")];
+        [stream abortWithError:SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"flow control window error") status:SPDY_STREAM_FLOW_CONTROL_ERROR];
         return;
     }
 
@@ -632,8 +630,7 @@
     // Check if we have received multiple frames for the same Stream-ID
     if (stream.receivedReply) {
         SPDY_WARNING(@"received duplicate SYN_REPLY");
-        [self _sendRstStream:SPDY_STREAM_STREAM_IN_USE streamId:streamId];
-        [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamStreamInUse, @"duplicate syn reply stream id")];
+        [stream abortWithError:SPDY_STREAM_ERROR(SPDYStreamStreamInUse, @"duplicate syn reply stream id") status:SPDY_STREAM_STREAM_IN_USE];
         return;
     }
 
@@ -856,18 +853,12 @@
 
 #pragma mark SPDYStreamDelegate
 
-- (void)streamCanceled:(SPDYStream *)stream
+- (void)streamCanceled:(SPDYStream *)stream status:(SPDYStreamStatus)status
 {
-    SPDY_INFO(@"stream %u canceled", stream.streamId);
+    SPDY_INFO(@"stream %u canceled, status %u", stream.streamId, status);
     NSAssert(_activeStreams[stream.streamId], @"stream delegate must be managing stream");
 
-    [self _sendRstStream:SPDY_STREAM_CANCEL streamId:stream.streamId];
-
-    // closeWithError will end up calling back into streamClosed below. It will also call out to
-    // the app via connection:didFailWithError, but Apple states that after stopLoading is called,
-    // we must stop making delegate calls out to the app.
-    stream.client = nil;
-    [stream closeWithError:SPDY_STREAM_ERROR(SPDYStreamCancel, @"stream canceled")];
+    [self _sendRstStream:status streamId:stream.streamId];
 }
 
 - (void)streamClosed:(SPDYStream *)stream
@@ -1000,8 +991,7 @@
             stream.localSideClosed = dataFrame.last;
         } else {
             if (error) {
-                [self _sendRstStream:SPDY_STREAM_INTERNAL_ERROR streamId:streamId];
-                [stream closeWithError:error];
+                [stream abortWithError:error status:SPDY_STREAM_INTERNAL_ERROR];
                 return;
             }
 

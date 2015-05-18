@@ -31,6 +31,7 @@ typedef void (^SPDYAsyncTestCallback)();
 @property(nonatomic) int calledStreamDataAvailable;
 @property(nonatomic) int calledStreamDataFinished;
 @property(nonatomic, strong) SPDYStream *lastStream;
+@property(nonatomic) SPDYStreamStatus lastStatus;
 @property (nonatomic, readonly) NSData *data;
 @property (nonatomic, copy) SPDYAsyncTestCallback callback;
 @end

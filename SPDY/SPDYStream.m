@@ -162,9 +162,57 @@
     _dataStreamRef = (__bridge CFReadStreamRef)dataStream;
 }
 
+/*
+ Streams can be closed/cancelled/reset in one of the following ways. It's complicated enough to
+ warrant some notes. All of these methods are available outside the SPDYStream class, and only
+ #1 is available as an action taken by the app.
+     1. cancelled and closed
+         - cancel:
+         > send RST_STREAM
+         > no callbacks
+     2. cancelled with status and closed with error
+         - abortWithError:status:
+         > send RST_STREAM
+         > error callback
+     3. closed with error
+         - closeWithError:
+         > no RST_STREAM
+         > error callback
+     4. closed
+         - _close: by way of localSideClosed / remoteSideClosed
+         > no RST_STREAM
+         > didFinishLoading callback
+ */
+
 - (void)cancel
 {
-    if (_delegate) [_delegate streamCanceled:self];
+    // No URLProtocol callbacks allowed in here
+    [self _cancelWithStatus:SPDY_STREAM_CANCEL];
+
+    if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
+        [_delegate streamClosed:self];
+    }
+}
+
+- (void)_cancelWithStatus:(SPDYStreamStatus)status
+{
+    // Close stream to ensure no data is sent after the RST_STREAM is sent in the streamCanceled
+    // callback.
+    _localSideClosed = YES;
+    _remoteSideClosed = YES;
+
+    [self markUnblocked];  // just in case. safe if already unblocked.
+    _metadata.blockedMs = _blockedElapsed * 1000;
+
+    if (_delegate && [_delegate respondsToSelector:@selector(streamCanceled:status:)]) {
+        [_delegate streamCanceled:self status:status];
+    }
+}
+
+- (void)abortWithError:(NSError *)error status:(SPDYStreamStatus)status
+{
+    [self _cancelWithStatus:status];
+    [self closeWithError:error];
 }
 
 - (void)closeWithError:(NSError *)error
@@ -208,7 +256,9 @@
                                                             userInfo:userInfo];
 
         [_client URLProtocol:_protocol didFailWithError:errorWithMetadata];
-    };
+    } else {
+        SPDY_WARNING(@"stream %u closing with error %@", _streamId, error);
+    }
 
     if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
         [_delegate streamClosed:self];
@@ -334,7 +384,7 @@
         NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
                                              code:NSURLErrorBadServerResponse
                                          userInfo:info];
-        [self closeWithError:error];
+        [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
         return;
     }
 
@@ -344,7 +394,7 @@
         NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
                                              code:NSURLErrorBadServerResponse
                                          userInfo:info];
-        [self closeWithError:error];
+        [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
         return;
     }
 
@@ -388,7 +438,7 @@
         if (httpSetCookie) {
             // HTTP header field names are supposed to be case-insensitive, but
             // NSHTTPCookie will fail to automatically parse cookies unless we
-            // force the case-senstive name "Set-Cookie"
+            // force the case-sensitive name "Set-Cookie"
             allHTTPHeaders[@"Set-Cookie"] = httpSetCookie;
             [allHTTPHeaders removeObjectForKey:@"set-cookie"];
 
@@ -424,7 +474,7 @@
             NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
                                                  code:NSURLErrorRedirectToNonExistentLocation
                                              userInfo:nil];
-            [self closeWithError:error];
+            [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
             return;
         }
 
@@ -483,7 +533,7 @@
                 NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
                                                      code:NSURLErrorCannotDecodeContentData
                                                  userInfo:nil];
-                [self closeWithError:error];
+                [self abortWithError:error status:SPDY_STREAM_INTERNAL_ERROR];
                 return;
             }
 
@@ -512,7 +562,7 @@
             NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
                                                  code:NSURLErrorCannotDecodeContentData
                                              userInfo:nil];
-            [self closeWithError:error];
+            [self abortWithError:error status:SPDY_STREAM_INTERNAL_ERROR];
             return;
         }
     } else {
@@ -565,6 +615,7 @@ static void SPDYStreamCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
 }
 
 #pragma mark private methods
+
 - (void)_scheduleCFReadStream
 {
     SPDY_DEBUG(@"scheduling CFReadStream: %p", _dataStreamRef);
@@ -641,6 +692,14 @@ static void SPDYStreamCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
         _blocked = NO;
         _blockedElapsed += _blockedStopwatch.elapsedSeconds;
     }
+}
+
+- (NSString *)description
+{
+    NSMutableString *description = [NSMutableString stringWithFormat:@"<%@: ", NSStringFromClass([self class])];
+    [description appendFormat:@"%p, StreamId = %u, Priority = %u, Closed = %@",self,  _streamId, _priority, (self.closed) ? @"YES" : @"NO"];
+    [description appendString:@">"];
+    return description;
 }
 
 @end
