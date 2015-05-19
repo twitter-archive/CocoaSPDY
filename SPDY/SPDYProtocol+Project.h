@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Twitter. All rights reserved.
 //
 
-#import <SPDY/SPDYProtocol.h>
+#import "SPDYProtocol.h"
 
 @interface SPDYProtocol (Project)
 
