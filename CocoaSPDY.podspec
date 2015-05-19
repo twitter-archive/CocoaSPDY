@@ -3,7 +3,7 @@ Pod::Spec.new do |s|
   name       = "Cocoa#{pod_name}"
   url            = "https://github.com/twitter/#{name}"
   git_url        = "#{url}.git"
-  version        = "1.1"
+  version        = "1.2"
   source_files   = "#{pod_name}/**/*.{h,m}"
 
   s.name         = name
