@@ -22,7 +22,9 @@
 @property (nonatomic) NSInteger latencyMs;
 @property (nonatomic) SPDYProxyStatus proxyStatus;
 @property (nonatomic) NSUInteger rxBytes;
+@property (nonatomic) NSUInteger rxBodyBytes;
 @property (nonatomic) NSUInteger txBytes;
+@property (nonatomic) NSUInteger txBodyBytes;
 @property (nonatomic) NSUInteger streamId;
 @property (nonatomic, copy) NSString *version;
 @property (nonatomic) BOOL viaProxy;

@@ -34,7 +34,9 @@
     metadata.streamId = 1;
     metadata.latencyMs = 100;
     metadata.txBytes = 200;
+    metadata.txBodyBytes = 150;
     metadata.rxBytes = 300;
+    metadata.rxBodyBytes = 250;
     metadata.cellular = YES;
     metadata.blockedMs = 400;
     metadata.connectedMs = 500;
@@ -53,7 +55,9 @@
     STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
     STAssertEquals(metadata.latencyMs, (NSInteger)100, nil);
     STAssertEquals(metadata.txBytes, (NSUInteger)200, nil);
+    STAssertEquals(metadata.txBodyBytes, (NSUInteger)150, nil);
     STAssertEquals(metadata.rxBytes, (NSUInteger)300, nil);
+    STAssertEquals(metadata.rxBodyBytes, (NSUInteger)250, nil);
     STAssertEquals(metadata.cellular, YES, nil);
     STAssertEquals(metadata.blockedMs, (NSUInteger)400, nil);
     STAssertEquals(metadata.connectedMs, (NSUInteger)500, nil);

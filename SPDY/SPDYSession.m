@@ -441,6 +441,7 @@
     // below for partial data frame chunking. Don't double-add.
     if (stream) {
         stream.metadata.rxBytes += dataFrame.encodedLength;
+        stream.metadata.rxBodyBytes += dataFrame.encodedLength;
         if (stream.metadata.timeStreamResponseFirstData == 0) {
             stream.metadata.timeStreamResponseFirstData = [SPDYStopwatch currentSystemTime];
         }
@@ -984,6 +985,7 @@
             // On-the-wire byte accounting
             if (result > 0) {
                 stream.metadata.txBytes += result;
+                stream.metadata.txBodyBytes += result;
             }
 
             // SPDY window accounting
@@ -1021,6 +1023,7 @@
 
         if (result > 0) {
             stream.metadata.txBytes += result;
+            stream.metadata.txBodyBytes += result;
         }
         stream.localSideClosed = YES;
     }

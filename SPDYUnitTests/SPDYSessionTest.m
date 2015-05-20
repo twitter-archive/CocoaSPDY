@@ -100,7 +100,14 @@
     // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
     SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
     [_session openStream:stream];
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    if (stream.request.HTTPBody) {
+        STAssertEquals(_mockDecoderDelegate.frameCount, (NSUInteger)2, nil);
+        STAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]], nil);
+        STAssertTrue([_mockDecoderDelegate.framesReceived[1] isKindOfClass:[SPDYDataFrame class]], nil);
+    } else {
+        STAssertEquals(_mockDecoderDelegate.frameCount, (NSUInteger)1, nil);
+        STAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    }
     [_mockDecoderDelegate clear];
 
     [self mockServerSynReplyWithId:streamId last:last];
@@ -185,6 +192,30 @@
     STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
     STAssertTrue(metadata.rxBytes > 0, nil);
     STAssertTrue(metadata.txBytes > 0, nil);
+    STAssertEquals(metadata.rxBodyBytes, (NSUInteger)0, nil);
+    STAssertEquals(metadata.txBodyBytes, (NSUInteger)0, nil);
+}
+
+- (void)testReceivedMetadataForSingleShortRequestWithBody
+{
+    // Exchange initial SYN_STREAM and SYN_REPLY
+    _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://mocked/init"]];
+    _URLRequest.HTTPMethod = @"POST";
+    _URLRequest.HTTPBody = [[NSMutableData alloc] initWithLength:1000];
+    [self mockSynStreamAndReplyWithId:1 last:NO];
+    [self mockServerDataWithId:1 data:[[NSMutableData alloc] initWithLength:2000] last:YES];
+
+    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
+    STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
+    STAssertNotNil(_mockURLProtocolClient.lastResponse, nil);
+
+    SPDYMetadata *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
+    STAssertEqualObjects(metadata.version, @"3.1", nil);
+    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
+    STAssertTrue(metadata.rxBytes > 2008, nil);
+    STAssertTrue(metadata.txBytes > 1008, nil);
+    STAssertEquals(metadata.rxBodyBytes, (NSUInteger)2008, nil);
+    STAssertEquals(metadata.txBodyBytes, (NSUInteger)1008, nil);
 }
 
 - (void)testReceivedStreamTimingsMetadataForSingleShortRequest
