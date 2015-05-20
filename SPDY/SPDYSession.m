@@ -55,6 +55,7 @@
     SPDYFrameEncoder *_frameEncoder;
     SPDYStreamManager *_activeStreams;
     SPDYSocket *_socket;
+    NSError *_socketError;
     NSMutableData *_inputBuffer;
 
     SPDYStreamId _lastGoodStreamId;
@@ -375,6 +376,7 @@
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error
 {
     SPDY_WARNING(@"%@ connection error: %@", self, error);
+    _socketError = error;
     for (SPDYStream *stream in _activeStreams) {
         stream.delegate = nil;
         [stream closeWithError:error];
@@ -390,7 +392,7 @@
     _disconnected = YES;
     _socket = nil;
 
-    [_delegate sessionClosed:self];
+    [_delegate sessionClosed:self error:_socketError];
     _delegate = nil;
 }
 
@@ -775,7 +777,7 @@
         [_activeStreams removeStreamForProtocol:stream.protocol];
     }
 
-    [_delegate sessionClosed:self];
+    [_delegate sessionClosed:self error:nil];
     _delegate = nil;
 
     if (_activeStreams.count == 0) {
