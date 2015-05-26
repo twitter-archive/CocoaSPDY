@@ -55,6 +55,7 @@
     SPDYFrameEncoder *_frameEncoder;
     SPDYStreamManager *_activeStreams;
     SPDYSocket *_socket;
+    NSError *_socketError;
     NSMutableData *_inputBuffer;
 
     SPDYStreamId _lastGoodStreamId;
@@ -375,6 +376,7 @@
 - (void)socket:(SPDYSocket *)socket willDisconnectWithError:(NSError *)error
 {
     SPDY_WARNING(@"%@ connection error: %@", self, error);
+    _socketError = error;
     for (SPDYStream *stream in _activeStreams) {
         stream.delegate = nil;
         [stream closeWithError:error];
@@ -390,7 +392,7 @@
     _disconnected = YES;
     _socket = nil;
 
-    [_delegate sessionClosed:self];
+    [_delegate sessionClosed:self error:_socketError];
     _delegate = nil;
 }
 
@@ -441,6 +443,7 @@
     // below for partial data frame chunking. Don't double-add.
     if (stream) {
         stream.metadata.rxBytes += dataFrame.encodedLength;
+        stream.metadata.rxBodyBytes += dataFrame.encodedLength;
         if (stream.metadata.timeStreamResponseFirstData == 0) {
             stream.metadata.timeStreamResponseFirstData = [SPDYStopwatch currentSystemTime];
         }
@@ -774,7 +777,7 @@
         [_activeStreams removeStreamForProtocol:stream.protocol];
     }
 
-    [_delegate sessionClosed:self];
+    [_delegate sessionClosed:self error:nil];
     _delegate = nil;
 
     if (_activeStreams.count == 0) {
@@ -984,6 +987,7 @@
             // On-the-wire byte accounting
             if (result > 0) {
                 stream.metadata.txBytes += result;
+                stream.metadata.txBodyBytes += result;
             }
 
             // SPDY window accounting
@@ -1021,6 +1025,7 @@
 
         if (result > 0) {
             stream.metadata.txBytes += result;
+            stream.metadata.txBodyBytes += result;
         }
         stream.localSideClosed = YES;
     }

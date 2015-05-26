@@ -33,7 +33,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 @interface SPDYSessionManager () <SPDYSessionDelegate, SPDYStreamDelegate>
 - (void)session:(SPDYSession *)session capacityIncreased:(NSUInteger)capacity;
 - (void)session:(SPDYSession *)session connectedToNetwork:(bool)cellular;
-- (void)sessionClosed:(SPDYSession *)session;
+- (void)sessionClosed:(SPDYSession *)session error:(NSError *)error;
 - (void)streamCanceled:(SPDYStream *)stream;
 @end
 
@@ -191,12 +191,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
         if (!session || error) {
             if (sessionPool.count == 0) {
-                for (SPDYStream *stream in _pendingStreams) {
-                    stream.delegate = nil;
-                    SPDYProtocol *protocol = stream.protocol;
-                    [protocol.client URLProtocol:protocol didFailWithError:error];
-                }
-                [_pendingStreams removeAllStreams];
+                [self _failPendingStreamsWithError:error];
                 return;
             } else {
                 SPDY_WARNING(@"failed allocating extra session to pool: %@", error);
@@ -260,6 +255,16 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     }
 }
 
+- (void)_failPendingStreamsWithError:(NSError *)error
+{
+    for (SPDYStream *stream in _pendingStreams) {
+        stream.delegate = nil;
+        SPDYProtocol *protocol = stream.protocol;
+        [protocol.client URLProtocol:protocol didFailWithError:error];
+    }
+    [_pendingStreams removeAllStreams];
+}
+
 #pragma mark SPDYSessionDelegate
 
 - (void)session:(SPDYSession *)session capacityIncreased:(NSUInteger)capacity
@@ -302,9 +307,9 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     [self _dispatch];
 }
 
-- (void)sessionClosed:(SPDYSession *)session
+- (void)sessionClosed:(SPDYSession *)session error:(NSError *)error
 {
-    SPDY_DEBUG(@"%@ closed", session);
+    SPDY_DEBUG(@"%@ closed, error %@", session, error);
 
     if ([_basePool contains:session]) {
         [_basePool remove:session];
@@ -312,10 +317,12 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
         [_wwanPool remove:session];
     }
 
-//    SPDYSessionPool * __strong *pool = session.isCellular ? &_wwanPool : &_basePool;
-//    if (*pool && [*pool remove:session] == 0) {
-//        *pool = nil;
-//    }
+    bool cellular = _cellular;
+    SPDYSessionPool *activePool = cellular ? _wwanPool : _basePool;
+    if (activePool.count == 0 && _pendingStreams.count > 0) {
+        [self _failPendingStreamsWithError:error];
+    }
+
 }
 
 - (void)session:(SPDYSession *)session refusedStream:(SPDYStream *)stream

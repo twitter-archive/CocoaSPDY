@@ -57,8 +57,14 @@ typedef enum {
 // SPDY stream bytes received. Includes all SPDY headers and bodies.
 @property (nonatomic, readonly) NSUInteger rxBytes;
 
+// SPDY stream bytes received for the body only, including framing.
+@property (nonatomic, readonly) NSUInteger rxBodyBytes;
+
 // SPDY stream bytes transmitted. Includes all SPDY headers and bodies.
 @property (nonatomic, readonly) NSUInteger txBytes;
+
+// SPDY stream bytes transmitted for the body only, including framing.
+@property (nonatomic, readonly) NSUInteger txBodyBytes;
 
 // SPDY request stream id, e.g. "1"
 @property (nonatomic, readonly) NSUInteger streamId;

@@ -22,7 +22,7 @@
 - (void)session:(SPDYSession *)session capacityIncreased:(NSUInteger)capacity;
 - (void)session:(SPDYSession *)session connectedToNetwork:(bool)cellular;
 - (void)session:(SPDYSession *)session refusedStream:(SPDYStream *)stream;
-- (void)sessionClosed:(SPDYSession *)session;
+- (void)sessionClosed:(SPDYSession *)session error:(NSError *)error;
 @end
 
 @interface SPDYSession : NSObject
