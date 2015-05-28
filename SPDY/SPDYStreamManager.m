@@ -22,7 +22,7 @@
 {
   @public
     __strong SPDYStreamNode *next;
-    __strong SPDYStreamNode *prev;
+    __weak SPDYStreamNode *prev;
     __strong SPDYStream *stream;
     __unsafe_unretained SPDYProtocol *protocol;
     SPDYStreamId streamId;

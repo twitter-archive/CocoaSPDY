@@ -259,8 +259,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 {
     for (SPDYStream *stream in _pendingStreams) {
         stream.delegate = nil;
-        SPDYProtocol *protocol = stream.protocol;
-        [protocol.client URLProtocol:protocol didFailWithError:error];
+        [stream closeWithError:error];
     }
     [_pendingStreams removeAllStreams];
 }

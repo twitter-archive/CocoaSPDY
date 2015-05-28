@@ -604,7 +604,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     _endpoint = [_endpointManager moveToNextEndpoint];
     if (_endpoint == nil) {
-        SPDY_ERROR(@"error connecting to origin %@: no more endpoints available", _endpointManager.origin);
+        SPDY_INFO(@"error connecting to origin %@: no more endpoints available", _endpointManager.origin);
         if (pError && *pError == nil) {
             *pError = SPDY_SOCKET_ERROR(SPDYSocketProxyError, @"No endpoints available, unable to connect socket");
         }
@@ -656,7 +656,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         [self _closeWithError:rootError];
     } else {
         NSError *error = nil;
-        SPDY_WARNING(@"socket error, attempting next connection: %@", rootError);
+        SPDY_INFO(@"socket error, attempting next connection: %@", rootError);
         if (![self _connectToNextEndpointWithError:&error]) {
             [self _closeWithError:error];
         }
@@ -899,7 +899,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 - (void)_closeWithError:(NSError *)error
 {
-    SPDY_ERROR(@"socket closing with error: %@", error);
+    SPDY_INFO(@"socket closing with error: %@", error);
     NSParameterAssert(error != nil);
 
     _flags |= kClosingWithError;
@@ -997,7 +997,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 - (void)_close
 {
     if ((_flags & kConnectingToProxy) && _endpointManager.remaining > 0) {
-        SPDY_ERROR(@"socket failed connecting to proxy %@. %lu endpoints remain, but only 1 attempt is supported.",
+        SPDY_WARNING(@"socket failed connecting to proxy %@. %lu endpoints remain, but only 1 attempt is supported.",
                 _endpoint, (unsigned long)_endpointManager.remaining);
     }
 

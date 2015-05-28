@@ -150,4 +150,42 @@ static SPDYStreamId _nextStreamId;
     STAssertEquals(streamCount, _numStreams - 2, nil);
 }
 
+- (void)testStreamRemovalDoesNotLeak
+{
+    SPDYStream __weak *weakone;
+    @autoreleasepool {
+        weakone = _manager[4];
+        STAssertNotNil(weakone, nil);
+        [_manager removeStreamWithStreamId:4];
+        STAssertNil(_manager[4], nil);
+    }
+    STAssertNil(weakone, nil);
+}
+
+- (void)testAllStreamRemovalDoesNotLeak
+{
+    SPDYStream __weak *weakone;
+    @autoreleasepool {
+        weakone = _manager[4];
+        STAssertNotNil(weakone, nil);
+        [_manager removeAllStreams];
+        STAssertNil(_manager[4], nil);
+    }
+    STAssertNil(weakone, nil);
+}
+
+- (void)testDeallocDoesNotLeak
+{
+    SPDYStreamManager __weak *weakmanager;
+    SPDYStream __weak *weakone;
+    @autoreleasepool {
+        weakmanager = _manager;
+        weakone = _manager[4];
+        STAssertNotNil(weakone, nil);
+        _manager = nil;
+    }
+    STAssertNil(weakmanager, nil);
+    STAssertNil(weakone, nil);
+}
+
 @end
