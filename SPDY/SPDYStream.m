@@ -107,9 +107,11 @@
         SPDY_WARNING(@"using SPDYBodyStream may fail for redirected requests or requests that meet authentication challenges");
         _dataStream = _request.SPDYBodyStream;
     } else if (_request.HTTPBodyStream) {
+#if TARGET_OS_IPHONE
         if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_6_1) {
             SPDY_WARNING(@"using HTTPBodyStream on a SPDY request is subject to a potentially fatal CFNetwork bug in iOS 5 and iOS 6");
         }
+#endif
         _dataStream = _request.HTTPBodyStream;
     }
 
