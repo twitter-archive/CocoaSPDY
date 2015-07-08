@@ -33,6 +33,7 @@ NSString *const SPDYCodecErrorDomain = @"SPDYCodecErrorDomain";
 NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
+NSString *const SPDYPushRequestReceivedNotification = @"SPDYPushRequestReceivedNotification";
 
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
 

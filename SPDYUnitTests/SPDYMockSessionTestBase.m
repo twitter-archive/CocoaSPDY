@@ -129,9 +129,14 @@
 
 - (SPDYStream *)attachToPushRequestWithUrl:(NSString *)url
 {
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
+    return [self attachToPushRequest:request];
+}
+
+- (SPDYStream *)attachToPushRequest:(NSURLRequest *)request
+{
     _mockPushURLProtocolClient = [[SPDYMockURLProtocolClient alloc] init];
-    NSMutableURLRequest *pushURLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
-    SPDYProtocol *pushProtocolRequest = [[SPDYProtocol alloc] initWithRequest:pushURLRequest cachedResponse:nil client:_mockPushURLProtocolClient];
+    SPDYProtocol *pushProtocolRequest = [[SPDYProtocol alloc] initWithRequest:request cachedResponse:nil client:_mockPushURLProtocolClient];
     [_pushProtocolList addObject:pushProtocolRequest];
 
     SPDYStream *pushStream = [_pushStreamManager streamForProtocol:pushProtocolRequest];

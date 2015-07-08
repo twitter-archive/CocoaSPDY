@@ -66,6 +66,7 @@ typedef void (^SPDYAsyncTestCallback)();
 - (SPDYStream *)createStream;
 - (void)makeSessionReadData:(NSData *)data;
 - (SPDYStream *)attachToPushRequestWithUrl:(NSString *)url;
+- (SPDYStream *)attachToPushRequest:(NSURLRequest *)request;
 
 - (SPDYStream *)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last;
 - (void)mockServerSynReplyWithId:(SPDYStreamId)streamId last:(BOOL)last;

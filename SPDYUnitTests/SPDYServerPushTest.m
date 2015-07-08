@@ -178,6 +178,41 @@
     XCTAssertEqualObjects([pushResponse.allHeaderFields valueForKey:@"PushHeader"], @"PushValue");
 }
 
+- (void)testSYNStreamWithStreamIDNonZeroPostsNotification
+{
+    SPDYMockURLProtocolClient __block *pushClient = nil;
+
+    [[NSNotificationCenter defaultCenter] addObserverForName:SPDYPushRequestReceivedNotification object:nil queue:nil usingBlock:^(NSNotification *note) {
+        XCTAssertTrue([note.userInfo[@"request"] isKindOfClass:[NSURLRequest class]]);
+
+        NSURLRequest *request = note.userInfo[@"request"];
+        XCTAssertNotNil(request);
+        XCTAssertEqualObjects(request.URL.absoluteString, @"http://mocked/pushed");
+
+        pushClient = [self attachToPushRequest:request].client;
+    }];
+
+    // Exchange initial SYN_STREAM and SYN_REPLY
+    [self mockSynStreamAndReplyWithId:1 last:NO];
+
+    // Send SYN_STREAM from server to client. Notification posted at this point.
+    [self mockServerSynStreamWithId:2 last:NO];
+    XCTAssertNotNil(pushClient);
+    XCTAssertFalse(pushClient.calledDidReceiveResponse);
+
+    // Send HEADERS from server to client
+    [self mockServerHeadersFrameForPushWithId:2 last:NO];
+    XCTAssertTrue(pushClient.calledDidReceiveResponse);
+    XCTAssertFalse(pushClient.calledDidLoadData);
+    XCTAssertFalse(pushClient.calledDidFailWithError);
+    XCTAssertFalse(pushClient.calledDidFinishLoading);
+    
+    NSHTTPURLResponse *pushResponse = pushClient.lastResponse;
+    XCTAssertEqualObjects(pushResponse.URL.absoluteString, @"http://mocked/pushed");
+    XCTAssertEqual(pushResponse.statusCode, 200);
+    XCTAssertEqualObjects([pushResponse.allHeaderFields valueForKey:@"PushHeader"], @"PushValue");
+}
+
 - (void)testSYNStreamAfterAssociatedStreamClosesRespondsWithGoAway
 {
     // Exchange initial SYN_STREAM and SYN_REPLY

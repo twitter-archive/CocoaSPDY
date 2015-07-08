@@ -622,12 +622,17 @@
                                                            timeoutInterval:_request.timeoutInterval];
     requestCopy.allHTTPHeaderFields = _request.allHTTPHeaderFields;
     requestCopy.HTTPMethod = @"GET";
-    requestCopy.SPDYPriority = (NSUInteger)_priority;
+    requestCopy.SPDYPriority = (NSUInteger)_priority; // TODO: same or +1 (lower priority)?
 
     _pushRequest = [SPDYProtocol canonicalRequestForRequest:requestCopy];
     _request = _pushRequest;  // need a strong reference for _request's weak one
 
     [_pushStreamManager addStream:self associatedWith:_associatedStream];
+
+    // Fire global notification on current thread
+    [[NSNotificationCenter defaultCenter] postNotificationName:SPDYPushRequestReceivedNotification
+                                                        object:nil
+                                                      userInfo:@{ @"request": _request }];
 }
 
 - (void)didLoadData:(NSData *)data
