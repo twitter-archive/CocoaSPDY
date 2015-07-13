@@ -28,12 +28,12 @@
     int _zlibStreamStatus;
 }
 
-- (id)init
+- (instancetype)init
 {
     return [self initWithCompressionLevel:ZLIB_COMPRESSION_LEVEL];
 }
 
-- (id)initWithCompressionLevel:(NSUInteger)compressionLevel
+- (instancetype)initWithCompressionLevel:(NSUInteger)compressionLevel
 {
     self = [super init];
     if (self) {

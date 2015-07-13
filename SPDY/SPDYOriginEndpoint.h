@@ -41,7 +41,7 @@ typedef enum {
 @property (nonatomic, readonly) NSString *password;
 @property (nonatomic, readonly) SPDYOriginEndpointType type;
 
-- (id)initWithHost:(NSString *)host
+- (instancetype)initWithHost:(NSString *)host
               port:(in_port_t)port
               user:(NSString *)user
           password:(NSString *)password

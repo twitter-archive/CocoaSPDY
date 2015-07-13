@@ -17,7 +17,7 @@
 
 @implementation SPDYFrame
 
-- (id)initWithLength:(NSUInteger)encodedLength
+- (instancetype)initWithLength:(NSUInteger)encodedLength
 {
     self = [self init];
     if (self) {
@@ -48,7 +48,7 @@
     SPDYSettings _settings[SPDY_SETTINGS_LENGTH];
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {

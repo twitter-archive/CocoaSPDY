@@ -147,7 +147,7 @@ extern NSString *const SPDYSocketException;
 @property (nonatomic, strong) id<SPDYSocketDelegate> delegate;
 @property (nonatomic, readonly) bool isCellular;
 
-- (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate;
+- (instancetype)initWithDelegate:(id<SPDYSocketDelegate>)delegate;
 - (CFSocketRef)cfSocket;
 - (CFReadStreamRef)cfReadStream;
 - (CFWriteStreamRef)cfWriteStream;

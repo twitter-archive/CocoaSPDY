@@ -23,7 +23,7 @@
 @property (nonatomic, readonly) SPDYProxyStatus proxyStatus;
 @property (nonatomic) bool authRequired;  // writable since only the socket knows the answer
 
-- (id)initWithOrigin:(SPDYOrigin *)origin;
+- (instancetype)initWithOrigin:(SPDYOrigin *)origin;
 - (void)resolveEndpointsWithCompletionHandler:(void (^)())completionHandler;
 - (SPDYOriginEndpoint *)moveToNextEndpoint;
 

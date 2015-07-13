@@ -19,7 +19,7 @@
 @property (nonatomic, readonly) SPDYTimeInterval startTime;
 @property (nonatomic, readonly) SPDYTimeInterval startSystemTime;
 
-- (id)init;
+- (instancetype)init;
 - (void)reset;
 - (SPDYTimeInterval)elapsedSeconds;
 

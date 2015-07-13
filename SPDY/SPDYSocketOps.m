@@ -15,7 +15,7 @@
 
 @implementation SPDYSocketReadOp
 
-- (id)initWithData:(NSMutableData *)data
+- (instancetype)initWithData:(NSMutableData *)data
        startOffset:(NSUInteger)startOffset
          maxLength:(NSUInteger)maxLength
            timeout:(NSTimeInterval)timeout
@@ -83,7 +83,7 @@
 
 @implementation SPDYSocketProxyReadOp
 
-- (id)initWithTimeout:(NSTimeInterval)timeout
+- (instancetype)initWithTimeout:(NSTimeInterval)timeout
 {
     return [super initWithData:nil
                    startOffset:0
@@ -173,7 +173,7 @@
 
 @implementation SPDYSocketWriteOp
 
-- (id)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag
+- (instancetype)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag
 {
     self = [super init];
     if (self) {
@@ -197,7 +197,7 @@
 
 @implementation SPDYSocketProxyWriteOp
 
-- (id)initWithOrigin:(SPDYOrigin *)origin timeout:(NSTimeInterval)timeout
+- (instancetype)initWithOrigin:(SPDYOrigin *)origin timeout:(NSTimeInterval)timeout
 {
     NSString *httpConnect = [NSString stringWithFormat:
             @"CONNECT %@:%u HTTP/1.1\r\nHost: %@:%u\r\nConnection: keep-alive\r\nUser-Agent: SPDYTest\r\n\r\n",
@@ -223,7 +223,7 @@
 
 @implementation SPDYSocketTLSOp
 
-- (id)initWithTLSSettings:(NSDictionary *)settings
+- (instancetype)initWithTLSSettings:(NSDictionary *)settings
 {
     self = [super init];
     if (self) {

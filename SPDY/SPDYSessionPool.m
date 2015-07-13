@@ -21,7 +21,7 @@
     NSMutableArray *_sessions;
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {

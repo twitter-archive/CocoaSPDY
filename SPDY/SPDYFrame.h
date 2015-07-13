@@ -14,7 +14,7 @@
 
 @interface SPDYFrame : NSObject
 @property (nonatomic, assign) NSUInteger encodedLength;
-- (id)initWithLength:(NSUInteger)encodedLength;
+- (instancetype)initWithLength:(NSUInteger)encodedLength;
 @end
 
 @interface SPDYHeaderBlockFrame : SPDYFrame

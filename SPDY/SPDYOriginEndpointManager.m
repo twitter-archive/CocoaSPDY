@@ -32,7 +32,7 @@
     void (^_resolveCallback)();
 }
 
-- (id)initWithOrigin:(SPDYOrigin *)origin
+- (instancetype)initWithOrigin:(SPDYOrigin *)origin
 {
     self = [super init];
     if (self) {

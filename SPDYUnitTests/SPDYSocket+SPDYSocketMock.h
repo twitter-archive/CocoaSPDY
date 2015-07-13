@@ -25,7 +25,7 @@
     long _tag;
 }
 
-- (id)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag;
+- (instancetype)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag;
 @end
 
 // Note: these are exposed as globals only because we don't control the creation of the

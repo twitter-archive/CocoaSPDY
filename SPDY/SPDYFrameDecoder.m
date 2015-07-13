@@ -105,7 +105,7 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
 }
 
 
-- (id)initWithDelegate:(id)delegate
+- (instancetype)initWithDelegate:(id)delegate
 {
     self = [super init];
     if (self) {

@@ -65,7 +65,7 @@
     bool _blocked;
 }
 
-- (id)initWithProtocol:(SPDYProtocol *)protocol
+- (instancetype)initWithProtocol:(SPDYProtocol *)protocol
 {
     self = [super init];
     if (self) {
