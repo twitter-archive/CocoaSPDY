@@ -359,11 +359,19 @@ SPDYCommonHeader getCommonHeader(uint8_t *buffer) {
         return 0;
     }
 
-    SPDYDataFrame *frame = [[SPDYDataFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _length];
+    // Some definitions for clarity:
+    // _length is remaining bytes of DATA frame
+    // _header.length is total bytes of DATA frame
+    // len is current buffer size (TCP segment)
+    // SPDYDataFrame.encodedLength will always represent the total size of the DATA frame
+
+    SPDYDataFrame *frame = [[SPDYDataFrame alloc] initWithLength:SPDY_COMMON_HEADER_SIZE + _header.length];
     frame.streamId = streamId;
     frame.data = [[NSData alloc] initWithBytesNoCopy:buffer
                                               length:bytesToRead
                                         freeWhenDone:NO];
+    // If first frame of many synthesized ones, or the entire frame, include headers in size
+    frame.headerLength = (_header.length == _length) ? SPDY_COMMON_HEADER_SIZE : 0;
 
     bytesRead = bytesToRead;
     _length -= bytesToRead;

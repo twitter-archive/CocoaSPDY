@@ -25,6 +25,10 @@
 @property (nonatomic, strong) NSData *data;
 @property (nonatomic) SPDYStreamId streamId;
 @property (nonatomic) bool last;
+
+// Set to 0 for data frames that are synthesized from partial TCP reads of the
+// on-the-wire data frame, except for the first one of such a series.
+@property (nonatomic) NSUInteger headerLength;
 @end
 
 @interface SPDYSynStreamFrame : SPDYHeaderBlockFrame
