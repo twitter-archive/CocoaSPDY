@@ -437,13 +437,15 @@
 
     SPDYStreamId streamId = dataFrame.streamId;
     SPDYStream *stream = _activeStreams[streamId];
-    SPDY_DEBUG(@"received DATA.%u%@ (%lu)", streamId, dataFrame.last ? @"!" : @"", (unsigned long)dataFrame.data.length);
+    SPDY_DEBUG(@"received %@DATA.%u%@ (frame %tu, data %tu)", (dataFrame.headerLength == 0) ? @"synthesized " : @"", streamId, dataFrame.last ? @"!" : @"", dataFrame.encodedLength, dataFrame.data.length);
 
     // Perform receive bytes accounting here. Beware the recursive call back into this function
     // below for partial data frame chunking. Don't double-add.
     if (stream) {
-        stream.metadata.rxBytes += dataFrame.encodedLength;
-        stream.metadata.rxBodyBytes += dataFrame.encodedLength;
+        // A data frame can get broken up into multiple TCP segments, which results in multiple
+        // synthesized data frames being passed into this callback.
+        stream.metadata.rxBytes += dataFrame.data.length + dataFrame.headerLength;
+        stream.metadata.rxBodyBytes += dataFrame.data.length + dataFrame.headerLength;
         if (stream.metadata.timeStreamResponseFirstData == 0) {
             stream.metadata.timeStreamResponseFirstData = [SPDYStopwatch currentSystemTime];
         }

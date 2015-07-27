@@ -15,6 +15,8 @@
 #import "SPDYFrameDecoder.h"
 #import "SPDYMockFrameDecoderDelegate.h"
 
+static NSUInteger gMaxDecodeChunkSize = 0;
+
 @interface SPDYFrameCodecTest : SenTestCase
 @end
 
@@ -23,17 +25,33 @@
 @end
 
 @implementation SPDYFrameDecoder (CodecTest)
-- (void)didEncodeData:(NSData *)data frameEncoder:(SPDYFrameEncoder *)encoder
+- (void)_decodeData:(NSData *)data
 {
     NSError *error;
-    [self decode:(uint8_t *)data.bytes length:data.length error:&error];
+    if (gMaxDecodeChunkSize == 0) {
+        [self decode:(uint8_t *)data.bytes length:data.length error:&error];
+    } else {
+        NSUInteger remaining = data.length;
+        uint8_t *dataPtr = (uint8_t *)data.bytes;
+        while (remaining > 0) {
+            NSUInteger chunkSize = MIN(gMaxDecodeChunkSize, remaining);
+            [self decode:dataPtr length:chunkSize error:&error];
+            remaining -= chunkSize;
+            dataPtr += chunkSize;
+        }
+    }
+}
+
+- (void)didEncodeData:(NSData *)data frameEncoder:(SPDYFrameEncoder *)encoder
+{
+    [self _decodeData:data];
 }
 
 - (void)didEncodeData:(NSData *)data withTag:(uint32_t)tag frameEncoder:(SPDYFrameEncoder *)encoder
 {
-    NSError *error;
-    [self decode:(uint8_t *)data.bytes length:data.length error:&error];
+    [self _decodeData:data];
 }
+
 @end
 
 @implementation SPDYFrameCodecTest
@@ -71,6 +89,7 @@ NSDictionary *testHeaders()
 {
     [super setUp];
 
+    gMaxDecodeChunkSize = 0;  // reset on every test
     _mock = [[SPDYMockFrameDecoderDelegate alloc] init];
     _decoder = [[SPDYFrameDecoder alloc] initWithDelegate:_mock];
     _encoder = [[SPDYFrameEncoder alloc] initWithDelegate:_decoder
@@ -102,8 +121,56 @@ NSDictionary *testHeaders()
     STAssertEquals(inFrame.streamId, outFrame.streamId, nil);
     STAssertEquals(inFrame.last, outFrame.last, nil);
     STAssertEquals(inFrame.data.length, outFrame.data.length, nil);
+    STAssertEquals(outFrame.headerLength, (NSUInteger)8, nil);
     for (uint8_t i = 0; i < 100; i++) {
         STAssertEquals(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame.data.bytes)[i], nil);
+    }
+}
+
+- (void)testDecodePartialDataFrame
+{
+    gMaxDecodeChunkSize = 90;
+
+    SPDYDataFrame *inFrame = [[SPDYDataFrame alloc] init];
+    inFrame.streamId = arc4random() & 0x7FFFFFFF;
+    inFrame.last = YES;
+
+    uint8_t data[100];
+    for (uint8_t i = 0; i < 100; i++) {
+        data[i] = i;
+    }
+
+    inFrame.data = [[NSData alloc] initWithBytes:data length:100];
+
+    NSInteger bytesEncoded = [_encoder encodeDataFrame:inFrame];
+    STAssertEquals(bytesEncoded, 108, nil);
+
+    AssertLastFrameClass(@"SPDYDataFrame");
+    AssertFramesReceivedCount(2);
+
+    SPDYDataFrame *outFrame1 = (SPDYDataFrame *)_mock.framesReceived[0];
+    SPDYDataFrame *outFrame2 = (SPDYDataFrame *)_mock.framesReceived[1];
+
+
+    STAssertEquals(inFrame.streamId, outFrame1.streamId, nil);
+    STAssertEquals(inFrame.streamId, outFrame2.streamId, nil);
+    STAssertFalse(outFrame1.last, nil);
+    STAssertTrue(outFrame2.last, nil);
+
+    const NSUInteger outFrame1DataLength = gMaxDecodeChunkSize;
+    STAssertEquals(outFrame1.encodedLength, (NSUInteger)bytesEncoded, nil);
+    STAssertEquals(outFrame1.data.length, outFrame1DataLength, nil);
+    STAssertEquals(outFrame1.headerLength, (NSUInteger)8, nil);
+    for (uint8_t i = 0; i < outFrame1DataLength; i++) {
+        STAssertEquals(((uint8_t *)inFrame.data.bytes)[i], ((uint8_t *)outFrame1.data.bytes)[i], nil);
+    }
+
+    const NSUInteger outFrame2DataLength = inFrame.data.length - outFrame1DataLength;
+    STAssertEquals(outFrame2.encodedLength, (NSUInteger)bytesEncoded, nil);
+    STAssertEquals(outFrame2.data.length, (NSUInteger)outFrame2DataLength, nil);
+    STAssertEquals(outFrame2.headerLength, (NSUInteger)0, nil);
+    for (uint8_t i = 0; i < outFrame2DataLength; i++) {
+        STAssertEquals(((uint8_t *)inFrame.data.bytes)[outFrame1DataLength + i], ((uint8_t *)outFrame2.data.bytes)[i], nil);
     }
 }
 
