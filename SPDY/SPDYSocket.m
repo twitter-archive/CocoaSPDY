@@ -95,7 +95,6 @@ typedef enum : uint16_t {
 // Errors
 - (NSError *)abortError;
 - (NSError *)streamError;
-- (NSError *)socketError;
 - (NSError *)connectTimeoutError;
 - (NSError *)readTimeoutError;
 - (NSError *)writeTimeoutError;
@@ -860,7 +859,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
     CFSocketRef socket = CFSocketCreateWithNative(kCFAllocatorDefault, native, 0, NULL, NULL);
     if (socket == NULL) {
-        if (pError) *pError = [self socketError];
+        if (pError) *pError = SPDY_SOCKET_ERROR(SPDYSocketCFSocketError, @"Error creating socket");
         return NO;
     }
 
@@ -870,7 +869,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
         CFRelease(socket);
 
-        if (pError) *pError = [self socketError];
+        if (pError) *pError = SPDY_SOCKET_ERROR(SPDYSocketCFSocketError, @"Error getting IP address of socket");
         return NO;
     }
     struct sockaddr *sa = (struct sockaddr *)CFDataGetBytePtr(peeraddr);
@@ -1133,12 +1132,6 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 
 #pragma mark Errors
 
-- (NSError *)socketError
-{
-    NSDictionary *info = @{ NSLocalizedDescriptionKey : @"general CFSocket error" };
-    return [NSError errorWithDomain:SPDYSocketErrorDomain code:SPDYSocketCFSocketError userInfo:info];
-}
-
 - (NSError *)streamError
 {
     CFErrorRef error;
@@ -1152,7 +1145,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
         if (error) return CFBridgingRelease(error);
     }
 
-    return nil;
+    return SPDY_SOCKET_ERROR(SPDYSocketTransportError, @"General socket stream error.");
 }
 
 - (NSError *)abortError
@@ -1768,7 +1761,7 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
             (__bridge CFDictionaryRef)tlsOp->_tlsSettings);
 
         if (!didStartOnReadStream || !didStartOnWriteStream) {
-            [self _closeWithError:[self socketError]];
+            [self _closeWithError:SPDY_SOCKET_ERROR(SPDYSocketCFSocketError, @"Error setting stream SSL settings")];
         }
     }
 }

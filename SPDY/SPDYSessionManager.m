@@ -27,6 +27,7 @@
 #import "NSURLRequest+SPDYURLRequest.h"
 
 static NSString *const SPDYSessionManagerKey = @"com.twitter.SPDYSessionManager";
+static NSTimeInterval const kFastFailDeferTime = 2.0;
 
 static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info);
 
@@ -44,6 +45,8 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     SPDYSessionPool *_wwanPool;
     SPDYStreamManager *_pendingStreams;
     volatile BOOL _cellular;
+    NSUInteger _fastFailCount;
+    CFAbsoluteTime _lastFastFailTime;
     NSArray *_runLoopModes;
     NSTimer *_dispatchTimer;
     SCNetworkReachabilityRef _rRef;
@@ -120,8 +123,11 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     [_pendingStreams addStream:stream];
     stream.delegate = self;
 
-    NSTimeInterval deferrableInterval = stream.request.SPDYDeferrableInterval;
+    NSTimeInterval fastFailDeferrableInterval = (_fastFailCount > 0) ? ((_lastFastFailTime + kFastFailDeferTime) - CFAbsoluteTimeGetCurrent()) : 0;
+    NSTimeInterval deferrableInterval = fmax(stream.request.SPDYDeferrableInterval, fmin(fastFailDeferrableInterval, kFastFailDeferTime));
+
     if (deferrableInterval > 0) {
+        SPDY_DEBUG(@"deferring request up to %f seconds, fast fail count %tu", deferrableInterval, _fastFailCount);
         CFAbsoluteTime maxDelayThreshold = CFAbsoluteTimeGetCurrent() + deferrableInterval;
 
         if (!_dispatchTimer) {
@@ -182,7 +188,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     SPDYConfiguration *configuration = [SPDYProtocol currentConfiguration];
     NSUInteger size = configuration.sessionPoolSize;
 
-    while (sessionPool.count < size) {
+    for (NSUInteger i = sessionPool.count; i < size; i++) {
         SPDYSession *session = [[SPDYSession alloc] initWithOrigin:_origin
                                                           delegate:self
                                                      configuration:configuration
@@ -257,6 +263,9 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 
 - (void)_failPendingStreamsWithError:(NSError *)error
 {
+    _fastFailCount++;
+    _lastFastFailTime = CFAbsoluteTimeGetCurrent();
+    SPDY_DEBUG(@"failing %tu pending streams in %@ session pool, fast fail count %tu", _pendingStreams.count, _cellular ? @"WLAN" : @"WIFI", _fastFailCount);
     for (SPDYStream *stream in _pendingStreams) {
         stream.delegate = nil;
         [stream closeWithError:error];
@@ -286,7 +295,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     if ([_basePool contains:session]) {
         _basePool.pendingCount -= 1;
         if (cellular) {
-            SPDY_WARNING(@"%@ is in wifi pool but socket connected over cellular, %@moving", session, moveSession ? @"" : @"not ");
+            SPDY_WARNING(@"%@ is in wifi pool but socket connected over cellular, %@moving. Currently %@", session, moveSession ? @"" : @"not ", _cellular ? @"WLAN" : @"WIFI");
             if (moveSession) {
                 [_basePool remove:session];
                 [_wwanPool add:session];
@@ -295,13 +304,16 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     } else if ([_wwanPool contains:session]) {
         _wwanPool.pendingCount -= 1;
         if (!cellular) {
-            SPDY_WARNING(@"%@ is in cellular pool but socket connected over wifi, %@ moving", session, moveSession ? @"" : @"not ");
+            SPDY_WARNING(@"%@ is in cellular pool but socket connected over wifi, %@ moving. Currently %@", session, moveSession ? @"" : @"not ", _cellular ? @"WLAN" : @"WIFI");
             if (moveSession) {
                 [_wwanPool remove:session];
                 [_basePool add:session];
             }
         }
     }
+
+    // Clear fast fail state
+    _fastFailCount = 0;
 
     [self _dispatch];
 }
@@ -319,9 +331,11 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     bool cellular = _cellular;
     SPDYSessionPool *activePool = cellular ? _wwanPool : _basePool;
     if (activePool.count == 0 && _pendingStreams.count > 0) {
+        // When no more sessions are available AND we have pending streams, then this isn't a
+        // "normal" close. Rather, no session was never healthy; they all failed during the
+        // connection phase, thus we should trigger a "fast fail" of all streams.
         [self _failPendingStreamsWithError:error];
     }
-
 }
 
 - (void)session:(SPDYSession *)session refusedStream:(SPDYStream *)stream
@@ -341,6 +355,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 #if TARGET_OS_IPHONE
     _cellular = (flags & kSCNetworkReachabilityFlagsIsWWAN) != 0;
 #endif
+    _fastFailCount = 0;  // reset on reachability change
     SPDY_DEBUG(@"reachability updated: %@, flags 0x%x", _cellular ? @"WWAN" : @"WIFI", flags);
 
     [self _dispatch];
