@@ -10,7 +10,7 @@
 //  Modified by Kevin Goodier on 9/19/14.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import <Foundation/Foundation.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYFrame.h"
@@ -24,7 +24,7 @@
 #import "SPDYStopwatch.h"
 #import "SPDYStream.h"
 
-@interface SPDYSessionTest : SenTestCase
+@interface SPDYSessionTest : XCTestCase
 @end
 
 @implementation SPDYSessionTest
@@ -101,19 +101,19 @@
     SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
     [_session openStream:stream];
     if (stream.request.HTTPBody) {
-        STAssertEquals(_mockDecoderDelegate.frameCount, (NSUInteger)2, nil);
-        STAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]], nil);
-        STAssertTrue([_mockDecoderDelegate.framesReceived[1] isKindOfClass:[SPDYDataFrame class]], nil);
+        XCTAssertEqual(_mockDecoderDelegate.frameCount, (NSUInteger)2);
+        XCTAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]]);
+        XCTAssertTrue([_mockDecoderDelegate.framesReceived[1] isKindOfClass:[SPDYDataFrame class]]);
     } else {
-        STAssertEquals(_mockDecoderDelegate.frameCount, (NSUInteger)1, nil);
-        STAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]], nil);
+        XCTAssertEqual(_mockDecoderDelegate.frameCount, (NSUInteger)1);
+        XCTAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]]);
     }
     [_mockDecoderDelegate clear];
 
     [self mockServerSynReplyWithId:streamId last:last];
 
     // 2.1) We should not expect any protocol errors to be issued from the client.
-    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
+    XCTAssertNil(_mockDecoderDelegate.lastFrame);
 
     return stream;
 }
@@ -125,7 +125,7 @@
     synReplyFrame.streamId = streamId;
     synReplyFrame.last = last;
 
-    STAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0, nil);
+    XCTAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0);
     [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
     [_testEncoderDelegate clear];
 }
@@ -136,7 +136,7 @@
     frame.lastGoodStreamId = lastGoodStreamId;
     frame.statusCode = statusCode;
 
-    STAssertTrue([_testEncoder encodeGoAwayFrame:frame] > 0, nil);
+    XCTAssertTrue([_testEncoder encodeGoAwayFrame:frame] > 0);
     [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
     [_testEncoderDelegate clear];
 }
@@ -148,7 +148,7 @@
     frame.streamId = streamId;
     frame.last = last;
 
-    STAssertTrue([_testEncoder encodeDataFrame:frame] > 0, nil);
+    XCTAssertTrue([_testEncoder encodeDataFrame:frame] > 0);
     [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
     [_testEncoderDelegate clear];
 }
@@ -165,17 +165,17 @@
     [_session close];
 
     // Was a RST_STREAM sent?
-    STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
+    XCTAssertNotNil(_mockDecoderDelegate.lastFrame);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]]);
 
     // Was connection:didFailWithError called?
-    STAssertTrue(_mockURLProtocolClient.calledDidFailWithError, nil);
-    STAssertNotNil(_mockURLProtocolClient.lastError, nil);
+    XCTAssertTrue(_mockURLProtocolClient.calledDidFailWithError);
+    XCTAssertNotNil(_mockURLProtocolClient.lastError);
 
     // Was metadata populated for the error?
     SPDYMetadata *metadata = [SPDYProtocol metadataForError:_mockURLProtocolClient.lastError];
-    STAssertEqualObjects(metadata.version, @"3.1", nil);
-    STAssertEquals(metadata.streamId, (NSUInteger)3, nil);
+    XCTAssertEqualObjects(metadata.version, @"3.1");
+    XCTAssertEqual(metadata.streamId, (NSUInteger)3);
 }
 
 - (void)testReceivedMetadataForSingleShortRequest
@@ -183,17 +183,17 @@
     // Exchange initial SYN_STREAM and SYN_REPLY
     [self mockSynStreamAndReplyWithId:1 last:YES];
 
-    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
-    STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
-    STAssertNotNil(_mockURLProtocolClient.lastResponse, nil);
+    XCTAssertNil(_mockDecoderDelegate.lastFrame);
+    XCTAssertTrue(_mockURLProtocolClient.calledDidFinishLoading);
+    XCTAssertNotNil(_mockURLProtocolClient.lastResponse);
 
     SPDYMetadata *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
-    STAssertEqualObjects(metadata.version, @"3.1", nil);
-    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
-    STAssertTrue(metadata.rxBytes > 0, nil);
-    STAssertTrue(metadata.txBytes > 0, nil);
-    STAssertEquals(metadata.rxBodyBytes, (NSUInteger)0, nil);
-    STAssertEquals(metadata.txBodyBytes, (NSUInteger)0, nil);
+    XCTAssertEqualObjects(metadata.version, @"3.1");
+    XCTAssertEqual(metadata.streamId, (NSUInteger)1);
+    XCTAssertTrue(metadata.rxBytes > 0);
+    XCTAssertTrue(metadata.txBytes > 0);
+    XCTAssertEqual(metadata.rxBodyBytes, (NSUInteger)0);
+    XCTAssertEqual(metadata.txBodyBytes, (NSUInteger)0);
 }
 
 - (void)testReceivedMetadataForSingleShortRequestWithBody
@@ -205,24 +205,24 @@
     [self mockSynStreamAndReplyWithId:1 last:NO];
     [self mockServerDataWithId:1 data:[[NSMutableData alloc] initWithLength:2000] last:YES];
 
-    STAssertNil(_mockDecoderDelegate.lastFrame, nil);
-    STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
-    STAssertNotNil(_mockURLProtocolClient.lastResponse, nil);
+    XCTAssertNil(_mockDecoderDelegate.lastFrame);
+    XCTAssertTrue(_mockURLProtocolClient.calledDidFinishLoading);
+    XCTAssertNotNil(_mockURLProtocolClient.lastResponse);
 
     SPDYMetadata *metadata = [SPDYProtocol metadataForResponse:_mockURLProtocolClient.lastResponse];
-    STAssertEqualObjects(metadata.version, @"3.1", nil);
-    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
-    STAssertTrue(metadata.rxBytes > 2008, nil);
-    STAssertTrue(metadata.txBytes > 1008, nil);
-    STAssertEquals(metadata.rxBodyBytes, (NSUInteger)2008, nil);
-    STAssertEquals(metadata.txBodyBytes, (NSUInteger)1008, nil);
+    XCTAssertEqualObjects(metadata.version, @"3.1");
+    XCTAssertEqual(metadata.streamId, (NSUInteger)1);
+    XCTAssertTrue(metadata.rxBytes > 2008);
+    XCTAssertTrue(metadata.txBytes > 1008);
+    XCTAssertEqual(metadata.rxBodyBytes, (NSUInteger)2008);
+    XCTAssertEqual(metadata.txBodyBytes, (NSUInteger)1008);
 }
 
 - (void)testReceivedStreamTimingsMetadataForSingleShortRequest
 {
     SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
     [_session openStream:stream];
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]]);
     [_mockDecoderDelegate clear];
 
     [SPDYStopwatch sleep:1.0];
@@ -236,21 +236,21 @@
 
     // These fields aren't yet exposed externally; when they are, this code should change.
     SPDYMetadata *metadata = stream.metadata;
-    STAssertEqualObjects(metadata.version, @"3.1", nil);
-    STAssertTrue(metadata.timeSessionConnected > 0, nil);
-    STAssertTrue(metadata.timeStreamCreated >= metadata.timeSessionConnected, nil);
-    STAssertTrue(metadata.timeStreamRequestStarted >= metadata.timeStreamCreated, nil);
-    STAssertTrue(metadata.timeStreamRequestLastHeader >= metadata.timeStreamRequestStarted, nil);
-    STAssertTrue(metadata.timeStreamRequestFirstData == 0, nil);
-    STAssertTrue(metadata.timeStreamRequestLastData == 0, nil);
-    STAssertTrue(metadata.timeStreamRequestEnded >= metadata.timeStreamRequestStarted, nil);
+    XCTAssertEqualObjects(metadata.version, @"3.1");
+    XCTAssertTrue(metadata.timeSessionConnected > 0);
+    XCTAssertTrue(metadata.timeStreamCreated >= metadata.timeSessionConnected);
+    XCTAssertTrue(metadata.timeStreamRequestStarted >= metadata.timeStreamCreated);
+    XCTAssertTrue(metadata.timeStreamRequestLastHeader >= metadata.timeStreamRequestStarted);
+    XCTAssertTrue(metadata.timeStreamRequestFirstData == 0);
+    XCTAssertTrue(metadata.timeStreamRequestLastData == 0);
+    XCTAssertTrue(metadata.timeStreamRequestEnded >= metadata.timeStreamRequestStarted);
 
-    STAssertTrue(metadata.timeStreamResponseStarted >= metadata.timeStreamRequestEnded + 1.0, nil);
-    STAssertTrue(metadata.timeStreamResponseLastHeader >= metadata.timeStreamResponseStarted, nil);
-    STAssertTrue(metadata.timeStreamResponseFirstData >= metadata.timeStreamResponseLastHeader + 1.0, nil);
-    STAssertTrue(metadata.timeStreamResponseLastData >= metadata.timeStreamResponseFirstData + 1.0, nil);
-    STAssertTrue(metadata.timeStreamResponseEnded >= metadata.timeStreamResponseStarted + 2.0, nil);
-    STAssertTrue(metadata.timeStreamClosed >= metadata.timeStreamResponseEnded, nil);
+    XCTAssertTrue(metadata.timeStreamResponseStarted >= metadata.timeStreamRequestEnded + 1.0);
+    XCTAssertTrue(metadata.timeStreamResponseLastHeader >= metadata.timeStreamResponseStarted);
+    XCTAssertTrue(metadata.timeStreamResponseFirstData >= metadata.timeStreamResponseLastHeader + 1.0);
+    XCTAssertTrue(metadata.timeStreamResponseLastData >= metadata.timeStreamResponseFirstData + 1.0);
+    XCTAssertTrue(metadata.timeStreamResponseEnded >= metadata.timeStreamResponseStarted + 2.0);
+    XCTAssertTrue(metadata.timeStreamClosed >= metadata.timeStreamResponseEnded);
 }
 
 - (void)testReceiveGOAWAYAfterStreamsClosedDoesCloseSession
@@ -259,8 +259,8 @@
     [self mockSynStreamAndReplyWithId:3 last:YES];
     [self mockSynStreamAndReplyWithId:5 last:YES];
     [self mockServerGoAwayWithLastGoodId:5 statusCode:SPDY_SESSION_OK];
-    STAssertEquals(_session.load, (NSUInteger)0, nil);
-    STAssertFalse(_session.isOpen, nil);
+    XCTAssertEqual(_session.load, (NSUInteger)0);
+    XCTAssertFalse(_session.isOpen);
 }
 
 - (void)testReceiveGOAWAYWithOpenStreamsDoesNotCloseSession
@@ -269,8 +269,8 @@
     [self mockSynStreamAndReplyWithId:3 last:NO];
     [self mockSynStreamAndReplyWithId:5 last:NO];
     [self mockServerGoAwayWithLastGoodId:5 statusCode:SPDY_SESSION_OK];
-    STAssertEquals(_session.load, (NSUInteger)2, nil);
-    STAssertFalse(_session.isOpen, nil);
+    XCTAssertEqual(_session.load, (NSUInteger)2);
+    XCTAssertFalse(_session.isOpen);
 }
 
 - (void)testReceiveGOAWAYWithInFlightStreamsDoesCloseStreams
@@ -279,8 +279,8 @@
     [self mockSynStreamAndReplyWithId:3 last:NO];
     [self mockSynStreamAndReplyWithId:5 last:NO];
     [self mockServerGoAwayWithLastGoodId:1 statusCode:SPDY_SESSION_OK];
-    STAssertEquals(_session.load, (NSUInteger)0, nil);
-    STAssertFalse(_session.isOpen, nil);
+    XCTAssertEqual(_session.load, (NSUInteger)0);
+    XCTAssertFalse(_session.isOpen);
 }
 
 - (void)testReceiveGOAWAYWithInFlightStreamDoesResetStreams
@@ -289,16 +289,16 @@
 
     // Send two SYN_STREAMs only, no reply
     [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]]);
     [_mockDecoderDelegate clear];
 
     [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]]);
     [_mockDecoderDelegate clear];
 
     [self mockServerGoAwayWithLastGoodId:1 statusCode:SPDY_SESSION_OK];
-    STAssertEquals(_session.load, (NSUInteger)0, nil);
-    STAssertFalse(_session.isOpen, nil);
+    XCTAssertEqual(_session.load, (NSUInteger)0);
+    XCTAssertFalse(_session.isOpen);
 
     // TODO: verify these streams were sent back to the session manager
 }
@@ -329,27 +329,27 @@
             // 1.) Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
             // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
             [_session openStream:[[SPDYStream alloc] initWithProtocol:protocolRequest]];
-            STAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]], nil);
-            STAssertTrue([_mockDecoderDelegate.framesReceived[1] isKindOfClass:[SPDYDataFrame class]], nil);
-            STAssertTrue(((SPDYDataFrame *)_mockDecoderDelegate.framesReceived[1]).last, nil);
-            STAssertNotNil(socketMock_lastWriteOp, nil);
-            STAssertEquals(socketMock_lastWriteOp->_buffer.length, data.length, nil);
+            XCTAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]]);
+            XCTAssertTrue([_mockDecoderDelegate.framesReceived[1] isKindOfClass:[SPDYDataFrame class]]);
+            XCTAssertTrue(((SPDYDataFrame *)_mockDecoderDelegate.framesReceived[1]).last);
+            XCTAssertNotNil(socketMock_lastWriteOp);
+            XCTAssertEqual(socketMock_lastWriteOp->_buffer.length, data.length);
             [_mockDecoderDelegate clear];
 
             // 1 active stream
-            STAssertEquals(_session.load, (NSUInteger)1, nil);
+            XCTAssertEqual(_session.load, (NSUInteger)1);
 
             // 2.) Simulate a server Tx stream SYN reply
-            STAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0, nil);
+            XCTAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0);
             [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
             [_testEncoderDelegate clear];
 
             // 2.1) We should not expect any protocol errors to be issued from the client.
-            STAssertNil(_mockDecoderDelegate.lastFrame, nil);
+            XCTAssertNil(_mockDecoderDelegate.lastFrame);
 
             // Ensure completion callback (our custom one) was called to verify request is actually
             // finished.
-            STAssertTrue(_mockURLProtocolClient.calledDidFinishLoading, nil);
+            XCTAssertTrue(_mockURLProtocolClient.calledDidFinishLoading);
 
             // At this point, socketMock_lastWriteOp is holding a pointer to our data. That simulates
             // what happens deep inside SPDYSocket if, for instance, other operations are queued
@@ -358,28 +358,28 @@
             // is still in progress and the stream goes away.
 
             // No more active streams
-            STAssertEquals(_session.load, (NSUInteger)0, nil);
+            XCTAssertEqual(_session.load, (NSUInteger)0);
 
             // Need to test that the write op's buffered data isn't our data pointer, since it is
             // about to go away. I'd like to do that without crashing the unit test, so we'll
             // mutate the original buffer and verify our hypothesis after releasing the request.
             // Lots of sanity checks here on out.
-            STAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 1, nil);
+            XCTAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 1);
             ((uint8_t *)data.bytes)[0] = 2;
-            STAssertTrue(((uint8_t *)weakData.bytes)[0] == 2, nil);
+            XCTAssertTrue(((uint8_t *)weakData.bytes)[0] == 2);
         }  // <<< this releases the request
 
-        STAssertNotNil(socketMock_lastWriteOp, nil);  // sanity
+        XCTAssertNotNil(socketMock_lastWriteOp);  // sanity
         if (weakData == nil) {
             // Buffer expected to have been copied since original is released. Data should be
             // original non-mutated value.
-            STAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 1,
+            XCTAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 1,
                     @"socket still references original buffer which has been released");
         } else {
             // Buffer expected to have been retained by the socket since the original has not been
             // released yet. It would be dumb to retain it but still make a data copy, so let's
             // verify the socket's buffer still points to the original which was mutated.
-            STAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 2,
+            XCTAssertTrue(((uint8_t *)socketMock_lastWriteOp->_buffer.bytes)[0] == 2,
                     @"socket should still point to the original buffer which has not been released yet");
         }
 
@@ -388,7 +388,7 @@
     }  // <<< this releases the "queued" write
 
     // And verify original buffer is now gone
-    STAssertNil(weakData, nil);
+    XCTAssertNil(weakData);
 }
 
 - (void)testCancelStreamDoesSendResetAndCloseStream
@@ -399,14 +399,14 @@
         weakStream = stream;
         [stream cancel];
 
-        STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
-        STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
-        STAssertEquals(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_CANCEL, nil);
-        STAssertTrue(_session.isOpen, nil);
-        STAssertEquals(_session.load, (NSUInteger)0, nil);
+        XCTAssertNotNil(_mockDecoderDelegate.lastFrame);
+        XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]]);
+        XCTAssertEqual(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_CANCEL);
+        XCTAssertTrue(_session.isOpen);
+        XCTAssertEqual(_session.load, (NSUInteger)0);
     }
     // Ensure stream was released as well
-    STAssertNil(weakStream, nil);
+    XCTAssertNil(weakStream);
 }
 
 - (void)testReceiveDATABeforeSYNREPLYDoesResetAndCloseStream
@@ -415,18 +415,18 @@
 
     // Send a SYN_STREAM, no reply
     [_session openStream:[[SPDYStream alloc] initWithProtocol:[self createProtocol]]];
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]]);
     [_mockDecoderDelegate clear];
 
     // Reply with DATA
     [self mockServerDataWithId:1 data:data last:NO];
 
     // Ensure RST_STREAM was sent
-    STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
-    STAssertEquals(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_PROTOCOL_ERROR, nil);
-    STAssertTrue(_session.isOpen, nil);
-    STAssertEquals(_session.load, (NSUInteger)0, nil);
+    XCTAssertNotNil(_mockDecoderDelegate.lastFrame);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]]);
+    XCTAssertEqual(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_PROTOCOL_ERROR);
+    XCTAssertTrue(_session.isOpen);
+    XCTAssertEqual(_session.load, (NSUInteger)0);
 }
 
 - (void)testReceiveMultipleSYNREPLYDoesResetAndCloseStream
@@ -435,11 +435,11 @@
     [self mockServerSynReplyWithId:1 last:NO];
 
     // Ensure RST_STREAM was sent
-    STAssertNotNil(_mockDecoderDelegate.lastFrame, nil);
-    STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]], nil);
-    STAssertEquals(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_STREAM_IN_USE, nil);
-    STAssertTrue(_session.isOpen, nil);
-    STAssertEquals(_session.load, (NSUInteger)0, nil);
+    XCTAssertNotNil(_mockDecoderDelegate.lastFrame);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]]);
+    XCTAssertEqual(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_STREAM_IN_USE);
+    XCTAssertTrue(_session.isOpen);
+    XCTAssertEqual(_session.load, (NSUInteger)0);
 }
 
 - (void)testMergeHeadersWithLocationAnd200DoesRedirect
@@ -460,19 +460,19 @@
     NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked/newpath"];
 
     [stream didReceiveResponse:headers];
-    STAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest, nil);
+    XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
-    STAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString, nil);
-    STAssertEqualObjects(redirectRequest.URL, redirectUrl, nil);
-    STAssertEquals(redirectRequest.SPDYPriority, (NSUInteger)3, nil);
-    STAssertEqualObjects(redirectRequest.HTTPMethod, @"POST", nil);
-    STAssertEqualObjects(redirectRequest.SPDYBodyFile, @"bodyfile.txt", nil);
-    STAssertEquals(redirectRequest.SPDYDeferrableInterval, 1.0, nil);
-    STAssertEqualObjects(redirectRequest.allSPDYHeaderFields[@"content-length"], @"50", nil);
-    STAssertNotNil(redirectRequest.allSPDYHeaderFields[@"content-type"], nil);
+    XCTAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString);
+    XCTAssertEqualObjects(redirectRequest.URL, redirectUrl);
+    XCTAssertEqual(redirectRequest.SPDYPriority, (NSUInteger)3);
+    XCTAssertEqualObjects(redirectRequest.HTTPMethod, @"POST");
+    XCTAssertEqualObjects(redirectRequest.SPDYBodyFile, @"bodyfile.txt");
+    XCTAssertEqual(redirectRequest.SPDYDeferrableInterval, 1.0);
+    XCTAssertEqualObjects(redirectRequest.allSPDYHeaderFields[@"content-length"], @"50");
+    XCTAssertNotNil(redirectRequest.allSPDYHeaderFields[@"content-type"]);
 
-    STAssertEqualObjects(((NSHTTPURLResponse *)_mockURLProtocolClient.lastRedirectResponse).allHeaderFields[@"Header1"], @"Value1", nil);
+    XCTAssertEqualObjects(((NSHTTPURLResponse *)_mockURLProtocolClient.lastRedirectResponse).allHeaderFields[@"Header1"], @"Value1");
 }
 
 - (void)testMergeHeadersWithLocationAnd302DoesRedirectToGET
@@ -491,16 +491,16 @@
     NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked2/newpath"];
 
     [stream didReceiveResponse:headers];
-    STAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest, nil);
+    XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
-    STAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString, nil);
-    STAssertEqualObjects(redirectRequest.URL, redirectUrl, nil);
-    STAssertEqualObjects(redirectRequest.HTTPMethod, @"GET", @"expect GET after 302");  // 302 generally means GET
-    STAssertNil(redirectRequest.SPDYBodyFile, nil);
-    STAssertNil(redirectRequest.HTTPBodyStream, nil);
-    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-length"], nil);
-    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-type"], nil);
+    XCTAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString);
+    XCTAssertEqualObjects(redirectRequest.URL, redirectUrl);
+    XCTAssertEqualObjects(redirectRequest.HTTPMethod, @"GET", @"expect GET after 302");  // 302 generally means GET
+    XCTAssertNil(redirectRequest.SPDYBodyFile);
+    XCTAssertNil(redirectRequest.HTTPBodyStream);
+    XCTAssertNil(redirectRequest.allSPDYHeaderFields[@"content-length"]);
+    XCTAssertNil(redirectRequest.allSPDYHeaderFields[@"content-type"]);
 }
 
 - (void)testMergeHeadersWithLocationAnd303DoesRedirectToGET
@@ -518,37 +518,37 @@
     NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked/newpath?param=value&foo=1"];
 
     [stream didReceiveResponse:headers];
-    STAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest, nil);
+    XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     NSURLRequest *redirectRequest = _mockURLProtocolClient.lastRedirectedRequest;
-    STAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString, nil);
-    STAssertEqualObjects(redirectRequest.URL, redirectUrl, nil);
-    STAssertEqualObjects(redirectRequest.HTTPMethod, @"GET", @"expect GET after 303");  // 303 means GET
-    STAssertNil(redirectRequest.SPDYBodyFile, nil);
-    STAssertNil(redirectRequest.HTTPBodyStream, nil);
-    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-length"], nil);
-    STAssertNil(redirectRequest.allSPDYHeaderFields[@"content-type"], nil);
+    XCTAssertEqualObjects(redirectRequest.URL.absoluteString, redirectUrl.absoluteString);
+    XCTAssertEqualObjects(redirectRequest.URL, redirectUrl);
+    XCTAssertEqualObjects(redirectRequest.HTTPMethod, @"GET", @"expect GET after 303");  // 303 means GET
+    XCTAssertNil(redirectRequest.SPDYBodyFile);
+    XCTAssertNil(redirectRequest.HTTPBodyStream);
+    XCTAssertNil(redirectRequest.allSPDYHeaderFields[@"content-length"]);
+    XCTAssertNil(redirectRequest.allSPDYHeaderFields[@"content-type"]);
 }
 
 - (void)testNetworkChangesWhenSocketConnectsDoesUpdateActiveStreamMetadata
 {
     // Queue stream to session (set to WIFI)
     SPDYStream *stream = [self mockSynStreamAndReplyWithId:1 last:NO];
-    STAssertTrue(_session.isOpen, nil);
-    STAssertFalse(stream.closed, nil);
+    XCTAssertTrue(_session.isOpen);
+    XCTAssertFalse(stream.closed);
 
     SPDYMetadata *metadata = [stream metadata];
-    STAssertFalse(metadata.cellular, nil);
+    XCTAssertFalse(metadata.cellular);
 
     // Then force socket connection on different network.
     [_session.socket setCellular:YES];
     [_session.socket performDelegateCall_socketDidConnectToHost:_origin.host port:_origin.port];
 
-    STAssertTrue(_session.isOpen, nil);
-    STAssertFalse(stream.closed, nil);
+    XCTAssertTrue(_session.isOpen);
+    XCTAssertFalse(stream.closed);
 
     metadata = [stream metadata];
-    STAssertTrue(metadata.cellular, nil);
+    XCTAssertTrue(metadata.cellular);
 }
 
 @end

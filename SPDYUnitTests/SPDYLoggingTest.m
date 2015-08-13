@@ -9,7 +9,7 @@
 //  Created by Kevin Goodier.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYCommonLogger.h"
 #import "SPDYProtocol.h"
 
@@ -18,7 +18,7 @@
 @property (nonatomic) BOOL abortOnFailure;
 @end
 
-@interface SPDYLoggingTest : SenTestCase <SPDYLogger>
+@interface SPDYLoggingTest : XCTestCase <SPDYLogger>
 @end
 
 @implementation SPDYLoggingTest
@@ -68,7 +68,7 @@
             SPDY_ERROR(@"error %d", 1);
             break;
         case SPDYLogLevelDisabled:
-            STAssertTrue(NO, @"not a valid log level");
+            XCTAssertTrue(NO, @"not a valid log level");
             break;
     }
 
@@ -80,20 +80,20 @@
 
     switch (level) {
         case SPDYLogLevelDebug:
-            STAssertEqualObjects(_lastMessage, @"debug 1", nil);
-            STAssertEquals(_lastLevel, SPDYLogLevelDebug, nil);
+            XCTAssertEqualObjects(_lastMessage, @"debug 1");
+            XCTAssertEqual(_lastLevel, SPDYLogLevelDebug);
             break;
         case SPDYLogLevelInfo:
-            STAssertEqualObjects(_lastMessage, @"info 1", nil);
-            STAssertEquals(_lastLevel, SPDYLogLevelInfo, nil);
+            XCTAssertEqualObjects(_lastMessage, @"info 1");
+            XCTAssertEqual(_lastLevel, SPDYLogLevelInfo);
             break;
         case SPDYLogLevelWarning:
-            STAssertEqualObjects(_lastMessage, @"warning 1", nil);
-            STAssertEquals(_lastLevel, SPDYLogLevelWarning, nil);
+            XCTAssertEqualObjects(_lastMessage, @"warning 1");
+            XCTAssertEqual(_lastLevel, SPDYLogLevelWarning);
             break;
         case SPDYLogLevelError:
-            STAssertEqualObjects(_lastMessage, @"error 1", nil);
-            STAssertEquals(_lastLevel, SPDYLogLevelError, nil);
+            XCTAssertEqualObjects(_lastMessage, @"error 1");
+            XCTAssertEqual(_lastLevel, SPDYLogLevelError);
             break;
         case SPDYLogLevelDisabled:
             break;
@@ -107,14 +107,14 @@
     [SPDYProtocol setLogger:self];
     [SPDYProtocol setLoggerLevel:SPDYLogLevelDebug];
 
-    STAssertEquals([SPDYProtocol currentLogger], self, nil);
-    STAssertEquals([SPDYProtocol currentLoggerLevel], SPDYLogLevelDebug, nil);
+    XCTAssertEqual([SPDYProtocol currentLogger], self);
+    XCTAssertEqual([SPDYProtocol currentLoggerLevel], SPDYLogLevelDebug);
 
     [SPDYProtocol setLogger:nil];
     [SPDYProtocol setLoggerLevel:SPDYLogLevelDisabled];
 
-    STAssertNil([SPDYProtocol currentLogger], nil);
-    STAssertEquals([SPDYProtocol currentLoggerLevel], SPDYLogLevelDisabled, nil);
+    XCTAssertNil([SPDYProtocol currentLogger]);
+    XCTAssertEqual([SPDYProtocol currentLoggerLevel], SPDYLogLevelDisabled);
 }
 
 - (void)testLoggingAtDebugLevel
@@ -178,16 +178,16 @@
     [SPDYProtocol setLoggerLevel:SPDYLogLevelError];
 
     SPDY_DEBUG(@"debug %d", 1);
-    STAssertNil(_lastMessage,  nil);
+    XCTAssertNil(_lastMessage);
 
     SPDY_INFO(@"info %d", 1);
-    STAssertNil(_lastMessage,  nil);
+    XCTAssertNil(_lastMessage);
 
     SPDY_WARNING(@"warning %d", 1);
-    STAssertNil(_lastMessage,  nil);
+    XCTAssertNil(_lastMessage);
 
     SPDY_ERROR(@"error %d", 1);
-    STAssertNil(_lastMessage,  nil);
+    XCTAssertNil(_lastMessage);
 }
 
 - (void)testAssertionHandler
@@ -201,14 +201,14 @@
     [NSThread currentThread].threadDictionary[NSAssertionHandlerKey] = assertionHandler;
 
     NSAssert(NO, @"test failing method");
-    STAssertNotNil(_lastMessage, nil);
-    STAssertEquals(_lastLevel, SPDYLogLevelError, nil);
+    XCTAssertNotNil(_lastMessage);
+    XCTAssertEqual(_lastLevel, SPDYLogLevelError);
 
     _lastMessage = nil;
     _lastLevel = nil;
     NSCAssert(NO, @"test failing function");
-    STAssertNotNil(_lastMessage, nil);
-    STAssertEquals(_lastLevel, SPDYLogLevelError, nil);
+    XCTAssertNotNil(_lastMessage);
+    XCTAssertEqual(_lastLevel, SPDYLogLevelError);
 
     // All done
     [[NSThread currentThread].threadDictionary removeObjectForKey:NSAssertionHandlerKey];

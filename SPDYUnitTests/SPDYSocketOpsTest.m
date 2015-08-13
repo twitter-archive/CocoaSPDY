@@ -9,11 +9,11 @@
 //  Created by Kevin Goodier
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYSocketOps.h"
 #import "SPDYOrigin.h"
 
-@interface SPDYSocketOpsTest : SenTestCase
+@interface SPDYSocketOpsTest : XCTestCase
 @end
 
 @implementation SPDYSocketOpsTest
@@ -25,10 +25,10 @@
     SPDYSocketProxyWriteOp *op = [[SPDYSocketProxyWriteOp alloc] initWithOrigin:origin timeout:(NSTimeInterval)-1];
 
     NSLog(@"%@", op);  // ensure no crash in description
-    STAssertTrue(op->_buffer.length > 0, nil);
+    XCTAssertTrue(op->_buffer.length > 0);
 
     NSString *httpConnect = [[NSString alloc] initWithData:op->_buffer encoding:NSUTF8StringEncoding];
-    STAssertTrue([httpConnect hasPrefix:@"CONNECT twitter.com:443 HTTP/1.1\r\nHost: twitter.com:443\r\n"], @"actual: %@", httpConnect);
+    XCTAssertTrue([httpConnect hasPrefix:@"CONNECT twitter.com:443 HTTP/1.1\r\nHost: twitter.com:443\r\n"], @"actual: %@", httpConnect);
 }
 
 - (void)testProxyReadOpInit
@@ -36,8 +36,8 @@
     SPDYSocketProxyReadOp *op = [[SPDYSocketProxyReadOp alloc] initWithTimeout:(NSTimeInterval)-1];
 
     NSLog(@"%@", op);  // ensure no crash in description
-    STAssertFalse([op tryParseResponse], nil);
-    STAssertFalse([op success], nil);
+    XCTAssertFalse([op tryParseResponse]);
+    XCTAssertFalse([op success]);
 }
 
 - (void)testProxyReadIncompleteTryParseFails
@@ -50,7 +50,7 @@
     // Run through all possible substring of a valid response
     for (NSUInteger i = 0; i < responseData.length - 1; i++) {
         op->_bytesRead = i;
-        STAssertFalse([op tryParseResponse], @"failed at length %@ of %@", i, responseData.length);
+        XCTAssertFalse([op tryParseResponse], @"failed at length %@ of %@", i, responseData.length);
     }
 
     op->_bytesRead = responseData.length;
@@ -83,7 +83,7 @@
         NSData *responseData = [responseStr dataUsingEncoding:NSUTF8StringEncoding];
         [op->_buffer setData:responseData];
         op->_bytesRead = responseData.length;
-        STAssertFalse([op tryParseResponse], @"response: %@", responseStr);
+        XCTAssertFalse([op tryParseResponse], @"response: %@", responseStr);
     }
 }
 
@@ -111,9 +111,9 @@
         NSData *responseData = [responseStr dataUsingEncoding:NSUTF8StringEncoding];
         [op->_buffer setData:responseData];
         op->_bytesRead = responseData.length;
-        STAssertTrue([op tryParseResponse], @"response: %@", responseStr);
-        STAssertEquals(op->_bytesParsed, responseData.length, nil);
-        STAssertFalse([op success], @"response: %@", responseStr);
+        XCTAssertTrue([op tryParseResponse], @"response: %@", responseStr);
+        XCTAssertEqual(op->_bytesParsed, responseData.length);
+        XCTAssertFalse([op success], @"response: %@", responseStr);
     }
 }
 - (void)testProxyReadSuccessSucceeds
@@ -136,9 +136,9 @@
         NSData *responseData = [responseStr dataUsingEncoding:NSUTF8StringEncoding];
         [op->_buffer setData:responseData];
         op->_bytesRead = responseData.length;
-        STAssertTrue([op tryParseResponse], @"response: %@", responseStr);
-        STAssertEquals(op->_bytesParsed, responseData.length, nil);
-        STAssertTrue([op success], @"response: %@", responseStr);
+        XCTAssertTrue([op tryParseResponse], @"response: %@", responseStr);
+        XCTAssertEqual(op->_bytesParsed, responseData.length);
+        XCTAssertTrue([op success], @"response: %@", responseStr);
     }
 }
 
@@ -152,8 +152,8 @@
     [op->_buffer setData:responseData];
     op->_bytesRead = responseData.length;
 
-    STAssertFalse([op tryParseResponse], @"response: %@", responseStr);
-    STAssertFalse([op success], @"response: %@", responseStr);
+    XCTAssertFalse([op tryParseResponse], @"response: %@", responseStr);
+    XCTAssertFalse([op success], @"response: %@", responseStr);
 }
 
 @end

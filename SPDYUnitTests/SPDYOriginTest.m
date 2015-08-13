@@ -9,10 +9,10 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYOrigin.h"
 
-@interface SPDYOriginTest : SenTestCase
+@interface SPDYOriginTest : XCTestCase
 @end
 
 @implementation SPDYOriginTest
@@ -26,52 +26,52 @@
 
     originStr = @"http://twitter.com";
     o1 = [[SPDYOrigin alloc] initWithString:originStr error:&error];
-    STAssertTrue(error == nil, nil);
+    XCTAssertTrue(error == nil);
 
     url = [[NSURL alloc] initWithString:originStr];
     o2 = [[SPDYOrigin alloc] initWithURL:url error:&error];
-    STAssertTrue(error == nil, nil);
+    XCTAssertTrue(error == nil);
 
     o3 = [[SPDYOrigin alloc] initWithScheme:@"http"
                                        host:@"twitter.com"
                                        port:0
                                       error:&error];
-    STAssertTrue(error == nil, nil);
+    XCTAssertTrue(error == nil);
 
     originStr = @"http://twitter.com:80";
     o4 = [[SPDYOrigin alloc] initWithString:originStr error:&error];
-    STAssertTrue(error == nil, nil);
+    XCTAssertTrue(error == nil);
 
     url = [[NSURL alloc] initWithString:originStr];
     o5 = [[SPDYOrigin alloc] initWithURL:url error:&error];
-    STAssertTrue(error == nil, nil);
+    XCTAssertTrue(error == nil);
 
     o6 = [[SPDYOrigin alloc] initWithScheme:@"http"
                                        host:@"twitter.com"
                                        port:80
                                       error:&error];
-    STAssertTrue(error == nil, nil);
+    XCTAssertTrue(error == nil);
 
     o7 = [o6 copy];
 
-    STAssertTrue([o1 isEqual:o2], nil);
-    STAssertTrue([o1 hash] == [o2 hash], nil);
+    XCTAssertTrue([o1 isEqual:o2]);
+    XCTAssertTrue([o1 hash] == [o2 hash]);
 
-    STAssertTrue([o2 isEqual:o3], nil);
-    STAssertTrue([o2 hash] == [o3 hash], nil);
+    XCTAssertTrue([o2 isEqual:o3]);
+    XCTAssertTrue([o2 hash] == [o3 hash]);
 
-    STAssertTrue([o3 isEqual:o4], nil);
-    STAssertTrue([o3 hash] == [o4 hash], nil);
+    XCTAssertTrue([o3 isEqual:o4]);
+    XCTAssertTrue([o3 hash] == [o4 hash]);
 
-    STAssertTrue([o4 isEqual:o5], nil);
-    STAssertTrue([o4 hash] == [o5 hash], nil);
+    XCTAssertTrue([o4 isEqual:o5]);
+    XCTAssertTrue([o4 hash] == [o5 hash]);
 
-    STAssertTrue([o5 isEqual:o6], nil);
-    STAssertTrue([o5 hash] == [o6 hash], nil);
+    XCTAssertTrue([o5 isEqual:o6]);
+    XCTAssertTrue([o5 hash] == [o6 hash]);
 
-    STAssertFalse(o6 == o7, nil);
-    STAssertTrue([o6 isEqual:o7], nil);
-    STAssertTrue([o6 hash] == [o7 hash], nil);
+    XCTAssertFalse(o6 == o7);
+    XCTAssertTrue([o6 isEqual:o7]);
+    XCTAssertTrue([o6 hash] == [o7 hash]);
 }
 
 - (void)testInitWithInvalidOrigins
@@ -88,8 +88,8 @@
     for (NSString *originStr in badOrigins) {
         error = nil;
         origin = [[SPDYOrigin alloc] initWithString:originStr error:&error];
-        STAssertTrue(error != nil, nil);
-        STAssertTrue(origin == nil, nil);
+        XCTAssertTrue(error != nil);
+        XCTAssertTrue(origin == nil);
     }
 }
 
@@ -103,18 +103,18 @@
                                                        port:80
                                                       error:nil];
 
-    STAssertTrue([origin.scheme isEqualToString:scheme], nil);
-    STAssertTrue([origin.host isEqualToString:host], nil);
+    XCTAssertTrue([origin.scheme isEqualToString:scheme]);
+    XCTAssertTrue([origin.host isEqualToString:host]);
     NSUInteger hash1 = [origin hash];
 
     [scheme appendString:@"s"];
     [host appendString:@".jp"];
     NSUInteger hash2 = [origin hash];
 
-    STAssertFalse([origin.scheme isEqualToString:scheme], nil);
-    STAssertFalse([origin.host isEqualToString:host], nil);
+    XCTAssertFalse([origin.scheme isEqualToString:scheme]);
+    XCTAssertFalse([origin.host isEqualToString:host]);
 
-    STAssertTrue(hash1 == hash2, nil);
+    XCTAssertTrue(hash1 == hash2);
 }
 
 @end

@@ -9,13 +9,13 @@
 //  Created by Kevin Goodier.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import <Foundation/Foundation.h>
 #import "SPDYSettingsStore.h"
 #import "SPDYOrigin.h"
 #import "SPDYDefinitions.h"
 
-@interface SPDYSettingsStoreTest : SenTestCase
+@interface SPDYSettingsStoreTest : XCTestCase
 @end
 
 @implementation SPDYSettingsStoreTest
@@ -53,7 +53,7 @@
 
     SPDYSettings *persistedSettings;
     persistedSettings = [SPDYSettingsStore settingsForOrigin:origin2];  // invalid origin
-    STAssertTrue(persistedSettings == NULL, nil);
+    XCTAssertTrue(persistedSettings == NULL);
 }
 
 - (void)testSettingsForOrigin
@@ -67,15 +67,15 @@
 
     SPDYSettings *persistedSettings;
     persistedSettings = [SPDYSettingsStore settingsForOrigin:origin];
-    STAssertTrue(persistedSettings != NULL, nil);
+    XCTAssertTrue(persistedSettings != NULL);
 
-    STAssertTrue(persistedSettings[SPDY_SETTINGS_DOWNLOAD_BANDWIDTH].set, nil);
-    STAssertTrue(persistedSettings[SPDY_SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE].set, nil);
-    STAssertFalse(persistedSettings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set, nil);
-    STAssertFalse(persistedSettings[SPDY_SETTINGS_ROUND_TRIP_TIME].set, nil);
+    XCTAssertTrue(persistedSettings[SPDY_SETTINGS_DOWNLOAD_BANDWIDTH].set);
+    XCTAssertTrue(persistedSettings[SPDY_SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE].set);
+    XCTAssertFalse(persistedSettings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set);
+    XCTAssertFalse(persistedSettings[SPDY_SETTINGS_ROUND_TRIP_TIME].set);
 
-    STAssertEquals(persistedSettings[SPDY_SETTINGS_DOWNLOAD_BANDWIDTH].value, 1, nil);
-    STAssertEquals(persistedSettings[SPDY_SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE].value, 2, nil);
+    XCTAssertEqual(persistedSettings[SPDY_SETTINGS_DOWNLOAD_BANDWIDTH].value, 1);
+    XCTAssertEqual(persistedSettings[SPDY_SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE].value, 2);
 }
 
 - (void)testClearSettings
@@ -90,12 +90,12 @@
 
     SPDYSettings *persistedSettings;
     persistedSettings = [SPDYSettingsStore settingsForOrigin:origin];
-    STAssertTrue(persistedSettings != NULL, nil);
+    XCTAssertTrue(persistedSettings != NULL);
 
-    STAssertFalse(persistedSettings[SPDY_SETTINGS_DOWNLOAD_BANDWIDTH].set, nil);
-    STAssertFalse(persistedSettings[SPDY_SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE].set, nil);
-    STAssertFalse(persistedSettings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set, nil);
-    STAssertFalse(persistedSettings[SPDY_SETTINGS_ROUND_TRIP_TIME].set, nil);
+    XCTAssertFalse(persistedSettings[SPDY_SETTINGS_DOWNLOAD_BANDWIDTH].set);
+    XCTAssertFalse(persistedSettings[SPDY_SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE].set);
+    XCTAssertFalse(persistedSettings[SPDY_SETTINGS_MAX_CONCURRENT_STREAMS].set);
+    XCTAssertFalse(persistedSettings[SPDY_SETTINGS_ROUND_TRIP_TIME].set);
 }
 
 - (void)testClearSettingsWhenNonePersisted
@@ -106,7 +106,7 @@
 
     SPDYSettings *persistedSettings;
     persistedSettings = [SPDYSettingsStore settingsForOrigin:origin];
-    STAssertTrue(persistedSettings == NULL, nil);
+    XCTAssertTrue(persistedSettings == NULL);
 }
 
 @end

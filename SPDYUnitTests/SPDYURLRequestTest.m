@@ -9,12 +9,12 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCanonicalRequest.h"
 #import "SPDYProtocol.h"
 
-@interface SPDYURLRequestTest : SenTestCase
+@interface SPDYURLRequestTest : XCTestCase
 @end
 
 @implementation SPDYURLRequestTest
@@ -50,13 +50,13 @@
     [request addValue:@"TestValue2" forHTTPHeaderField:@"TestHeader"];
 
     NSDictionary *headers = [request allSPDYHeaderFields];
-    STAssertEqualObjects(headers[@":method"], @"GET", nil);
-    STAssertEqualObjects(headers[@":path"], @"/test/path", nil);
-    STAssertEqualObjects(headers[@":version"], @"HTTP/1.1", nil);
-    STAssertEqualObjects(headers[@":host"], @"example.com", nil);
-    STAssertEqualObjects(headers[@":scheme"], @"http", nil);
-    STAssertEqualObjects(headers[@"testheader"], @"TestValue1,TestValue2", nil);
-    STAssertNil(headers[@"content-type"], nil);  // not present by default for GET
+    XCTAssertEqualObjects(headers[@":method"], @"GET");
+    XCTAssertEqualObjects(headers[@":path"], @"/test/path");
+    XCTAssertEqualObjects(headers[@":version"], @"HTTP/1.1");
+    XCTAssertEqualObjects(headers[@":host"], @"example.com");
+    XCTAssertEqualObjects(headers[@":scheme"], @"http");
+    XCTAssertEqualObjects(headers[@"testheader"], @"TestValue1,TestValue2");
+    XCTAssertNil(headers[@"content-type"]);  // not present by default for GET
 }
 
 - (void)testReservedHeaderOverrides
@@ -71,11 +71,11 @@
     [request setValue:@"ftp" forHTTPHeaderField:@"scheme"];
 
     NSDictionary *headers = [request allSPDYHeaderFields];
-    STAssertEqualObjects(headers[@":method"], @"HEAD", nil);
-    STAssertEqualObjects(headers[@":path"], @"/test/path/override", nil);
-    STAssertEqualObjects(headers[@":version"], @"HTTP/1.0", nil);
-    STAssertEqualObjects(headers[@":host"], @"override.example.com", nil);
-    STAssertEqualObjects(headers[@":scheme"], @"ftp", nil);
+    XCTAssertEqualObjects(headers[@":method"], @"HEAD");
+    XCTAssertEqualObjects(headers[@":path"], @"/test/path/override");
+    XCTAssertEqualObjects(headers[@":version"], @"HTTP/1.0");
+    XCTAssertEqualObjects(headers[@":host"], @"override.example.com");
+    XCTAssertEqualObjects(headers[@":scheme"], @"ftp");
 }
 
 - (void)testInvalidHeaderKeys
@@ -89,10 +89,10 @@
     [request setValue:@"none" forHTTPHeaderField:@"Transfer-Encoding"];
 
     NSDictionary *headers = [request allSPDYHeaderFields];
-    STAssertNil(headers[@"connection"], nil);
-    STAssertNil(headers[@"keep-alive"], nil);
-    STAssertNil(headers[@"proxy-connection"], nil);
-    STAssertNil(headers[@"transfer-encoding"], nil);
+    XCTAssertNil(headers[@"connection"]);
+    XCTAssertNil(headers[@"keep-alive"]);
+    XCTAssertNil(headers[@"proxy-connection"]);
+    XCTAssertNil(headers[@"transfer-encoding"]);
 }
 
 - (void)testContentTypeHeaderDefaultForPost
@@ -102,8 +102,8 @@
     [request setSPDYBodyFile:@"bodyfile.json"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@":method"], @"POST", nil);
-    STAssertEqualObjects(headers[@"content-type"], @"application/x-www-form-urlencoded", nil);
+    XCTAssertEqualObjects(headers[@":method"], @"POST");
+    XCTAssertEqualObjects(headers[@"content-type"], @"application/x-www-form-urlencoded");
 }
 
 - (void)testContentTypeHeaderCustomForPost
@@ -114,8 +114,8 @@
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@":method"], @"POST", nil);
-    STAssertEqualObjects(headers[@"content-type"], @"application/json", nil);
+    XCTAssertEqualObjects(headers[@":method"], @"POST");
+    XCTAssertEqualObjects(headers[@"content-type"], @"application/json");
 }
 
 - (void)testContentLengthHeaderDefaultForPostWithHTTPBody
@@ -125,7 +125,7 @@
     [request setHTTPBody:data];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
+    XCTAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue]);
 }
 
 - (void)testContentLengthHeaderDefaultForPostWithInvalidSPDYBodyFile
@@ -135,7 +135,7 @@
     [request setSPDYBodyFile:@"doesnotexist.json"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], @"0", nil);
+    XCTAssertEqualObjects(headers[@"content-length"], @"0");
 }
 
 - (void)testContentLengthHeaderDefaultForPostWithSPDYBodyStream
@@ -147,7 +147,7 @@
     [request setSPDYBodyStream:dataStream];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], nil, nil);
+    XCTAssertEqualObjects(headers[@"content-length"], nil);
 }
 
 - (void)testContentLengthHeaderCustomForPostWithSPDYBodyStream
@@ -160,7 +160,7 @@
     [request setValue:@"12" forHTTPHeaderField:@"Content-Length"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], @"12", nil);
+    XCTAssertEqualObjects(headers[@"content-length"], @"12");
 }
 
 - (void)testContentLengthHeaderCustomForPostWithHTTPBody
@@ -171,7 +171,7 @@
     [request setValue:@"1" forHTTPHeaderField:@"Content-Length"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], @"1", nil);
+    XCTAssertEqualObjects(headers[@"content-length"], @"1");
 }
 
 - (void)testContentLengthHeaderDefaultForPutWithHTTPBody
@@ -181,7 +181,7 @@
     [request setHTTPBody:data];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
+    XCTAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue]);
 }
 
 - (void)testContentLengthHeaderDefaultForGet
@@ -190,7 +190,7 @@
     NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"GET"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], nil, nil);
+    XCTAssertEqualObjects(headers[@"content-length"], nil);
 }
 
 - (void)testContentLengthHeaderDefaultForGetWithHTTPBody
@@ -201,7 +201,7 @@
     [request setHTTPBody:data];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue], nil);
+    XCTAssertEqualObjects(headers[@"content-length"], [@(data.length) stringValue]);
 }
 
 - (void)testAcceptEncodingHeaderDefault
@@ -209,7 +209,7 @@
     NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com/test/path" method:@"GET"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"accept-encoding"], @"gzip, deflate", nil);
+    XCTAssertEqualObjects(headers[@"accept-encoding"], @"gzip, deflate");
 }
 
 - (void)testAcceptEncodingHeaderCustom
@@ -218,31 +218,31 @@
     [request setValue:@"bogus" forHTTPHeaderField:@"Accept-Encoding"];
 
     NSDictionary *headers = [self headersForRequest:request];
-    STAssertEqualObjects(headers[@"accept-encoding"], @"bogus", nil);
+    XCTAssertEqualObjects(headers[@"accept-encoding"], @"bogus");
 }
 
 - (void)testPathHeaderWithQueryString
 {
     NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path?param1=value1&param2=value2"];
-    STAssertEqualObjects(headers[@":path"], @"/test/path?param1=value1&param2=value2", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/test/path?param1=value1&param2=value2");
 }
 
 - (void)testPathHeaderWithQueryStringAndFragment
 {
     NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path?param1=value1&param2=value2#fraggles"];
-    STAssertEqualObjects(headers[@":path"], @"/test/path?param1=value1&param2=value2#fraggles", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/test/path?param1=value1&param2=value2#fraggles");
 }
 
 - (void)testPathHeaderWithQueryStringAndFragmentInMixedCase
 {
     NSDictionary *headers = [self headersForUrl:@"http://example.com/Test/Path?Param1=Value1#Fraggles"];
-    STAssertEqualObjects(headers[@":path"], @"/Test/Path?Param1=Value1#Fraggles", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/Test/Path?Param1=Value1#Fraggles");
 }
 
 - (void)testPathHeaderWithURLEncodedPath
 {
     NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path/%E9%9F%B3%E6%A5%BD.json"];
-    STAssertEqualObjects(headers[@":path"], @"/test/path/%E9%9F%B3%E6%A5%BD.json", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/test/path/%E9%9F%B3%E6%A5%BD.json");
 }
 
 - (void)testPathHeaderWithURLEncodedPathReservedChars
@@ -251,34 +251,34 @@
     // Test path: /gen?#[]/sub!$&'()*+,;=/unres-._~
     // Note that NSURL chokes on non-encoded ";" in path, so we'll test it separately.
     NSDictionary *headers = [self headersForUrl:@"http://example.com/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1"];
-    STAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1");
 
     // Test semicolon separately
     headers = [self headersForUrl:@"http://example.com/semi%3B"];
-    STAssertEqualObjects(headers[@":path"], @"/semi;", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/semi;");
 }
 
 - (void)testPathHeaderWithDoubleURLEncodedPath
 {
     // Ensure double encoding "#!", "%23%21", are preserved
     NSDictionary *headers = [self headersForUrl:@"http://example.com/double%2523%2521/tail"];
-    STAssertEqualObjects(headers[@":path"], @"/double%2523%2521/tail", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/double%2523%2521/tail");
 
     // Ensure double encoding non-ASCII characters are preserved
     headers = [self headersForUrl:@"http://example.com/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD"];
-    STAssertEqualObjects(headers[@":path"], @"/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/doublenonascii%25E9%259F%25B3%25E6%25A5%25BD");
 }
 
 - (void)testPathHeaderWithURLEncodedQueryStringAndFragment
 {
     NSDictionary *headers = [self headersForUrl:@"http://example.com/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule"];
-    STAssertEqualObjects(headers[@":path"], @"/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/test/path?param1=%E9%9F%B3%E6%A5%BD#fraggles%20rule");
 }
 
 - (void)testPathHeaderEmpty
 {
     NSDictionary *headers = [self headersForUrl:@"http://example.com"];
-    STAssertEqualObjects(headers[@":path"], @"/", nil);
+    XCTAssertEqualObjects(headers[@":path"], @"/");
 }
 
 - (void)testSPDYProperties
@@ -295,30 +295,30 @@
     request.SPDYBodyFile = @"Bodyfile.json";
     request.SPDYURLSession = urlSession;
 
-    STAssertEquals(request.SPDYPriority, (NSUInteger)1, nil);
-    STAssertEquals(request.SPDYDeferrableInterval, (double)3.95, nil);
-    STAssertEquals(request.SPDYBypass, (BOOL)YES, nil);
-    STAssertEquals(request.SPDYBodyStream, stream, nil);
-    STAssertEquals(request.SPDYBodyFile, @"Bodyfile.json", nil);
-    STAssertEquals(request.SPDYURLSession, urlSession, nil);
+    XCTAssertEqual(request.SPDYPriority, (NSUInteger)1);
+    XCTAssertEqual(request.SPDYDeferrableInterval, (double)3.95);
+    XCTAssertEqual(request.SPDYBypass, (BOOL)YES);
+    XCTAssertEqual(request.SPDYBodyStream, stream);
+    XCTAssertEqual(request.SPDYBodyFile, @"Bodyfile.json");
+    XCTAssertEqual(request.SPDYURLSession, urlSession);
 
     NSMutableURLRequest *mutableCopy = [request mutableCopy];
 
-    STAssertEquals(mutableCopy.SPDYPriority, (NSUInteger)1, nil);
-    STAssertEquals(mutableCopy.SPDYDeferrableInterval, (double)3.95, nil);
-    STAssertEquals(mutableCopy.SPDYBypass, (BOOL)YES, nil);
-    STAssertEquals(mutableCopy.SPDYBodyStream, stream, nil);
-    STAssertEquals(mutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
-    STAssertEquals(mutableCopy.SPDYURLSession, urlSession, nil);
+    XCTAssertEqual(mutableCopy.SPDYPriority, (NSUInteger)1);
+    XCTAssertEqual(mutableCopy.SPDYDeferrableInterval, (double)3.95);
+    XCTAssertEqual(mutableCopy.SPDYBypass, (BOOL)YES);
+    XCTAssertEqual(mutableCopy.SPDYBodyStream, stream);
+    XCTAssertEqual(mutableCopy.SPDYBodyFile, @"Bodyfile.json");
+    XCTAssertEqual(mutableCopy.SPDYURLSession, urlSession);
 
     NSURLRequest *immutableCopy = [request copy];
 
-    STAssertEquals(immutableCopy.SPDYPriority, (NSUInteger)1, nil);
-    STAssertEquals(immutableCopy.SPDYDeferrableInterval, (double)3.95, nil);
-    STAssertEquals(immutableCopy.SPDYBypass, (BOOL)TRUE, nil);
-    STAssertEquals(immutableCopy.SPDYBodyStream, stream, nil);
-    STAssertEquals(immutableCopy.SPDYBodyFile, @"Bodyfile.json", nil);
-    STAssertEquals(immutableCopy.SPDYURLSession, urlSession, nil);
+    XCTAssertEqual(immutableCopy.SPDYPriority, (NSUInteger)1);
+    XCTAssertEqual(immutableCopy.SPDYDeferrableInterval, (double)3.95);
+    XCTAssertEqual(immutableCopy.SPDYBypass, (BOOL)TRUE);
+    XCTAssertEqual(immutableCopy.SPDYBodyStream, stream);
+    XCTAssertEqual(immutableCopy.SPDYBodyFile, @"Bodyfile.json");
+    XCTAssertEqual(immutableCopy.SPDYURLSession, urlSession);
 }
 
 - (void)testRequestCopyDoesRetainProperties
@@ -345,14 +345,14 @@
        immutableCopy = [request copy];
     }
 
-    STAssertNil(weakRequest, nil);  // totally gone
-    STAssertNotNil(weakStream, nil);  // still around
-    STAssertNotNil(weakBodyFile, nil);  // still around
-    STAssertNotNil(weakURLSession, nil);  // still around
+    XCTAssertNil(weakRequest);  // totally gone
+    XCTAssertNotNil(weakStream);  // still around
+    XCTAssertNotNil(weakBodyFile);  // still around
+    XCTAssertNotNil(weakURLSession);  // still around
 
-    STAssertEquals(immutableCopy.SPDYBodyStream, weakStream, nil);
-    STAssertEquals(immutableCopy.SPDYBodyFile, weakBodyFile, nil);
-    STAssertEquals(immutableCopy.SPDYURLSession, weakURLSession, nil);
+    XCTAssertEqual(immutableCopy.SPDYBodyStream, weakStream);
+    XCTAssertEqual(immutableCopy.SPDYBodyFile, weakBodyFile);
+    XCTAssertEqual(immutableCopy.SPDYURLSession, weakURLSession);
 }
 
 - (void)testRequestCacheEqualityDoesIgnoreProperties
@@ -380,9 +380,9 @@
     NSMutableURLRequest *newRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     NSCachedURLResponse *newCachedResponse = [cache cachedResponseForRequest:newRequest];
 
-    STAssertNotNil(newCachedResponse, nil);
-    STAssertNil(newRequest.SPDYURLSession, nil);
-    STAssertEqualObjects(((NSHTTPURLResponse *)newCachedResponse.response).allHeaderFields[@"TestHeader"], @"TestValue", nil);
+    XCTAssertNotNil(newCachedResponse);
+    XCTAssertNil(newRequest.SPDYURLSession);
+    XCTAssertEqualObjects(((NSHTTPURLResponse *)newCachedResponse.response).allHeaderFields[@"TestHeader"], @"TestValue");
 }
 
 - (void)testCanonicalRequestAddsUserAgent
@@ -391,9 +391,9 @@
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
     NSString *userAgent = [canonicalRequest valueForHTTPHeaderField:@"User-Agent"];
-    STAssertNotNil(userAgent, nil);
-    STAssertTrue([userAgent rangeOfString:@"CFNetwork/"].location > 0, nil);
-    STAssertTrue([userAgent rangeOfString:@"Darwin/"].location > 0, nil);
+    XCTAssertNotNil(userAgent);
+    XCTAssertTrue([userAgent rangeOfString:@"CFNetwork/"].location > 0);
+    XCTAssertTrue([userAgent rangeOfString:@"Darwin/"].location > 0);
 }
 
 - (void)testCanonicalRequestDoesNotOverwriteUserAgent
@@ -403,7 +403,7 @@
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
     NSString *userAgent = [canonicalRequest valueForHTTPHeaderField:@"User-Agent"];
-    STAssertEqualObjects(userAgent, @"Foobar/2", nil);
+    XCTAssertEqualObjects(userAgent, @"Foobar/2");
 }
 
 - (void)testCanonicalRequestDoesNotOverwriteUserAgentWhenEmpty
@@ -413,7 +413,7 @@
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
     NSString *userAgent = [canonicalRequest valueForHTTPHeaderField:@"User-Agent"];
-    STAssertEqualObjects(userAgent, @"", nil);
+    XCTAssertEqualObjects(userAgent, @"");
 }
 
 - (void)testCanonicalRequestAddsHost
@@ -421,7 +421,7 @@
     NSMutableURLRequest *request = [self buildRequestForUrl:@"http://:80/foo" method:@"GET"];
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
-    STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://localhost:80/foo", nil);
+    XCTAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://localhost:80/foo");
 }
 
 - (void)testCanonicalRequestAddsEmptyPath
@@ -429,7 +429,7 @@
     NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com" method:@"GET"];
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
-    STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com/", nil);
+    XCTAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com/");
 }
 
 - (void)testCanonicalRequestAddsEmptyPathWithPort
@@ -437,7 +437,7 @@
     NSMutableURLRequest *request = [self buildRequestForUrl:@"http://example.com:80" method:@"GET"];
     NSURLRequest *canonicalRequest = [SPDYProtocol canonicalRequestForRequest:request];
 
-    STAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com:80/", nil);
+    XCTAssertEqualObjects(canonicalRequest.URL.absoluteString, @"http://example.com:80/");
 }
 
 @end

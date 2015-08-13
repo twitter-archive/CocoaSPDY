@@ -9,11 +9,11 @@
 //  Created by Kevin Goodier.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYMetadata+Utils.h"
 #import "SPDYProtocol.h"
 
-@interface SPDYMetadataTest : SenTestCase
+@interface SPDYMetadataTest : XCTestCase
 @end
 
 @implementation SPDYMetadataTest
@@ -50,21 +50,21 @@
 
 - (void)verifyTestMetadata:(SPDYMetadata *)metadata
 {
-    STAssertNotNil(metadata, nil);
-    STAssertEqualObjects(metadata.version, @"3.2", nil);
-    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
-    STAssertEquals(metadata.latencyMs, (NSInteger)100, nil);
-    STAssertEquals(metadata.txBytes, (NSUInteger)200, nil);
-    STAssertEquals(metadata.txBodyBytes, (NSUInteger)150, nil);
-    STAssertEquals(metadata.rxBytes, (NSUInteger)300, nil);
-    STAssertEquals(metadata.rxBodyBytes, (NSUInteger)250, nil);
-    STAssertEquals(metadata.cellular, YES, nil);
-    STAssertEquals(metadata.blockedMs, (NSUInteger)400, nil);
-    STAssertEquals(metadata.connectedMs, (NSUInteger)500, nil);
-    STAssertEqualObjects(metadata.hostAddress, @"1.2.3.4", nil);
-    STAssertEquals(metadata.hostPort, (NSUInteger)1, nil);
-    STAssertEquals(metadata.viaProxy, YES, nil);
-    STAssertEquals(metadata.proxyStatus, SPDYProxyStatusManual, nil);
+    XCTAssertNotNil(metadata);
+    XCTAssertEqualObjects(metadata.version, @"3.2");
+    XCTAssertEqual(metadata.streamId, (NSUInteger)1);
+    XCTAssertEqual(metadata.latencyMs, (NSInteger)100);
+    XCTAssertEqual(metadata.txBytes, (NSUInteger)200);
+    XCTAssertEqual(metadata.txBodyBytes, (NSUInteger)150);
+    XCTAssertEqual(metadata.rxBytes, (NSUInteger)300);
+    XCTAssertEqual(metadata.rxBodyBytes, (NSUInteger)250);
+    XCTAssertEqual(metadata.cellular, YES);
+    XCTAssertEqual(metadata.blockedMs, (NSUInteger)400);
+    XCTAssertEqual(metadata.connectedMs, (NSUInteger)500);
+    XCTAssertEqualObjects(metadata.hostAddress, @"1.2.3.4");
+    XCTAssertEqual(metadata.hostPort, (NSUInteger)1);
+    XCTAssertEqual(metadata.viaProxy, YES);
+    XCTAssertEqual(metadata.proxyStatus, SPDYProxyStatusManual);
 }
 
 #pragma mark Tests
@@ -83,10 +83,10 @@
         metadata.version = [[NSString alloc] initWithFormat:@"SPDY/%d.%d", 3, 1];
     }
 
-    STAssertNil(weakString, nil);
+    XCTAssertNil(weakString);
 
-    STAssertEqualObjects(metadata.hostAddress, @"10.11.12.13", nil);
-    STAssertEqualObjects(metadata.version, @"SPDY/3.1", nil);
+    XCTAssertEqualObjects(metadata.hostAddress, @"10.11.12.13");
+    XCTAssertEqualObjects(metadata.version, @"SPDY/3.1");
 }
 
 - (void)testAssociatedDictionary
@@ -112,19 +112,19 @@
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
 
     // Last one wins
-    STAssertNotNil(metadata, nil);
-    STAssertEqualObjects(metadata.version, @"3.3", nil);
-    STAssertEquals(metadata.streamId, (NSUInteger)1, nil);
-    STAssertEquals(metadata.latencyMs, (NSInteger)100, nil);
-    STAssertEquals(metadata.txBytes, (NSUInteger)200, nil);
-    STAssertEquals(metadata.rxBytes, (NSUInteger)300, nil);
+    XCTAssertNotNil(metadata);
+    XCTAssertEqualObjects(metadata.version, @"3.3");
+    XCTAssertEqual(metadata.streamId, (NSUInteger)1);
+    XCTAssertEqual(metadata.latencyMs, (NSInteger)100);
+    XCTAssertEqual(metadata.txBytes, (NSUInteger)200);
+    XCTAssertEqual(metadata.rxBytes, (NSUInteger)300);
 }
 
 - (void)testAssociatedDictionaryWhenEmpty
 {
     NSMutableDictionary *associatedDictionary = [[NSMutableDictionary alloc] init];
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
-    STAssertNil(metadata, nil);
+    XCTAssertNil(metadata);
 }
 
 - (void)testMetadataAfterReleaseShouldNotBeNil
@@ -140,8 +140,8 @@
     SPDYMetadata *metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
 
     // Since the identifier maintains a reference, these will be alive
-    STAssertNotNil(weakOriginalMetadata, nil);
-    STAssertNotNil(metadata, nil);
+    XCTAssertNotNil(weakOriginalMetadata);
+    XCTAssertNotNil(metadata);
 }
 
 - (void)testMetadataAfterAssociatedDictionaryDeallocShouldBeNil
@@ -154,7 +154,7 @@
         [SPDYMetadata setMetadata:originalMetadata forAssociatedDictionary:associatedDictionary];
     }
 
-    STAssertNil(weakOriginalMetadata, nil);
+    XCTAssertNil(weakOriginalMetadata);
 }
 
 - (void)testAssociatedDictionarySameRef
@@ -172,8 +172,8 @@
         metadata = [SPDYMetadata metadataForAssociatedDictionary:associatedDictionary];
     }
 
-    STAssertNotNil(weakOriginalMetadata, nil);
-    STAssertNotNil(metadata, nil);
+    XCTAssertNotNil(weakOriginalMetadata);
+    XCTAssertNotNil(metadata);
 }
 
 - (void)testAssociatedDictionaryDoesMutateOriginal
@@ -196,10 +196,10 @@
     //[self verifyTestMetadata:originalMetadata];
 
     // If mutating
-    STAssertEqualObjects(metadata.version, @"3.3", nil);
-    STAssertEquals(metadata.streamId, (NSUInteger)2, nil);
-    STAssertEquals(metadata.cellular, NO, nil);
-    STAssertEquals(metadata.proxyStatus, SPDYProxyStatusAuto, nil);
+    XCTAssertEqualObjects(metadata.version, @"3.3");
+    XCTAssertEqual(metadata.streamId, (NSUInteger)2);
+    XCTAssertEqual(metadata.cellular, NO);
+    XCTAssertEqual(metadata.proxyStatus, SPDYProxyStatusAuto);
 }
 
 @end

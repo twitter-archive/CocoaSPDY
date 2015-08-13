@@ -9,7 +9,7 @@
 //  Created by Kevin Goodier.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import <Foundation/Foundation.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import "NSURLRequest+SPDYURLRequest.h"
@@ -50,7 +50,7 @@
 @end
 
 
-@interface SPDYSessionManagerTest : SenTestCase
+@interface SPDYSessionManagerTest : XCTestCase
 
 @end
 
@@ -102,42 +102,42 @@
         stream.request = urlRequest;
 
         // Assert initial state
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
         // Force base pool (non-cellular) reachability and then queue the stream
         [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
         [sessionManager queueStream:stream];
 
         // Assert stream is queued
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
         // Force callback to SPDYSessionManager's session:connectedToNetwork
         SPDYSession *session = [[sessionManager basePool] nextSession];
         [(id <SPDYSocketDelegate>)session socket:nil didConnectToHost:@"mocked.com" port:55555];
 
         // Assert stream has been dispatched
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
         // Assert a SYN_STREAM was written to the socket
-        STAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]], nil);
+        XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYSynStreamFrame class]]);
 
         // Ensure a double cancel doesn't trigger an NSAssert
         [stream cancel];
         [stream cancel];
 
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
 
         [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
     }
 
-    STAssertNil(weakStream, nil);
+    XCTAssertNil(weakStream);
 }
 
 - (void)testAllSessionsClosingDoesFailPendingStreams
@@ -161,9 +161,9 @@
     [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
     [sessionManager queueStream:stream];
 
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)2, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)2);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
 
     // Force socket to close session #1 and remove streams
     NSError *error = [[NSError alloc] initWithDomain:@"testdomain" code:1 userInfo:nil];
@@ -171,18 +171,18 @@
     [(id <SPDYSocketDelegate>)session socket:nil willDisconnectWithError:error];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
 
     // Force socket to close session #2 and remove streams
     session = [[sessionManager basePool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:nil willDisconnectWithError:error];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
 }
 
 - (void)testDispatchQueuedStreamThenSessionClosesDoesReleaseStreamAndRemoveSession
@@ -207,22 +207,22 @@
         // Force callback to SPDYSessionManager's session:connectedToNetwork
         SPDYSession *session = [[sessionManager basePool] nextSession];
         [(id <SPDYSocketDelegate>)session socket:nil didConnectToHost:@"mocked.com" port:55555];
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
 
         // Force socket to close session and remove streams
         [(id <SPDYSocketDelegate>)session socket:nil willDisconnectWithError:nil];
 
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
 
         // Force socket to disconnect and remove session
         [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
     }
 
-    STAssertNil(weakStream, nil);
+    XCTAssertNil(weakStream);
 }
 
 - (void)testReachabilityChangesAfterQueueingStreamDoesDispatchNewStreamToNewSession
@@ -245,44 +245,44 @@
     [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
     [sessionManager queueStream:stream];
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
     // Change reachability and queue stream2
     [sessionManager _updateReachability:(kSCNetworkReachabilityFlagsReachable | kSCNetworkReachabilityFlagsIsWWAN)];
     [sessionManager queueStream:stream2];
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)2, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)2);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)1);
 
     // Force callback to SPDYSessionManager's wwan session:connectedToNetwork and dispatch stream
     [socket setCellular:YES];
     SPDYSession *session = [[sessionManager wwanPool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)1);
     session = [[sessionManager basePool] nextSession];
-    STAssertEquals(session.activeStreams.count, (NSUInteger)0, nil);
+    XCTAssertEqual(session.activeStreams.count, (NSUInteger)0);
     session = [[sessionManager wwanPool] nextSession];
-    STAssertEquals(session.activeStreams.count, (NSUInteger)2, nil);
+    XCTAssertEqual(session.activeStreams.count, (NSUInteger)2);
 
     // Force socket to close base session and remove streams
     session = [[sessionManager basePool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)1);
 
     session = [[sessionManager wwanPool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 }
 
 - (void)testQueueStreamToWrongPoolAndReachabilityChangesBeforeConnectionFailsDoesDispatchToNewSession
@@ -305,9 +305,9 @@
     [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
     [sessionManager queueStream:stream];
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
     // Put stream1 into wrong pool artificially
     SPDYSession *session = [[sessionManager basePool] nextSession];
@@ -316,38 +316,38 @@
     // Force session connection error
     [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
-    STAssertFalse(session.isOpen, nil);
+    XCTAssertFalse(session.isOpen);
 
     // We put the stream in the basePool but it thinks it is wwan. Because the socket failed to
     // connect, and there are no outstanding sessions, pending requests all fail.
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
     // Change reachability. This will dispatch. We'll also force a dispatch.
     [sessionManager _updateReachability:(kSCNetworkReachabilityFlagsReachable | kSCNetworkReachabilityFlagsIsWWAN)];
     [sessionManager queueStream:stream2];
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)1);
 
     [socket setCellular:YES];
     session = [[sessionManager wwanPool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:socket didConnectToHost:@"mocked.com" port:55555];
-    STAssertTrue(session.isOpen, nil);
+    XCTAssertTrue(session.isOpen);
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
     session = [[sessionManager wwanPool] nextSession];
-    STAssertEquals(session.activeStreams.count, (NSUInteger)1, nil);
+    XCTAssertEqual(session.activeStreams.count, (NSUInteger)1);
 
     // Force socket to close wwan session and remove streams
     session = [[sessionManager wwanPool] nextSession];
     [(id <SPDYSocketDelegate>)session socket:socket willDisconnectWithError:nil];
     [(id <SPDYSocketDelegate>)session socketDidDisconnect:nil];
 
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 }
 
 - (void)_commonSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool:(BOOL)moveSession
@@ -373,14 +373,14 @@
     [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
     [sessionManager queueStream:stream];
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
     // Socket manages to connect to a different (WWAN) network after global reachability changes
     [sessionManager _updateReachability:(kSCNetworkReachabilityFlagsReachable | kSCNetworkReachabilityFlagsIsWWAN)];
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)1);
 
     // Session in WIFI pool connects over WWAN
     [socket setCellular:YES];
@@ -389,18 +389,18 @@
 
     if (moveSession) {
         // Session gets moved into new pool and is dispatched
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)2, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)2);
     } else {
         // Session is not moved into new pool and request is not dispatched (WWAN session still connecting)
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)1);
     }
 
-    STAssertTrue(session.isOpen, nil);
-    STAssertFalse(stream.closed, nil);
+    XCTAssertTrue(session.isOpen);
+    XCTAssertFalse(stream.closed);
 }
 
 - (void)testSocketAndGlobalReachabilityChangesAfterQueueingStreamDoesUpdateSessionPool
@@ -436,11 +436,11 @@
     [sessionManager _updateReachability:kSCNetworkReachabilityFlagsReachable];
     [sessionManager queueStream:stream];
 
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
-    STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-    STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager basePool] pendingCount], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] pendingCount], (NSUInteger)0);
+    XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+    XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
 
     // Socket manages to connect to a different (WWAN) network
     [socket setCellular:YES];
@@ -450,28 +450,28 @@
     if (moveSession) {
         // Session gets moved into new pool, but the dispatch is for the previous pool. It will allocate
         // a new session but not dispatch the stream.
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)1, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager basePool] pendingCount], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager wwanPool] pendingCount], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)1);
     } else {
         // Session is not moved into new pool, dispatch happens. No additional session is created.
-        STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager basePool] pendingCount], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager wwanPool] pendingCount], (NSUInteger)0, nil);
-        STAssertEquals([[sessionManager basePool] count], (NSUInteger)1, nil);
-        STAssertEquals([[sessionManager wwanPool] count], (NSUInteger)0, nil);
+        XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager basePool] pendingCount], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager wwanPool] pendingCount], (NSUInteger)0);
+        XCTAssertEqual([[sessionManager basePool] count], (NSUInteger)1);
+        XCTAssertEqual([[sessionManager wwanPool] count], (NSUInteger)0);
     }
 
     // Now the dispatch of the pending stream will happen (to the cellular pool)
     [sessionManager _updateReachability:(kSCNetworkReachabilityFlagsReachable | kSCNetworkReachabilityFlagsIsWWAN)];
-    STAssertEquals([sessionManager.pendingStreams count], (NSUInteger)0, nil);
-    STAssertTrue(session.isOpen, nil);
-    STAssertFalse(stream.closed, nil); // still pending, never dispatched
+    XCTAssertEqual([sessionManager.pendingStreams count], (NSUInteger)0);
+    XCTAssertTrue(session.isOpen);
+    XCTAssertFalse(stream.closed); // still pending, never dispatched
 
     SPDYMetadata *metadata = [stream metadata];
-    STAssertTrue(metadata.cellular, nil);
+    XCTAssertTrue(metadata.cellular);
 
 }
 
