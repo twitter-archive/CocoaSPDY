@@ -9,11 +9,11 @@
 //  Created by Kevin Goodier on 9/19/14.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import <Foundation/Foundation.h>
 #import "SPDYStopwatch.h"
 
-@interface SPDYStopwatchTest : SenTestCase
+@interface SPDYStopwatchTest : XCTestCase
 @end
 
 @implementation SPDYStopwatchTest
@@ -34,8 +34,8 @@
     // Real sleep just to make sure currentSystemTime works
     usleep(INTERVAL_USEC);
     SPDYTimeInterval t2 = [SPDYStopwatch currentSystemTime];
-    STAssertTrue(t2 > t1, nil);
-    STAssertTrue((t2 - t1) < UPPER_BOUND_SEC, nil);
+    XCTAssertTrue(t2 > t1);
+    XCTAssertTrue((t2 - t1) < UPPER_BOUND_SEC);
 }
 
 - (void)testAbsoluteTimeDoesMarchForward
@@ -44,8 +44,8 @@
     // Real sleep just to make sure currentAbsoluteTime works
     usleep(INTERVAL_USEC);
     SPDYTimeInterval t2 = [SPDYStopwatch currentAbsoluteTime];
-    STAssertTrue(t2 > t1, nil);
-    STAssertTrue((t2 - t1) < UPPER_BOUND_SEC, nil);
+    XCTAssertTrue(t2 > t1);
+    XCTAssertTrue((t2 - t1) < UPPER_BOUND_SEC);
 }
 
 - (void)testStopwatchElapsed
@@ -53,8 +53,8 @@
     SPDYStopwatch *stopwatch = [[SPDYStopwatch alloc] init];
     [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed = stopwatch.elapsedSeconds;
-    STAssertTrue(elapsed >= LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed, LOWER_BOUND_SEC);
-    STAssertTrue(elapsed < UPPER_BOUND_SEC, nil);
+    XCTAssertTrue(elapsed >= LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed, LOWER_BOUND_SEC);
+    XCTAssertTrue(elapsed < UPPER_BOUND_SEC);
 }
 
 - (void)testStopwatchMultipleElapsed
@@ -64,9 +64,9 @@
     SPDYTimeInterval elapsed1 = stopwatch.elapsedSeconds;
     [SPDYStopwatch sleep:INTERVAL_SEC];
     SPDYTimeInterval elapsed2 = stopwatch.elapsedSeconds;
-    STAssertTrue(elapsed1 >= LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed1, LOWER_BOUND_SEC);
-    STAssertTrue(elapsed2 >= 2 * LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed2, 2 * LOWER_BOUND_SEC);
-    STAssertTrue(elapsed1 < elapsed2, @"expect %f to be < %f", elapsed1, elapsed2);
+    XCTAssertTrue(elapsed1 >= LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed1, LOWER_BOUND_SEC);
+    XCTAssertTrue(elapsed2 >= 2 * LOWER_BOUND_SEC, @"expect %f to be >= to %f", elapsed2, 2 * LOWER_BOUND_SEC);
+    XCTAssertTrue(elapsed1 < elapsed2, @"expect %f to be < %f", elapsed1, elapsed2);
 }
 
 - (void)testStopwatchMultipleReset
@@ -77,7 +77,7 @@
     [SPDYStopwatch sleep:INTERVAL_SEC];
     [stopwatch reset];
     SPDYTimeInterval elapsed2 = stopwatch.elapsedSeconds;
-    STAssertTrue(elapsed2 < elapsed1, nil);
+    XCTAssertTrue(elapsed2 < elapsed1);
 }
 
 - (void)testStopwatchStartTime
@@ -86,18 +86,18 @@
     SPDYTimeInterval startSystemTime = [SPDYStopwatch currentSystemTime];
 
     SPDYStopwatch *stopwatch = [[SPDYStopwatch alloc] init];
-    STAssertTrue(stopwatch.startTime >= startTime, nil);
-    STAssertTrue(stopwatch.startSystemTime >= startSystemTime, nil);
+    XCTAssertTrue(stopwatch.startTime >= startTime);
+    XCTAssertTrue(stopwatch.startSystemTime >= startSystemTime);
 
     [SPDYStopwatch sleep:INTERVAL_SEC];
     [stopwatch reset];
 
     startTime += LOWER_BOUND_SEC;
     startSystemTime += LOWER_BOUND_SEC;
-    STAssertTrue(stopwatch.startTime >= startTime, nil);
-    STAssertTrue(stopwatch.startSystemTime >= startSystemTime, nil);
-    STAssertTrue(stopwatch.startTime < (startTime + UPPER_BOUND_SEC), nil);
-    STAssertTrue(stopwatch.startSystemTime < (startSystemTime + UPPER_BOUND_SEC), nil);
+    XCTAssertTrue(stopwatch.startTime >= startTime);
+    XCTAssertTrue(stopwatch.startSystemTime >= startSystemTime);
+    XCTAssertTrue(stopwatch.startTime < (startTime + UPPER_BOUND_SEC));
+    XCTAssertTrue(stopwatch.startSystemTime < (startSystemTime + UPPER_BOUND_SEC));
 }
 
 @end

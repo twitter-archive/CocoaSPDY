@@ -9,7 +9,7 @@
 //  Created by Kevin Goodier
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYMockOriginEndpointManager.h"
 #import "SPDYSocket.h"
 #import "SPDYSocketOps.h"
@@ -170,7 +170,7 @@
 
 #pragma mark Test methods
 
-@interface SPDYSocketTest : SenTestCase <SPDYSocketDelegate>
+@interface SPDYSocketTest : XCTestCase <SPDYSocketDelegate>
 @end
 
 @implementation SPDYSocketTest
@@ -191,11 +191,11 @@
     // Set up mocked socket
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:delegate endpointManager:manager];
     if (delegate.shouldFailWillConnect) {
-        STAssertFalse([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
-        STAssertNotNil(error, nil);
+        XCTAssertFalse([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error]);
+        XCTAssertNotNil(error);
     } else {
-        STAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
-        STAssertNil(error, nil);
+        XCTAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error]);
+        XCTAssertNil(error);
     }
     return socket;
 }
@@ -203,34 +203,34 @@
 - (void)_assertProxyConnectWasInitiatedToHost:(NSString *)host port:(int)port socket:(SPDYMockSocket *)socket
 {
     SPDYMockSocketDelegate *socketDelegate = socket.delegate;
-    STAssertTrue(socketDelegate.didCallWillConnect, nil);
-    STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
-    STAssertFalse(socketDelegate.didCallDidDisconnect, nil);
-    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+    XCTAssertTrue(socketDelegate.didCallWillConnect);
+    XCTAssertFalse(socketDelegate.didCallWillDisconnectWithError);
+    XCTAssertFalse(socketDelegate.didCallDidDisconnect);
+    XCTAssertFalse(socketDelegate.didCallDidConnectToEndpoint);
 
-    STAssertTrue(socket.didCallScheduleRead, nil);
-    STAssertTrue(socket.didCallScheduleWrite, nil);
+    XCTAssertTrue(socket.didCallScheduleRead);
+    XCTAssertTrue(socket.didCallScheduleWrite);
 
-    STAssertEqualObjects(socket.createStreamsToHostname, host, nil);
-    STAssertEquals(socket.createStreamsToPort, (in_port_t)port, nil);
+    XCTAssertEqualObjects(socket.createStreamsToHostname, host);
+    XCTAssertEqual(socket.createStreamsToPort, (in_port_t)port);
 
-    STAssertTrue([[[socket readQueue] firstObject] isKindOfClass:[SPDYSocketProxyReadOp class]], nil);
-    STAssertTrue([[[socket writeQueue] firstObject] isKindOfClass:[SPDYSocketProxyWriteOp class]], nil);
+    XCTAssertTrue([[[socket readQueue] firstObject] isKindOfClass:[SPDYSocketProxyReadOp class]]);
+    XCTAssertTrue([[[socket writeQueue] firstObject] isKindOfClass:[SPDYSocketProxyWriteOp class]]);
 }
 
 - (void)_assertDirectConnectWasInitiatedForSocket:(SPDYMockSocket *)socket
 {
     SPDYMockSocketDelegate *socketDelegate = socket.delegate;
-    STAssertTrue(socketDelegate.didCallWillConnect, nil);
-    STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
-    STAssertFalse(socketDelegate.didCallDidDisconnect, nil);
-    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+    XCTAssertTrue(socketDelegate.didCallWillConnect);
+    XCTAssertFalse(socketDelegate.didCallWillDisconnectWithError);
+    XCTAssertFalse(socketDelegate.didCallDidDisconnect);
+    XCTAssertFalse(socketDelegate.didCallDidConnectToEndpoint);
 
-    STAssertEqualObjects(socket.createStreamsToHostname, @"mytesthost.com", nil);
-    STAssertEquals(socket.createStreamsToPort, (in_port_t)443, nil);
+    XCTAssertEqualObjects(socket.createStreamsToHostname, @"mytesthost.com");
+    XCTAssertEqual(socket.createStreamsToPort, (in_port_t)443);
 
-    STAssertEquals([[socket readQueue] count], (NSUInteger)0, nil);
-    STAssertEquals([[socket writeQueue] count], (NSUInteger)0, nil);
+    XCTAssertEqual([[socket readQueue] count], (NSUInteger)0);
+    XCTAssertEqual([[socket writeQueue] count], (NSUInteger)0);
 }
 
 #pragma mark Tests
@@ -243,7 +243,7 @@
             (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
     }]];
 
-    STAssertTrue(socket.connectedToProxy, nil);
+    XCTAssertTrue(socket.connectedToProxy);
     [self _assertProxyConnectWasInitiatedToHost:@"1.2.3.4" port:8888 socket:socket];
 }
 
@@ -259,13 +259,13 @@
             (__bridge NSString *)kCFProxyPortNumberKey : @"8888"
     }] delegate:socketDelegate];
 
-    STAssertTrue(socketDelegate.didCallWillConnect, nil);
-    STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
-    STAssertTrue(socketDelegate.didCallDidDisconnect, nil);
-    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
-    STAssertNotNil(socketDelegate.lastError, nil);
-    STAssertFalse(socket.didCallScheduleRead, nil);
-    STAssertFalse(socket.didCallScheduleWrite, nil);
+    XCTAssertTrue(socketDelegate.didCallWillConnect);
+    XCTAssertTrue(socketDelegate.didCallWillDisconnectWithError);
+    XCTAssertTrue(socketDelegate.didCallDidDisconnect);
+    XCTAssertFalse(socketDelegate.didCallDidConnectToEndpoint);
+    XCTAssertNotNil(socketDelegate.lastError);
+    XCTAssertFalse(socket.didCallScheduleRead);
+    XCTAssertFalse(socket.didCallScheduleWrite);
 }
 
 - (void)testConnectWithProxyWhenOpenStreamsFailsDoesReturnFalse
@@ -286,7 +286,7 @@
 
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
     socket.openStreamsShouldFail = YES;
-    STAssertFalse([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
+    XCTAssertFalse([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error]);
 }
 
 - (void)testConnectWithEmptyProxyAutoConfigURLDoesUseDirect
@@ -306,21 +306,21 @@
     socketDelegate.shouldStopRunLoop = YES;
 
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
-    STAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
-    STAssertNil(error, nil);  // it's async
+    XCTAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error]);
+    XCTAssertNil(error);  // it's async
 
     CFRunLoopRun();
 
-    STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
-    STAssertFalse(socketDelegate.didCallDidDisconnect, nil);
-    STAssertTrue(socketDelegate.didCallWillConnect, nil);
-    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+    XCTAssertFalse(socketDelegate.didCallWillDisconnectWithError);
+    XCTAssertFalse(socketDelegate.didCallDidDisconnect);
+    XCTAssertTrue(socketDelegate.didCallWillConnect);
+    XCTAssertFalse(socketDelegate.didCallDidConnectToEndpoint);
 
-    STAssertFalse(socket.didCallScheduleRead, nil);
-    STAssertFalse(socket.didCallScheduleWrite, nil);
+    XCTAssertFalse(socket.didCallScheduleRead);
+    XCTAssertFalse(socket.didCallScheduleWrite);
 
     // Since this failed trying to resolve the proxy name, we never tried to connected
-    STAssertFalse(socket.connectedToProxy, nil);
+    XCTAssertFalse(socket.connectedToProxy);
 }
 
 - (void)testConnectTimesOutWithEmptyProxyAutoConfigURLDoesNotAttemptConnect
@@ -337,24 +337,24 @@
     // Fake a timeout
     [socket mockConnectTimeout];
 
-    STAssertTrue(socket.closed, nil);
-    STAssertFalse(socket.connected, nil);
-    STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
-    STAssertTrue(socketDelegate.didCallDidDisconnect, nil);
-    STAssertFalse(socketDelegate.didCallWillConnect, nil);
-    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+    XCTAssertTrue(socket.closed);
+    XCTAssertFalse(socket.connected);
+    XCTAssertTrue(socketDelegate.didCallWillDisconnectWithError);
+    XCTAssertTrue(socketDelegate.didCallDidDisconnect);
+    XCTAssertFalse(socketDelegate.didCallWillConnect);
+    XCTAssertFalse(socketDelegate.didCallDidConnectToEndpoint);
 
     [socketDelegate reset];
 
     // Ensure the endpoint manager's runloop source completes but doesn't connect
     CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1, NO);
 
-    STAssertTrue(socket.closed, nil);
-    STAssertFalse(socket.connected, nil);
-    STAssertFalse(socketDelegate.didCallWillDisconnectWithError, nil);
-    STAssertFalse(socketDelegate.didCallDidDisconnect, nil);
-    STAssertFalse(socketDelegate.didCallWillConnect, nil);
-    STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+    XCTAssertTrue(socket.closed);
+    XCTAssertFalse(socket.connected);
+    XCTAssertFalse(socketDelegate.didCallWillDisconnectWithError);
+    XCTAssertFalse(socketDelegate.didCallDidDisconnect);
+    XCTAssertFalse(socketDelegate.didCallWillConnect);
+    XCTAssertFalse(socketDelegate.didCallDidConnectToEndpoint);
 }
 
 - (void)testConnectTimesOutWithEmptyProxyAutoConfigURLDoesCloseAndReleaseSocket
@@ -373,16 +373,16 @@
         // Fake a timeout
         [socket mockConnectTimeout];
 
-        STAssertTrue(socket.closed, nil);
-        STAssertFalse(socket.connected, nil);
-        STAssertTrue(socketDelegate.didCallWillDisconnectWithError, nil);
-        STAssertTrue(socketDelegate.didCallDidDisconnect, nil);
-        STAssertFalse(socketDelegate.didCallWillConnect, nil);
-        STAssertFalse(socketDelegate.didCallDidConnectToEndpoint, nil);
+        XCTAssertTrue(socket.closed);
+        XCTAssertFalse(socket.connected);
+        XCTAssertTrue(socketDelegate.didCallWillDisconnectWithError);
+        XCTAssertTrue(socketDelegate.didCallDidDisconnect);
+        XCTAssertFalse(socketDelegate.didCallWillConnect);
+        XCTAssertFalse(socketDelegate.didCallDidConnectToEndpoint);
 
         weakSocket = socket;
     }
-    STAssertNil(weakSocket, nil);
+    XCTAssertNil(weakSocket);
 
     // Ensure the endpoint manager's runloop source isn't still hanging around crashing stuff
     CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1, NO);
@@ -408,9 +408,9 @@
 
     SPDYMockSocket *socket = [[SPDYMockSocket alloc] initWithDelegate:socketDelegate endpointManager:manager];
     socket.openStreamsShouldFail = YES;
-    STAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error], nil);
+    XCTAssertTrue([socket connectToOrigin:origin withTimeout:(NSTimeInterval)-1 error:&error]);
     // connectToOrigin succeeded, but it still returns the intermediate error
-    STAssertNotNil(error, nil);
+    XCTAssertNotNil(error);
     [self _assertDirectConnectWasInitiatedForSocket:socket];
 }
 
@@ -424,7 +424,7 @@
             (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeNone,
     }]];
 
-    STAssertTrue(socket.connectedToProxy, nil);
+    XCTAssertTrue(socket.connectedToProxy);
     [self _assertProxyConnectWasInitiatedToHost:@"1.2.3.4" port:8888 socket:socket];
 
     SPDYMockSocketDelegate *delegate = socket.delegate;

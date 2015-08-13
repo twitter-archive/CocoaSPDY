@@ -9,12 +9,12 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "SPDYStreamManager.h"
 #import "SPDYStream.h"
 #import "SPDYProtocol.h"
 
-@interface SPDYStreamManagerTest : SenTestCase
+@interface SPDYStreamManagerTest : XCTestCase
 @end
 
 @interface SPDYStubbedProtocol : SPDYProtocol
@@ -99,22 +99,22 @@ static SPDYStreamId _nextStreamId;
         streamCount++;
         stream.local ? localStreamCount++ : remoteStreamCount++;
         if (prevStream) {
-            STAssertTrue(prevStream.priority <= stream.priority, nil);
+            XCTAssertTrue(prevStream.priority <= stream.priority);
         }
         prevStream = stream;
     }
-    STAssertEquals(streamCount, _numStreams, nil);
-    STAssertEquals(streamCount, _manager.count, nil);
-    STAssertEquals(localStreamCount, _manager.localCount, nil);
-    STAssertEquals(remoteStreamCount, _manager.remoteCount, nil);
+    XCTAssertEqual(streamCount, _numStreams);
+    XCTAssertEqual(streamCount, _manager.count);
+    XCTAssertEqual(localStreamCount, _manager.localCount);
+    XCTAssertEqual(remoteStreamCount, _manager.remoteCount);
 }
 
 - (void)testSubscriptAccessors
 {
     for (SPDYStream *stream in _manager) {
-        STAssertEquals(_manager[stream.streamId], stream, nil);
+        XCTAssertEqual(_manager[stream.streamId], stream);
         if (stream.protocol) {
-            STAssertEquals(_manager[stream.protocol], stream, nil);
+            XCTAssertEqual(_manager[stream.protocol], stream);
         }
     }
 }
@@ -124,30 +124,30 @@ static SPDYStreamId _nextStreamId;
     SPDYStream *one = _manager[4];
     SPDYStream *two = _manager[5];
 
-    STAssertNotNil(one, nil);
-    STAssertNotNil(two, nil);
+    XCTAssertNotNil(one);
+    XCTAssertNotNil(two);
 
     NSUInteger prevRemoteStreamCount = _manager.remoteCount;
     [_manager removeStreamWithStreamId:4];
-    STAssertEquals(prevRemoteStreamCount - 1, _manager.remoteCount, nil);
+    XCTAssertEqual(prevRemoteStreamCount - 1, _manager.remoteCount);
 
     NSUInteger prevLocalStreamCount = _manager.localCount;
     [_manager removeStreamForProtocol:two.protocol];
-    STAssertEquals(prevLocalStreamCount - 1, _manager.localCount, nil);
+    XCTAssertEqual(prevLocalStreamCount - 1, _manager.localCount);
 
-    STAssertNil(_manager[4], nil);
-    STAssertNil(_manager[5], nil);
+    XCTAssertNil(_manager[4]);
+    XCTAssertNil(_manager[5]);
 
     SPDYStream *prevStream;
     NSUInteger streamCount = 0;
     for (SPDYStream *stream in _manager) {
         streamCount++;
         if (prevStream) {
-            STAssertTrue(prevStream.priority <= stream.priority, nil);
+            XCTAssertTrue(prevStream.priority <= stream.priority);
         }
         prevStream = stream;
     }
-    STAssertEquals(streamCount, _numStreams - 2, nil);
+    XCTAssertEqual(streamCount, _numStreams - 2);
 }
 
 - (void)testStreamRemovalDoesNotLeak
@@ -155,11 +155,11 @@ static SPDYStreamId _nextStreamId;
     SPDYStream __weak *weakone;
     @autoreleasepool {
         weakone = _manager[4];
-        STAssertNotNil(weakone, nil);
+        XCTAssertNotNil(weakone);
         [_manager removeStreamWithStreamId:4];
-        STAssertNil(_manager[4], nil);
+        XCTAssertNil(_manager[4]);
     }
-    STAssertNil(weakone, nil);
+    XCTAssertNil(weakone);
 }
 
 - (void)testAllStreamRemovalDoesNotLeak
@@ -167,11 +167,11 @@ static SPDYStreamId _nextStreamId;
     SPDYStream __weak *weakone;
     @autoreleasepool {
         weakone = _manager[4];
-        STAssertNotNil(weakone, nil);
+        XCTAssertNotNil(weakone);
         [_manager removeAllStreams];
-        STAssertNil(_manager[4], nil);
+        XCTAssertNil(_manager[4]);
     }
-    STAssertNil(weakone, nil);
+    XCTAssertNil(weakone);
 }
 
 - (void)testDeallocDoesNotLeak
@@ -181,11 +181,11 @@ static SPDYStreamId _nextStreamId;
     @autoreleasepool {
         weakmanager = _manager;
         weakone = _manager[4];
-        STAssertNotNil(weakone, nil);
+        XCTAssertNotNil(weakone);
         _manager = nil;
     }
-    STAssertNil(weakmanager, nil);
-    STAssertNil(weakone, nil);
+    XCTAssertNil(weakmanager);
+    XCTAssertNil(weakone);
 }
 
 @end
