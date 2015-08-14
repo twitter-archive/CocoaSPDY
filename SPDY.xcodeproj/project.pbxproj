@@ -146,7 +146,7 @@
 		06336DE216F2756A00532180 /* SPDY-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SPDY-Info.plist"; sourceTree = "<group>"; };
 		06336DE416F2756A00532180 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		06336DE616F2756A00532180 /* SPDY-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDY-Prefix.pch"; sourceTree = "<group>"; };
-		064EFB1316715C9F002F0AEC /* SPDYUnitTests.octest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SPDYUnitTests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
+		064EFB1316715C9F002F0AEC /* SPDYUnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SPDYUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		064EFB1B16715C9F002F0AEC /* SPDYUnitTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SPDYUnitTests-Info.plist"; sourceTree = "<group>"; };
 		064EFB1D16715C9F002F0AEC /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		064EFB2216715C9F002F0AEC /* SPDYUnitTests-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SPDYUnitTests-Prefix.pch"; sourceTree = "<group>"; };
@@ -349,7 +349,7 @@
 		D2CC14AF16179B43002E37CF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				064EFB1316715C9F002F0AEC /* SPDYUnitTests.octest */,
+				064EFB1316715C9F002F0AEC /* SPDYUnitTests.xctest */,
 				0651EBE816F3F7C700CE44D2 /* libSPDY.iphoneos.a */,
 				0651EC0816F3F7E500CE44D2 /* libSPDY.macosx.a */,
 				0652631316F7B6360081868F /* SPDY.framework */,
@@ -496,7 +496,7 @@
 			);
 			name = SPDYUnitTests;
 			productName = SPDYUnitTests;
-			productReference = 064EFB1316715C9F002F0AEC /* SPDYUnitTests.octest */;
+			productReference = 064EFB1316715C9F002F0AEC /* SPDYUnitTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		0651EBE716F3F7C700CE44D2 /* SPDY.iphoneos */ = {
