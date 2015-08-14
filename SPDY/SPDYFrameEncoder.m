@@ -329,7 +329,7 @@
 
 - (bool)_writeString:(NSString*)value error:(NSError **)pError
 {
-    NSRange leftover;
+    NSRange leftover = { 0 };
     NSUInteger used = 0;
 
     [value getBytes:(_encodedHeaders + _encodedHeadersLength)
