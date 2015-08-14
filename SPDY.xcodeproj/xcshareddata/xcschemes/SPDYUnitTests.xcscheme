@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "064EFB1216715C9F002F0AEC"
-               BuildableName = "SPDYUnitTests.octest"
+               BuildableName = "SPDYUnitTests.xctest"
                BlueprintName = "SPDYUnitTests"
                ReferencedContainer = "container:SPDY.xcodeproj">
             </BuildableReference>
@@ -33,7 +33,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "064EFB1216715C9F002F0AEC"
-               BuildableName = "SPDYUnitTests.octest"
+               BuildableName = "SPDYUnitTests.xctest"
                BlueprintName = "SPDYUnitTests"
                ReferencedContainer = "container:SPDY.xcodeproj">
             </BuildableReference>
@@ -43,7 +43,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "064EFB1216715C9F002F0AEC"
-            BuildableName = "SPDYUnitTests.octest"
+            BuildableName = "SPDYUnitTests.xctest"
             BlueprintName = "SPDYUnitTests"
             ReferencedContainer = "container:SPDY.xcodeproj">
          </BuildableReference>
