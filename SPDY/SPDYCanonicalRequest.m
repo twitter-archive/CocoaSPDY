@@ -284,7 +284,7 @@ static void CanonicaliseHeaders(NSMutableURLRequest * request)
     // content type of "application/x-www-form-urlencoded".
 
     if ([request valueForHTTPHeaderField:@"Content-Type"] == nil
-     && [request.HTTPMethod caseInsensitiveCompare:@"POST"] == NSOrderedSame
+     && request.HTTPMethod && [request.HTTPMethod caseInsensitiveCompare:@"POST"] == NSOrderedSame
      && (request.HTTPBody != nil || request.HTTPBodyStream != nil
             || request.SPDYBodyFile != nil || request.SPDYBodyStream != nil)) {
         [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
