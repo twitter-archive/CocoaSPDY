@@ -57,7 +57,8 @@
 - (NSDictionary *)allSPDYHeaderFields
 {
     NSDictionary *httpHeaders = self.allHTTPHeaderFields;
-    NSURL *url = self.URL;
+    NSURLComponents *url = [NSURLComponents componentsWithURL:self.URL resolvingAgainstBaseURL:YES];
+    //NSURL *url = self.URL;
 
     static NSSet *invalidKeys;
     static NSSet *reservedKeys;
@@ -72,20 +73,13 @@
         ];
     });
 
-    NSString *escapedPath = CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(
-            kCFAllocatorDefault,
-            (__bridge CFStringRef)url.path,
-            NULL,
-            CFSTR("?"),
-            kCFStringEncodingUTF8));
-
-    NSMutableString *path = [[NSMutableString alloc] initWithString:escapedPath];
-    NSString *query = url.query;
+    NSMutableString *path = [[NSMutableString alloc] initWithString:url.percentEncodedPath];
+    NSString *query = url.percentEncodedQuery;
     if (query) {
         [path appendFormat:@"?%@", query];
     }
 
-    NSString *fragment = url.fragment;
+    NSString *fragment = url.percentEncodedFragment;
     if (fragment) {
         [path appendFormat:@"#%@", fragment];
     }
@@ -131,7 +125,7 @@
     if (cookiesOn) {
         NSString *requestCookies = spdyHeaders[@"cookie"];
         if (!requestCookies || requestCookies.length == 0) {
-            NSArray *cookies = [cookieStore cookiesForURL:url];
+            NSArray *cookies = [cookieStore cookiesForURL:self.URL];
             if (cookies.count > 0) {
                 NSDictionary *cookieHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
                 NSString *cookie = cookieHeaders[@"Cookie"];
