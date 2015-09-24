@@ -248,14 +248,9 @@
 - (void)testPathHeaderWithURLEncodedPathReservedChars
 {
     // Besides non-ASCII characters, paths may contain any valid URL character except "?#[]".
-    // Test path: /gen?#[]/sub!$&'()*+,;=/unres-._~
-    // Note that NSURL chokes on non-encoded ";" in path, so we'll test it separately.
-    NSDictionary *headers = [self headersForUrl:@"http://example.com/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1"];
-    XCTAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~?p1=v1");
-
-    // Test semicolon separately
-    headers = [self headersForUrl:@"http://example.com/semi%3B"];
-    XCTAssertEqualObjects(headers[@":path"], @"/semi;");
+    // Test path: /gen?#[]/sub!$&'()*+,=/unres-._~;
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~;?p1=v1"];
+    XCTAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~;?p1=v1");
 }
 
 - (void)testPathHeaderWithDoubleURLEncodedPath
