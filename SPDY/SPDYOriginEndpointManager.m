@@ -306,17 +306,6 @@ static void ResultCallback(void* client, CFArrayRef proxies, CFErrorRef error)
 {
     NSURL *originUrl = [self _getOriginUrlForProxy];
 
-    // From http://src.chromium.org/svn/trunk/src/net/proxy/proxy_resolver_mac.cc
-    // Work around <rdar://problem/5530166>. This dummy call to
-    // CFNetworkCopyProxiesForURL initializes some state within CFNetwork that is
-    // required by CFNetworkExecuteProxyAutoConfigurationURL.
-    CFArrayRef dummy_result = CFNetworkCopyProxiesForURL(
-                                                         (__bridge CFURLRef)originUrl,
-                                                         NULL);
-    if (dummy_result) {
-        CFRelease(dummy_result);
-    }
-
     // CFNetworkExecuteProxyAutoConfigurationURL returns a runloop source we need to release.
     // We'll do that after the callback.
     CFStreamClientContext context = {0, (void *)CFBridgingRetain(self), nil, nil, nil};
