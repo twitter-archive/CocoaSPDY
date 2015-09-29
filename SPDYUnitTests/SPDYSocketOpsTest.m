@@ -50,7 +50,7 @@
     // Run through all possible substring of a valid response
     for (NSUInteger i = 0; i < responseData.length - 1; i++) {
         op->_bytesRead = i;
-        XCTAssertFalse([op tryParseResponse], @"failed at length %@ of %@", i, responseData.length);
+        XCTAssertFalse([op tryParseResponse], @"failed at length %tu of %tu", i, responseData.length);
     }
 
     op->_bytesRead = responseData.length;
