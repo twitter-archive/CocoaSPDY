@@ -449,6 +449,7 @@
             [redirect setValue:nil forHTTPHeaderField:@"content-md5"];
             [redirect setValue:nil forHTTPHeaderField:@"content-range"];
             [redirect setValue:nil forHTTPHeaderField:@"content-type"];
+            [redirect setValue:nil forHTTPHeaderField:@"Authorization"];
             redirect.HTTPBody = nil;
             redirect.HTTPBodyStream = nil;
             redirect.SPDYBodyFile = nil;
