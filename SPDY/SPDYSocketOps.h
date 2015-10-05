@@ -37,11 +37,11 @@
 }
 
 - (instancetype)initWithData:(NSMutableData *)data
-       startOffset:(NSUInteger)startOffset
-         maxLength:(NSUInteger)maxLength
-           timeout:(NSTimeInterval)timeout
-       fixedLength:(NSUInteger)fixedLength
-               tag:(long)tag;
+                 startOffset:(NSUInteger)startOffset
+                   maxLength:(NSUInteger)maxLength
+                     timeout:(NSTimeInterval)timeout
+                 fixedLength:(NSUInteger)fixedLength
+                         tag:(long)tag;
 
 - (NSUInteger)safeReadLength;
 @end

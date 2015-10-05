@@ -16,11 +16,11 @@
 @implementation SPDYSocketReadOp
 
 - (instancetype)initWithData:(NSMutableData *)data
-       startOffset:(NSUInteger)startOffset
-         maxLength:(NSUInteger)maxLength
-           timeout:(NSTimeInterval)timeout
-       fixedLength:(NSUInteger)fixedLength
-               tag:(long)tag
+                 startOffset:(NSUInteger)startOffset
+                   maxLength:(NSUInteger)maxLength
+                     timeout:(NSTimeInterval)timeout
+                 fixedLength:(NSUInteger)fixedLength
+                         tag:(long)tag
 {
     self = [super init];
     if (self) {

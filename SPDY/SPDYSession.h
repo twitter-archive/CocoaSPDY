@@ -61,10 +61,10 @@
 @property (nonatomic, readonly) bool isOpen;
 
 - (instancetype)initWithOrigin:(SPDYOrigin *)origin
-            delegate:(id<SPDYSessionDelegate>)delegate
-       configuration:(SPDYConfiguration *)configuration
-            cellular:(bool)cellular
-               error:(NSError **)pError;
+                      delegate:(id<SPDYSessionDelegate>)delegate
+                 configuration:(SPDYConfiguration *)configuration
+                      cellular:(bool)cellular
+                         error:(NSError **)pError;
 - (void)openStream:(SPDYStream *)stream;
 - (void)close;
 
