@@ -26,7 +26,7 @@
     SPDYSettings _settings[SPDY_SETTINGS_LENGTH];
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {

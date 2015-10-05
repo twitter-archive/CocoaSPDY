@@ -65,13 +65,13 @@ static NSUInteger gMaxDecodeChunkSize = 0;
     XCTAssertEqualObjects(NSStringFromClass([_mock.lastFrame class]), CLASS_NAME, @"expected mock delegate's last frame received to be of class %@, but was %@", CLASS_NAME, NSStringFromClass([_mock.lastFrame class]))
 
 #define AssertFramesReceivedCount(COUNT) \
-    XCTAssertTrue(_mock.frameCount == COUNT, @"expected property framesReceived of mock delegate to contain %d elements, but had %d elements", COUNT, _mock.frameCount)
+    XCTAssertTrue(_mock.frameCount == COUNT, @"expected property framesReceived of mock delegate to contain %d elements, but had %tu elements", COUNT, _mock.frameCount)
 
 #define AssertLastDelegateMessage(SELECTOR_NAME) \
-    XCTAssertEqualObjects(_mock.lastDelegateMessage, SELECTOR_NAME, @"expected mock delegate's last message received to be %@ but was %@", SELECTOR_NAME, _mock.lastDelegateMessage)
+    XCTAssertEqualObjects(_mock.lastDelegateMessage, SELECTOR_NAME, @"expected mock delegate's last message received to be %@ but was %tu", SELECTOR_NAME, _mock.lastDelegateMessage)
 
 #define AssertDecodedFrameLength(LENGTH) \
-    XCTAssertEqual(((SPDYFrame *)_mock.lastFrame).encodedLength, (NSUInteger)LENGTH, @"expected the decoded frame to be %d bytes but got %d bytes", LENGTH, ((SPDYFrame *)_mock.lastFrame).encodedLength)
+    XCTAssertEqual(((SPDYFrame *)_mock.lastFrame).encodedLength, (NSUInteger)LENGTH, @"expected the decoded frame to be %zd bytes but got %tu bytes", LENGTH, ((SPDYFrame *)_mock.lastFrame).encodedLength)
 
 NSDictionary *testHeaders()
 {

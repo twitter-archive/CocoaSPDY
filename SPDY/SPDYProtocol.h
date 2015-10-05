@@ -274,7 +274,7 @@ typedef enum {
   higher than 2. Configuration of this option is experimental and
   may be removed in a future version.
 */
-@property NSUInteger sessionPoolSize;
+@property (nonatomic) NSUInteger sessionPoolSize;
 
 /**
   Initial session window size for client flow control.
@@ -282,14 +282,14 @@ typedef enum {
   Default is 10MB. If your application is receiving large responses and
   has ample memory available, it won't hurt to make this even larger.
 */
-@property NSUInteger sessionReceiveWindow;
+@property (nonatomic) NSUInteger sessionReceiveWindow;
 
 /**
   Initial stream window size for client flow control.
 
   Default is 10MB.
 */
-@property NSUInteger streamReceiveWindow;
+@property (nonatomic) NSUInteger streamReceiveWindow;
 
 /**
   ZLib compression level to use for headers.
@@ -297,14 +297,14 @@ typedef enum {
   Default is 9, which is appropriate for most cases. To disable header
   compression set this to 0.
 */
-@property NSUInteger headerCompressionLevel;
+@property (nonatomic) NSUInteger headerCompressionLevel;
 
 /**
   Enable or disable sending minor protocol version with settings id 0.
 
   Default is enabled.
 */
-@property BOOL enableSettingsMinorVersion;
+@property (nonatomic) BOOL enableSettingsMinorVersion;
 
 /**
   TLS settings for the underlying CFSocketStream. Possible keys and
@@ -312,14 +312,14 @@ typedef enum {
 
   Default is no settings.
 */
-@property NSDictionary *tlsSettings;
+@property (nonatomic, copy) NSDictionary *tlsSettings;
 
 /**
   Set timeout for creating a socket (TCP handshake).
 
   Default value is 60.0s. A negative value disables the timeout.
  */
-@property NSTimeInterval connectTimeout;
+@property (nonatomic) NSTimeInterval connectTimeout;
 
 /**
   Enable or disable TCP_NODELAY.
@@ -327,7 +327,7 @@ typedef enum {
   Default value is NO. Configuration of this option is experimental and
   may be removed in a future version.
  */
-@property BOOL enableTCPNoDelay;
+@property (nonatomic) BOOL enableTCPNoDelay;
 
 /**
   Enable or disable system-configured HTTPS proxy support.
@@ -335,7 +335,7 @@ typedef enum {
   Default value is YES. Configuration of this option is experimental and
   may be removed in a future version.
 */
-@property BOOL enableProxy;
+@property (nonatomic) BOOL enableProxy;
 
 /**
   Set HTTPS proxy host override.
@@ -343,7 +343,7 @@ typedef enum {
   Default value is nil. If set in conjunction with proxyPort, overrides
   the system-configured proxy information and forces use of a proxy.
 */
-@property NSString *proxyHost;
+@property (nonatomic, copy) NSString *proxyHost;
 
 /**
   Set HTTPS proxy port override.
@@ -351,7 +351,7 @@ typedef enum {
   Default value is 0. If set in conjunction with proxyHost, overrides
   the system-configured proxy information and forces use of a proxy.
 */
-@property NSInteger proxyPort;
+@property (nonatomic) NSInteger proxyPort;
 
 /**
   Set whether a session is moved to the correct pool or not.
@@ -360,7 +360,7 @@ typedef enum {
   on whether it used WIFI or WWAN. This is an advanced setting for
   experimentation and may be removed in the future.
 */
-@property BOOL enforceSessionPoolCorrectness;
+@property (nonatomic) BOOL enforceSessionPoolCorrectness;
 
 @end
 

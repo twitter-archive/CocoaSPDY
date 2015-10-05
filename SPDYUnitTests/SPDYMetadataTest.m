@@ -69,26 +69,6 @@
 
 #pragma mark Tests
 
-- (void)testMemberRetention
-{
-    // Test all references. Note we are creating strings with initWithFormat to ensure they
-    // are released. Static strings are not dealloc'd.
-    SPDYMetadata *metadata = [self createTestMetadata];
-    NSString * __weak weakString = nil;  // just an extra check to ensure test works
-    @autoreleasepool {
-        NSString *testString = [[NSString alloc] initWithFormat:@"foo %d", 1];
-        weakString = testString;
-
-        metadata.hostAddress = [[NSString alloc] initWithFormat:@"%d.%d.%d.%d", 10, 11, 12, 13];
-        metadata.version = [[NSString alloc] initWithFormat:@"SPDY/%d.%d", 3, 1];
-    }
-
-    XCTAssertNil(weakString);
-
-    XCTAssertEqualObjects(metadata.hostAddress, @"10.11.12.13");
-    XCTAssertEqualObjects(metadata.version, @"SPDY/3.1");
-}
-
 - (void)testAssociatedDictionary
 {
     SPDYMetadata *originalMetadata = [self createTestMetadata];

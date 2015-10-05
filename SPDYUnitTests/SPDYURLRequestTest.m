@@ -247,10 +247,10 @@
 
 - (void)testPathHeaderWithURLEncodedPathReservedChars
 {
-    // Besides non-ASCII characters, paths may contain any valid URL character except "?#[]".
-    // Test path: /gen?#[]/sub!$&'()*+,=/unres-._~;
-    NSDictionary *headers = [self headersForUrl:@"http://example.com/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~;?p1=v1"];
-    XCTAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D/sub!$&'()*+,=/unres-._~;?p1=v1");
+    // Besides non-ASCII characters, paths may contain any valid URL character except "?#[];".
+    // Test path: /gen?#[];/sub!$&'()*+,=/unres-._~
+    NSDictionary *headers = [self headersForUrl:@"http://example.com/gen%3F%23%5B%5D%3B/sub!$&'()*+,=/unres-._~?p1=v1"];
+    XCTAssertEqualObjects(headers[@":path"], @"/gen%3F%23%5B%5D%3B/sub!$&'()*+,=/unres-._~?p1=v1");
 }
 
 - (void)testPathHeaderWithDoubleURLEncodedPath

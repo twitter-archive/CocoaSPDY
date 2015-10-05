@@ -56,7 +56,7 @@ CFStringRef SPDYStreamIdCopyDescription(const void *key) {
     return CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%d"), (SPDYStreamId)key);
 }
 
-- (id)init
+- (instancetype)init
 {
     NSAssert(sizeof(void *) <= sizeof(unsigned long), @"pointer width must be <= unsigned long width");
     NSAssert(sizeof(void *) >= sizeof(SPDYStreamId), @"pointer width must be >= SPDYStreamId width");

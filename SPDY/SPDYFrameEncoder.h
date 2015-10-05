@@ -26,7 +26,7 @@
 
 @interface SPDYFrameEncoder : NSObject
 @property (nonatomic, weak) id<SPDYFrameEncoderDelegate> delegate;
-- (id)initWithDelegate:(id <SPDYFrameEncoderDelegate>)delegate headerCompressionLevel:(NSUInteger)headerCompressionLevel;
+- (instancetype)initWithDelegate:(id <SPDYFrameEncoderDelegate>)delegate headerCompressionLevel:(NSUInteger)headerCompressionLevel;
 
 // All of the encode methods return the number of bytes encoded, or -1 if an error occurred.
 - (NSInteger)encodeDataFrame:(SPDYDataFrame *)dataFrame;

@@ -29,7 +29,7 @@
 
 @interface SPDYStubbedStream : SPDYStream
 + (void)resetTestStreamIds;
-- (id)initWithPriority:(uint8_t)priority;
+- (instancetype)initWithPriority:(uint8_t)priority;
 @end
 
 @implementation SPDYStubbedStream
@@ -43,7 +43,7 @@ static SPDYStreamId _nextStreamId;
     _nextStreamId = 1;
 }
 
-- (id)initWithPriority:(uint8_t)priority
+- (instancetype)initWithPriority:(uint8_t)priority
 {
     self = [super init];
     if (self) {

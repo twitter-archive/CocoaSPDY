@@ -32,7 +32,7 @@
     uint8_t *_compressed;
 }
 
-- (id)initWithDelegate:(id<SPDYFrameEncoderDelegate>)delegate headerCompressionLevel:(NSUInteger)headerCompressionLevel
+- (instancetype)initWithDelegate:(id<SPDYFrameEncoderDelegate>)delegate headerCompressionLevel:(NSUInteger)headerCompressionLevel
 {
     self = [super init];
     if (self) {

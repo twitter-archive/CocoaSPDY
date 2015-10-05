@@ -27,7 +27,7 @@ typedef void (^SPDYAsyncTestCallback)();
     NSMutableData *_data;
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {

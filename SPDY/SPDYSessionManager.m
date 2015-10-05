@@ -70,7 +70,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
     return manager;
 }
 
-- (id)initWithOrigin:(SPDYOrigin *)origin
+- (instancetype)initWithOrigin:(SPDYOrigin *)origin
 {
     self = [super init];
     if (self) {

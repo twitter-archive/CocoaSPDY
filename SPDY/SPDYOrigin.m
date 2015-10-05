@@ -16,7 +16,7 @@
 #import "SPDYOrigin.h"
 
 @interface SPDYOrigin ()
-- (id)initCopyWithScheme:(NSString *)scheme
+- (instancetype)initCopyWithScheme:(NSString *)scheme
                     host:(NSString *)host
                     port:(in_port_t)port
            serialization:(NSString *)serialization;
@@ -27,13 +27,13 @@
     NSString *_serialization;
 }
 
-- (id)initWithString:(NSString *)urlString error:(NSError **)pError
+- (instancetype)initWithString:(NSString *)urlString error:(NSError **)pError
 {
     NSURL *url = [[NSURL alloc] initWithString:urlString];
     return [self initWithURL:url error:pError];
 }
 
-- (id)initWithURL:(NSURL *)url error:(NSError **)pError
+- (instancetype)initWithURL:(NSURL *)url error:(NSError **)pError
 {
     return [self initWithScheme:url.scheme
                            host:url.host
@@ -41,7 +41,7 @@
                           error:pError];
 }
 
-- (id)initWithScheme:(NSString *)scheme
+- (instancetype)initWithScheme:(NSString *)scheme
                 host:(NSString *)host
                 port:(in_port_t)port
                error:(NSError **)pError
@@ -84,7 +84,7 @@
     return self;
 }
 
-- (id)initCopyWithScheme:(NSString *)scheme
+- (instancetype)initCopyWithScheme:(NSString *)scheme
                     host:(NSString *)host
                     port:(in_port_t)port
            serialization:(NSString *)serialization

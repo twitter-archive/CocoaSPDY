@@ -176,12 +176,12 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     SPDYOriginEndpointManager *_endpointManager;
 }
 
-- (id)init
+- (instancetype)init
 {
     return [self initWithDelegate:nil];
 }
 
-- (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate
+- (instancetype)initWithDelegate:(id<SPDYSocketDelegate>)delegate
 {
     self = [super init];
     if (self) {
@@ -697,7 +697,8 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
 */
 - (bool)_createStreamsToHost:(NSString *)hostname onPort:(in_port_t)port error:(NSError **)pError
 {
-    // All the hacky code here is almost certainly unnecessary, but we're trying to track down a
+    // All the hacky code here is almost certainly unnecessary, but we're trying to track
+    // down a
     // crash in CFStreamCreatePairWithSocketToHost and grasping at straws.
     NSParameterAssert(_readStream == nil);
     NSParameterAssert(_writeStream == nil);

@@ -21,9 +21,9 @@
 @property (nonatomic, readonly) NSString *host;
 @property (nonatomic, readonly) in_port_t port;
 
-- (id)initWithString:(NSString *)urlString error:(NSError **)pError;
-- (id)initWithURL:(NSURL *)url error:(NSError **)pError;
-- (id)initWithScheme:(NSString *)scheme
+- (instancetype)initWithString:(NSString *)urlString error:(NSError **)pError;
+- (instancetype)initWithURL:(NSURL *)url error:(NSError **)pError;
+- (instancetype)initWithScheme:(NSString *)scheme
                 host:(NSString *)host
                 port:(in_port_t)port
                error:(NSError **)pError;

@@ -36,12 +36,12 @@
     long _tag;
 }
 
-- (id)initWithData:(NSMutableData *)data
-       startOffset:(NSUInteger)startOffset
-         maxLength:(NSUInteger)maxLength
-           timeout:(NSTimeInterval)timeout
-       fixedLength:(NSUInteger)fixedLength
-               tag:(long)tag;
+- (instancetype)initWithData:(NSMutableData *)data
+                 startOffset:(NSUInteger)startOffset
+                   maxLength:(NSUInteger)maxLength
+                     timeout:(NSTimeInterval)timeout
+                 fixedLength:(NSUInteger)fixedLength
+                         tag:(long)tag;
 
 - (NSUInteger)safeReadLength;
 @end
@@ -58,7 +58,7 @@
     NSUInteger _bytesParsed;
 }
 
-- (id)initWithTimeout:(NSTimeInterval)timeout;
+- (instancetype)initWithTimeout:(NSTimeInterval)timeout;
 - (bool)tryParseResponse;
 - (bool)success;
 - (bool)needsAuth;
@@ -77,7 +77,7 @@
     long _tag;
 }
 
-- (id)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag;
+- (instancetype)initWithData:(NSData *)data timeout:(NSTimeInterval)timeout tag:(long)tag;
 
 @end
 
@@ -87,7 +87,7 @@
 */
 @interface SPDYSocketProxyWriteOp : SPDYSocketWriteOp
 
-- (id)initWithOrigin:(SPDYOrigin *)origin timeout:(NSTimeInterval)timeout;
+- (instancetype)initWithOrigin:(SPDYOrigin *)origin timeout:(NSTimeInterval)timeout;
 
 @end
 
@@ -100,6 +100,6 @@
     NSDictionary *_tlsSettings;
 }
 
-- (id)initWithTLSSettings:(NSDictionary *)settings;
+- (instancetype)initWithTLSSettings:(NSDictionary *)settings;
 
 @end

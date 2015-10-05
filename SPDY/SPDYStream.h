@@ -46,7 +46,7 @@
 @property (nonatomic) uint32_t sendWindowSizeLowerBound;
 @property (nonatomic) uint32_t receiveWindowSizeLowerBound;
 
-- (id)initWithProtocol:(SPDYProtocol *)protocol;
+- (instancetype)initWithProtocol:(SPDYProtocol *)protocol;
 - (void)startWithStreamId:(SPDYStreamId)id sendWindowSize:(uint32_t)sendWindowSize receiveWindowSize:(uint32_t)receiveWindowSize;
 - (bool)reset;
 - (NSData *)readData:(NSUInteger)length error:(NSError **)pError;

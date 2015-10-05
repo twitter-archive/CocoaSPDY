@@ -68,7 +68,7 @@
     return [self valueForKey:@"_delegate"];
 }
 
-- (id)initWithDelegate:(id<SPDYSocketDelegate>)delegate endpointManager:(SPDYOriginEndpointManager *)endpointManager
+- (instancetype)initWithDelegate:(id<SPDYSocketDelegate>)delegate endpointManager:(SPDYOriginEndpointManager *)endpointManager
 {
     self = [super initWithDelegate:delegate];
     [self setValue:endpointManager forKey:@"_endpointManager"];

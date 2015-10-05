@@ -12,6 +12,6 @@
 #import <Foundation/Foundation.h>
 
 @interface SPDYHeaderBlockCompressor : NSObject
-- (id)initWithCompressionLevel:(NSUInteger)compressionLevel;
+- (instancetype)initWithCompressionLevel:(NSUInteger)compressionLevel;
 - (NSUInteger)deflate:(uint8_t *)inputBuffer availIn:(NSUInteger)inputLength outputBuffer:(uint8_t *)outputBuffer availOut:(NSUInteger)outputLength error:(NSError **)pError;
 @end
