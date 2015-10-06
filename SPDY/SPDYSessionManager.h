@@ -11,8 +11,6 @@
 
 #import <Foundation/Foundation.h>
 
-@protocol SPDYSessionDelegate;
-
 @interface SPDYSessionManager : NSObject
 
 + (SPDYSessionManager *)localManagerForOrigin:(SPDYOrigin *)origin;

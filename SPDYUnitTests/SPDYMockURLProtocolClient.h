@@ -26,7 +26,7 @@
 @property(nonatomic, strong) NSURLRequest *lastRedirectedRequest;
 @property(nonatomic, strong) NSURLResponse *lastRedirectResponse;
 @property(nonatomic, strong) NSCachedURLResponse *lastCachedResponse;
-@property(nonatomic, strong) NSURLResponse *lastResponse;
+@property(nonatomic, strong) NSHTTPURLResponse *lastResponse;
 @property(nonatomic) NSURLCacheStoragePolicy lastCacheStoragePolicy;
 @property(nonatomic, strong) NSData *lastData;
 @property(nonatomic, strong) NSError *lastError;

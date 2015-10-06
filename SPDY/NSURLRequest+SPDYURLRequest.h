@@ -11,8 +11,6 @@
 
 #import <Foundation/Foundation.h>
 
-@protocol SPDYExtendedDelegate;
-
 @interface NSURLRequest (SPDYURLRequest)
 
 /**

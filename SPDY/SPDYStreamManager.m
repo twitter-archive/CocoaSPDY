@@ -188,6 +188,9 @@ CFStringRef SPDYStreamIdCopyDescription(const void *key) {
 
 - (void)removeStreamForProtocol:(SPDYProtocol *)protocol
 {
+    if (protocol == nil) {
+        return;
+    }
     SPDYStreamNode *node = (id)CFDictionaryGetValue(_nodesByProtocol, (__bridge CFTypeRef)protocol);
     if (node) [self _removeListNode:node];
 }

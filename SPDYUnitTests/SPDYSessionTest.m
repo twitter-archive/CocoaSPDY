@@ -16,144 +16,18 @@
 #import "SPDYFrame.h"
 #import "SPDYMockFrameEncoderDelegate.h"
 #import "SPDYMockFrameDecoderDelegate.h"
+#import "SPDYMockSessionTestBase.h"
 #import "SPDYMockURLProtocolClient.h"
 #import "SPDYOrigin.h"
-#import "SPDYProtocol.h"
 #import "SPDYSession.h"
 #import "SPDYSocket+SPDYSocketMock.h"
 #import "SPDYStopwatch.h"
 #import "SPDYStream.h"
 
-@interface SPDYSessionTest : XCTestCase
+@interface SPDYSessionTest : SPDYMockSessionTestBase
 @end
 
 @implementation SPDYSessionTest
-{
-    // Most of these objects need to be retained for the life of the test. Hence the macro. I don't
-    // want to use instance variables and setUp / tearDown.
-    // Note on frameEncoder:
-    // Used locally for encoding frames. Whatever gets encoded manually in the frameEncoder
-    // here *must* get decoded by the session, else the zlib library gets out of sync and you'll
-    // get Z_DATA_ERROR errors ("incorrect header check").
-    // Note on URLRequest and protocolRequest:
-    // We *must* maintain references to these for the whole test.
-    SPDYOrigin *_origin;
-    SPDYSession *_session;
-    NSMutableURLRequest *_URLRequest;
-    NSMutableArray *_protocolList;
-    SPDYFrameEncoder *_testEncoder;
-    SPDYMockFrameEncoderDelegate *_testEncoderDelegate;
-    SPDYMockFrameDecoderDelegate *_mockDecoderDelegate;
-    SPDYMockURLProtocolClient *_mockURLProtocolClient;
-}
-
-#pragma mark Test Helpers
-
-- (void)setUp {
-    [super setUp];
-    [SPDYSocket performSwizzling:YES];
-    _protocolList = [[NSMutableArray alloc] initWithCapacity:1];
-
-    NSError *error = nil;
-    _origin = [[SPDYOrigin alloc] initWithString:@"http://mocked" error:&error];
-    _session = [[SPDYSession alloc] initWithOrigin:_origin
-                                          delegate:nil
-                                     configuration:[SPDYConfiguration defaultConfiguration]
-                                          cellular:NO
-                                             error:&error];
-    _URLRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://mocked/init"]];
-
-    _testEncoderDelegate = [[SPDYMockFrameEncoderDelegate alloc] init];
-    _testEncoder = [[SPDYFrameEncoder alloc] initWithDelegate:_testEncoderDelegate
-                                       headerCompressionLevel:0];
-
-    _mockDecoderDelegate = [[SPDYMockFrameDecoderDelegate alloc] init];
-    _mockURLProtocolClient = [[SPDYMockURLProtocolClient alloc] init];
-    socketMock_frameDecoder = [[SPDYFrameDecoder alloc] initWithDelegate:_mockDecoderDelegate];
-}
-
-- (void)tearDown
-{
-    [SPDYSocket performSwizzling:NO];
-    [super tearDown];
-}
-
-- (SPDYProtocol *)createProtocol
-{
-    SPDYProtocol *protocolRequest = [[SPDYProtocol alloc] initWithRequest:_URLRequest cachedResponse:nil client:_mockURLProtocolClient];
-    [_protocolList addObject:protocolRequest];
-    return protocolRequest;
-}
-
-- (void)makeSessionReadData:(NSData *)data
-{
-    // Simulate server Tx by preparing the encoded synStreamFrame
-    // data inside _session's inputBuffer, and trigger a fake
-    // delegate call, that notifies the _session about the newly received data.
-    [[_session inputBuffer] setData:data];
-    [[_session socket] performDelegateCall_socketDidReadData:data withTag:100];
-}
-
-- (SPDYStream *)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last
-{
-    // Issue a HTTP request towards the server, this will send the SYN_STREAM request and wait
-    // for the SYN_REPLY. It will use stream-id of 1 since it's the first request.
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
-    [_session openStream:stream];
-    if (stream.request.HTTPBody) {
-        XCTAssertEqual(_mockDecoderDelegate.frameCount, (NSUInteger)2);
-        XCTAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]]);
-        XCTAssertTrue([_mockDecoderDelegate.framesReceived[1] isKindOfClass:[SPDYDataFrame class]]);
-    } else {
-        XCTAssertEqual(_mockDecoderDelegate.frameCount, (NSUInteger)1);
-        XCTAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYSynStreamFrame class]]);
-    }
-    [_mockDecoderDelegate clear];
-
-    [self mockServerSynReplyWithId:streamId last:last];
-
-    // 2.1) We should not expect any protocol errors to be issued from the client.
-    XCTAssertNil(_mockDecoderDelegate.lastFrame);
-
-    return stream;
-}
-
-- (void)mockServerSynReplyWithId:(SPDYStreamId)streamId last:(BOOL)last
-{
-    SPDYSynReplyFrame *synReplyFrame = [[SPDYSynReplyFrame alloc] init];
-    synReplyFrame.headers = @{@":version":@"3.1", @":status":@"200"};
-    synReplyFrame.streamId = streamId;
-    synReplyFrame.last = last;
-
-    XCTAssertTrue([_testEncoder encodeSynReplyFrame:synReplyFrame error:nil] > 0);
-    [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
-    [_testEncoderDelegate clear];
-}
-
-- (void)mockServerGoAwayWithLastGoodId:(SPDYStreamId)lastGoodStreamId statusCode:(SPDYSessionStatus)statusCode
-{
-    SPDYGoAwayFrame *frame = [[SPDYGoAwayFrame alloc] init];
-    frame.lastGoodStreamId = lastGoodStreamId;
-    frame.statusCode = statusCode;
-
-    XCTAssertTrue([_testEncoder encodeGoAwayFrame:frame] > 0);
-    [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
-    [_testEncoderDelegate clear];
-}
-
-- (void)mockServerDataWithId:(SPDYStreamId)streamId data:(NSData *)data last:(BOOL)last
-{
-    SPDYDataFrame *frame = [[SPDYDataFrame alloc] init];
-    frame.data = data;
-    frame.streamId = streamId;
-    frame.last = last;
-
-    XCTAssertTrue([_testEncoder encodeDataFrame:frame] > 0);
-    [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
-    [_testEncoderDelegate clear];
-}
-
-#pragma mark Tests
 
 - (void)testCloseSessionWithMultipleStreams
 {
@@ -161,7 +35,8 @@
     // causes a GOAWAY and RST_STREAMs to be sent, via the "_closeWithStatus" method. That's
     // what we're testing.
     [self mockSynStreamAndReplyWithId:1 last:NO];
-    [self mockSynStreamAndReplyWithId:3 last:NO];
+    [self mockSynStreamAndReplyWithId:3 last:YES];
+    [self mockSynStreamAndReplyWithId:5 last:NO];
     [_session close];
 
     // Was a RST_STREAM sent?
@@ -175,7 +50,7 @@
     // Was metadata populated for the error?
     SPDYMetadata *metadata = [SPDYProtocol metadataForError:_mockURLProtocolClient.lastError];
     XCTAssertEqualObjects(metadata.version, @"3.1");
-    XCTAssertEqual(metadata.streamId, (NSUInteger)3);
+    XCTAssertEqual(metadata.streamId, (NSUInteger)5);
 }
 
 - (void)testReceivedMetadataForSingleShortRequest
@@ -440,6 +315,46 @@
     XCTAssertEqual(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_STREAM_IN_USE);
     XCTAssertTrue(_session.isOpen);
     XCTAssertEqual(_session.load, (NSUInteger)0);
+}
+
+- (void)testInitWithTcpNodelayDoesSendPING
+{
+    NSError *error = nil;
+    SPDYConfiguration *configuration = [SPDYConfiguration defaultConfiguration];
+    configuration.enableTCPNoDelay = YES;
+    _session = [[SPDYSession alloc] initWithOrigin:_origin
+                                          delegate:nil
+                                     configuration:configuration
+                                          cellular:NO
+                                             error:&error];
+
+    XCTAssertFalse(_session.isEstablished);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYPingFrame class]]);
+    XCTAssertEqual(((SPDYPingFrame *)_mockDecoderDelegate.lastFrame).pingId, (SPDYPingId)1);
+
+    // Reply with response
+    SPDYPingFrame *pingFrame = [[SPDYPingFrame alloc] init];
+    pingFrame.pingId = 1;  // server-initiated is even
+
+    XCTAssertTrue([_testEncoder encodePingFrame:pingFrame] > 0);
+    [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
+    [_testEncoderDelegate clear];
+    XCTAssertTrue(_session.isEstablished);
+}
+
+- (void)testServerPING
+{
+    SPDYPingFrame *pingFrame = [[SPDYPingFrame alloc] init];
+    pingFrame.pingId = 2;  // server-initiated is even
+
+    XCTAssertTrue([_testEncoder encodePingFrame:pingFrame] > 0);
+    [self makeSessionReadData:_testEncoderDelegate.lastEncodedData];
+    [_testEncoderDelegate clear];
+
+    // Verify ping response sent
+    XCTAssertEqual(_mockDecoderDelegate.frameCount, (NSUInteger)1);
+    XCTAssertTrue([_mockDecoderDelegate.framesReceived[0] isKindOfClass:[SPDYPingFrame class]]);
+    XCTAssertEqual(((SPDYPingFrame *)_mockDecoderDelegate.framesReceived[0]).pingId, (SPDYPingId)2);
 }
 
 - (void)testMergeHeadersWithLocationAnd200DoesRedirect
