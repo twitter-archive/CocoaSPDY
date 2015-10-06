@@ -44,7 +44,13 @@ extern NSURLCacheStoragePolicy SPDYCacheStoragePolicy(NSURLRequest *request, NSH
     if (cacheable) {
         NSString *responseHeader;
 
-        responseHeader = [response.allHeaderFields[@"cache-control"] lowercaseString];
+        for (NSString *key in [response.allHeaderFields allKeys]) {
+            if ([key caseInsensitiveCompare:@"cache-control"] == NSOrderedSame) {
+                responseHeader = [response.allHeaderFields[key] lowercaseString];
+                break;
+            }
+        }
+
         if (responseHeader != nil && [responseHeader rangeOfString:@"no-store"].location != NSNotFound) {
             cacheable = NO;
         }
@@ -56,7 +62,7 @@ extern NSURLCacheStoragePolicy SPDYCacheStoragePolicy(NSURLRequest *request, NSH
     if (cacheable) {
         NSString *requestHeader;
 
-        requestHeader = [request.allHTTPHeaderFields[@"cache-control"] lowercaseString];
+        requestHeader = [[request valueForHTTPHeaderField:@"cache-control"] lowercaseString];
         if (requestHeader != nil                                             &&
             [requestHeader rangeOfString:@"no-store"].location != NSNotFound &&
             [requestHeader rangeOfString:@"no-cache"].location != NSNotFound) {
