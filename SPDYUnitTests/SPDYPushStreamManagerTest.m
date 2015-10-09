@@ -52,8 +52,8 @@
     _pushStream2.client = nil;
     _pushStream2.associatedStream = _associatedStream;
 
-    [_pushStreamManager addStream:_pushStream1 associatedWith:_associatedStream];
-    [_pushStreamManager addStream:_pushStream2 associatedWith:_associatedStream];
+    [_pushStreamManager addStream:_pushStream1 associatedWithStream:_associatedStream];
+    [_pushStreamManager addStream:_pushStream2 associatedWithStream:_associatedStream];
 
     XCTAssertEqual(_pushStreamManager.pushStreamCount, 2U);
     XCTAssertEqual(_pushStreamManager.associatedStreamCount, 1U);

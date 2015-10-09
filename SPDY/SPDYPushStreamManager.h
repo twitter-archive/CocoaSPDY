@@ -19,7 +19,7 @@
 - (NSUInteger)pushStreamCount;
 - (NSUInteger)associatedStreamCount;
 - (SPDYStream *)streamForProtocol:(SPDYProtocol *)protocol;
-- (void)addStream:(SPDYStream *)stream associatedWith:(SPDYStream *)associatedStream;
+- (void)addStream:(SPDYStream *)stream associatedWithStream:(SPDYStream *)associatedStream;
 - (void)stopLoadingStream:(SPDYStream *)stream;
 
 @end

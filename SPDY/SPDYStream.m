@@ -332,9 +332,7 @@
     [self markUnblocked];  // just in case. safe if already unblocked.
     _metadata.blockedMs = _blockedElapsed * 1000;
 
-    if (_client) {
-        [_client URLProtocolDidFinishLoading:_protocol];
-    }
+    [_client URLProtocolDidFinishLoading:_protocol];
 
     if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
         [_delegate streamClosed:self];
@@ -582,9 +580,7 @@
             redirect.SPDYBodyStream = nil;
         }
 
-        if (_client) {
-            [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:_response];
-        }
+        [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:_response];
 
         return;
     }
@@ -649,12 +645,12 @@
                                                            timeoutInterval:_request.timeoutInterval];
     requestCopy.allHTTPHeaderFields = _request.allHTTPHeaderFields;
     requestCopy.HTTPMethod = @"GET";
-    requestCopy.SPDYPriority = (NSUInteger)_priority; // TODO: same or +1 (lower priority)?
+    requestCopy.SPDYPriority = (NSUInteger)_priority;
 
     _pushRequest = [SPDYProtocol canonicalRequestForRequest:requestCopy];
     _request = _pushRequest;  // need a strong reference for _request's weak one
 
-    [_pushStreamManager addStream:self associatedWith:_associatedStream];
+    [_pushStreamManager addStream:self associatedWithStream:_associatedStream];
 
     // Fire global notification on current thread
     [[NSNotificationCenter defaultCenter] postNotificationName:SPDYPushRequestReceivedNotification
@@ -693,9 +689,7 @@
             NSUInteger inflatedLength = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
             inflatedData.length = inflatedLength;
             if (inflatedLength > 0) {
-                if (_client) {
-                    [_client URLProtocol:_protocol didLoadData:inflatedData];
-                }
+                [_client URLProtocol:_protocol didLoadData:inflatedData];
             }
 
             // This can happen if the decompressed data is size N * DECOMPRESSED_CHUNK_LENGTH,
@@ -717,9 +711,7 @@
         }
     } else {
         NSData *dataCopy = [[NSData alloc] initWithBytes:data.bytes length:dataLength];
-        if (_client) {
-            [_client URLProtocol:_protocol didLoadData:dataCopy];
-        }
+        [_client URLProtocol:_protocol didLoadData:dataCopy];
     }
 }
 

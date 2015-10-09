@@ -71,13 +71,13 @@
     if (_response) {
         SPDY_DEBUG(@"PUSH.%u: replaying didReceiveResponse: %@", _stream.streamId, _response);
         [protocol.client URLProtocol:protocol didReceiveResponse:_response cacheStoragePolicy:_cacheStoragePolicy];
-    }
 
-    if (_data.length > 0) {
-        SPDY_DEBUG(@"PUSH.%u: replaying didLoadData: %zd bytes", _stream.streamId, _data.length);
-        [protocol.client URLProtocol:protocol didLoadData:_data];
+        if (_data.length > 0) {
+            SPDY_DEBUG(@"PUSH.%u: replaying didLoadData: %zd bytes", _stream.streamId, _data.length);
+            [protocol.client URLProtocol:protocol didLoadData:_data];
+        }
     }
-
+    
     if (_error) {
         SPDY_DEBUG(@"PUSH.%u: replaying didFailWithError: %@", _stream.streamId, _error);
         [protocol.client URLProtocol:protocol didFailWithError:_error];
@@ -146,30 +146,30 @@
 
 @implementation SPDYPushStreamManager
 {
-    NSMapTable *_streamToNodeDictionary;
-    NSMapTable *_urlToNodeDictionary;
-    NSMapTable *_associatedStreamToNodeArrayDictionary;
+    NSMapTable *_streamToNodeMap;
+    NSMapTable *_urlToNodeMap;
+    NSMapTable *_associatedStreamToNodeArrayMap;
 }
 
 - (id)init
 {
     self = [super init];
     if (self) {
-        _streamToNodeDictionary = [NSMapTable strongToStrongObjectsMapTable];
-        _urlToNodeDictionary = [NSMapTable strongToStrongObjectsMapTable];
-        _associatedStreamToNodeArrayDictionary = [NSMapTable strongToStrongObjectsMapTable];
+        _streamToNodeMap = [NSMapTable strongToStrongObjectsMapTable];
+        _urlToNodeMap = [NSMapTable strongToStrongObjectsMapTable];
+        _associatedStreamToNodeArrayMap = [NSMapTable strongToStrongObjectsMapTable];
     }
     return self;
 }
 
 - (NSUInteger)pushStreamCount
 {
-    return _streamToNodeDictionary.count;
+    return _streamToNodeMap.count;
 }
 
 - (NSUInteger)associatedStreamCount
 {
-    return _associatedStreamToNodeArrayDictionary.count;
+    return _associatedStreamToNodeArrayMap.count;
 }
 
 - (SPDYStream *)streamForProtocol:(SPDYProtocol *)protocol
@@ -177,7 +177,7 @@
     // @@@ This lookup in our "cache" is only based on the URL. Is there more we need to take
     // into account?
     NSURL *requestURL = protocol.request.URL;  // protocol.request has already been canonicalized
-    SPDYPushStreamNode *node = [_urlToNodeDictionary objectForKey:requestURL];
+    SPDYPushStreamNode *node = [_urlToNodeMap objectForKey:requestURL];
 
     if (node == nil) {
         return nil;
@@ -189,7 +189,7 @@
     return [node attachStreamToProtocol:protocol];
 }
 
-- (void)addStream:(SPDYStream *)stream associatedWith:(SPDYStream *)associatedStream
+- (void)addStream:(SPDYStream *)stream associatedWithStream:(SPDYStream *)associatedStream
 {
     SPDY_INFO(@"PUSH.%u: adding stream (%@) associated with stream %u (%@)", stream.streamId, stream.request.URL, associatedStream.streamId, associatedStream.request.URL);
 
@@ -200,22 +200,22 @@
     SPDYPushStreamNode *node = [[SPDYPushStreamNode alloc] initWithStream:stream associatedStream:associatedStream];
 
     // In the event a stream with matching request already exists, the new one wins.
-    [_streamToNodeDictionary setObject:node forKey:stream];
+    [_streamToNodeMap setObject:node forKey:stream];
 
     // Add mapping from original request to push requests. Allows us to cancel all push
     // requests if the original request is cancelled.
     if (associatedStream) {
         NSAssert(associatedStream.local, @"associated stream must be local");
-        if ([_associatedStreamToNodeArrayDictionary objectForKey:associatedStream] == nil) {
-            [_associatedStreamToNodeArrayDictionary setObject:[[NSMutableArray alloc] initWithObjects:node, nil] forKey:associatedStream];
+        if ([_associatedStreamToNodeArrayMap objectForKey:associatedStream] == nil) {
+            [_associatedStreamToNodeArrayMap setObject:[[NSMutableArray alloc] initWithObjects:node, nil] forKey:associatedStream];
         } else {
-            [[_associatedStreamToNodeArrayDictionary objectForKey:associatedStream] addObject:node];
+            [[_associatedStreamToNodeArrayMap objectForKey:associatedStream] addObject:node];
         }
     }
 
     // Add mapping from URL to node to provide cache lookups
     NSAssert(stream.request, @"push stream must have a request object");
-    [_urlToNodeDictionary setObject:node forKey:stream.request.URL];
+    [_urlToNodeMap setObject:node forKey:stream.request.URL];
 }
 
 - (void)stopLoadingStream:(SPDYStream *)stream
@@ -227,7 +227,7 @@
     // [remote, closed] Remove stream only if its associated local stream has been removed, or if it failed.
     if (stream.local) {
         // Make copy because removeStream will mutate the underlying array
-        NSArray *pushNodes = [[_associatedStreamToNodeArrayDictionary objectForKey:stream] copy];
+        NSArray *pushNodes = [[_associatedStreamToNodeArrayMap objectForKey:stream] copy];
         if (pushNodes.count > 0) {
             for (SPDYPushStreamNode *pushNode in pushNodes) {
                 if (!stream.closed) {
@@ -255,7 +255,7 @@
         // around while the associated stream is open could lead to leaks if the app never
         // issues requests that hook up to the pushed streams.
         SPDYStream *associatedStream = stream.associatedStream;  // get strong reference
-        BOOL hasAssociatedStream = (associatedStream && [_associatedStreamToNodeArrayDictionary objectForKey:associatedStream]);
+        BOOL hasAssociatedStream = (associatedStream && [_associatedStreamToNodeArrayMap objectForKey:associatedStream]);
         if (!hasAssociatedStream) {
             SPDY_DEBUG(@"PUSH.%u: removing pushed stream", stream.streamId);
             [self removeStream:stream];
@@ -272,17 +272,17 @@
     }
 
     if (stream.local) {
-        [_associatedStreamToNodeArrayDictionary removeObjectForKey:stream];
+        [_associatedStreamToNodeArrayMap removeObjectForKey:stream];
     } else {
-        SPDYPushStreamNode *pushNode = [_streamToNodeDictionary objectForKey:stream];
-        [_streamToNodeDictionary removeObjectForKey:stream];
+        SPDYPushStreamNode *pushNode = [_streamToNodeMap objectForKey:stream];
+        [_streamToNodeMap removeObjectForKey:stream];
         if (stream.request != nil) {
-            [_urlToNodeDictionary removeObjectForKey:stream.request.URL];
+            [_urlToNodeMap removeObjectForKey:stream.request.URL];
         }
 
         // Remove the stream from the list of streams related to associated (original) stream.
         NSAssert(pushNode.associatedStream, @"push stream must have associated stream");
-        NSMutableArray *associatedNodes = [_associatedStreamToNodeArrayDictionary objectForKey:pushNode.associatedStream];
+        NSMutableArray *associatedNodes = [_associatedStreamToNodeArrayMap objectForKey:pushNode.associatedStream];
         for (NSUInteger i = 0; i < associatedNodes.count; i++) {
             SPDYPushStreamNode *node = associatedNodes[i];
             if (node.stream == stream) {
