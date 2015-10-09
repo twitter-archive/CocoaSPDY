@@ -595,10 +595,6 @@
         return;
     }
 
-    // TODO: Browsers receiving a pushed response MUST validate that the server is authorized to
-    // push the URL using the browser same-origin policy. For example, a SPDY connection to
-    // www.foo.com is generally not permitted to push a response for www.evil.com.
-
     SPDYStream *stream = [[SPDYStream alloc] initWithAssociatedStream:associatedStream
                                                              priority:synStreamFrame.priority];
 

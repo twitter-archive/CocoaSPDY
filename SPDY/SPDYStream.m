@@ -21,6 +21,7 @@
 #import "SPDYCommonLogger.h"
 #import "SPDYDefinitions.h"
 #import "SPDYMetadata+Utils.h"
+#import "SPDYOrigin.h"
 #import "SPDYProtocol+Project.h"
 #import "SPDYPushStreamManager.h"
 #import "SPDYStopwatch.h"
@@ -609,6 +610,29 @@
         return;
     }
 
+    // Browsers receiving a pushed response MUST validate that the server is authorized to
+    // push the URL using the browser same-origin policy. For example, a SPDY connection to
+    // www.foo.com is generally not permitted to push a response for www.evil.com.
+    // Enforce by canonicalizing origins and comparing them.
+    NSError *error;
+    NSURL *pushURL = [[NSURL alloc] initWithScheme:scheme host:host path:path];
+    SPDYOrigin *pushOrigin = [[SPDYOrigin alloc] initWithURL:pushURL error:&error];
+    if (!pushOrigin) {
+        SPDY_WARNING(@"pushed stream invalid origin: %@", error);
+        [self abortWithError:error status:SPDY_STREAM_INVALID_STREAM];
+        return;
+    }
+
+    NSURL *associatedURL = _associatedStream.request.URL;
+    SPDYOrigin *associatedOrigin = [[SPDYOrigin alloc] initWithURL:associatedURL error:&error];
+    NSAssert(associatedOrigin, @"original request must have had valid origin");
+
+    if (![associatedOrigin isEqual:pushOrigin]) {
+        SPDY_WARNING(@"Pushed URL is not same origin (%@) as associated stream (%@)", pushOrigin, associatedOrigin);
+        [self abortWithError:error status:SPDY_STREAM_REFUSED_STREAM];
+        return;
+    }
+
     // Because pushed responses have no request, they have no request headers associated with
     // them. At the framing layer, SPDY pushed streams contain an "associated-stream-id" which
     // indicates the requested stream for which the pushed stream is related. The pushed
@@ -616,7 +640,6 @@
     // of ":host", ":scheme", and ":path", which are provided as part of the pushed response
     // stream headers. The browser MUST store these inherited and implied request headers
     // with the cached resource.
-    NSURL *pushURL = [[NSURL alloc] initWithScheme:scheme host:host path:path];
     NSMutableURLRequest *requestCopy = [NSMutableURLRequest requestWithURL:pushURL
                                                                cachePolicy:NSURLRequestUseProtocolCachePolicy
                                                            timeoutInterval:_request.timeoutInterval];

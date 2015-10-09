@@ -155,6 +155,22 @@
     XCTAssertEqual(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).streamId, (SPDYStreamId)2);
 }
 
+- (void)testSYNStreamWithDifferentOriginRespondsWithReset
+{
+    // Exchange initial SYN_STREAM and SYN_REPLY
+    [self mockSynStreamAndReplyWithId:1 last:NO];
+
+    // Default test origin is "http://mocked:80". Use different scheme for test.
+    NSDictionary *headers = @{@":scheme":@"https", @":host":@"mocked", @":path":@"/pushed"};
+    [self mockServerSynStreamWithId:2 last:NO headers:headers];
+
+    // Different origin for push, client must refuse
+    XCTAssertEqual(_mockDecoderDelegate.frameCount, (NSUInteger)1);
+    XCTAssertTrue([_mockDecoderDelegate.lastFrame isKindOfClass:[SPDYRstStreamFrame class]]);
+    XCTAssertEqual(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).statusCode, SPDY_STREAM_REFUSED_STREAM);
+    XCTAssertEqual(((SPDYRstStreamFrame *)_mockDecoderDelegate.lastFrame).streamId, (SPDYStreamId)2);
+}
+
 #pragma mark Simple push callback tests
 
 - (void)testSYNStreamWithStreamIDNonZeroMakesResponseCallback
