@@ -20,6 +20,17 @@
 #error "This file requires ARC support."
 #endif
 
+@implementation NSURLRequest (SPDYPushStreamManager)
+
+- (NSString *)keyForMemoryCache
+{
+    NSString *urlString = self.URL.absoluteString;
+    NSString *userAgent = [self valueForHTTPHeaderField:@"user-agent"];
+    return [NSString stringWithFormat:@"%@__%@", urlString, userAgent];
+}
+
+@end
+
 @interface SPDYPushStreamManager ()
 - (void)removeStream:(SPDYStream *)stream;
 @end
@@ -77,7 +88,7 @@
             [protocol.client URLProtocol:protocol didLoadData:_data];
         }
     }
-    
+
     if (_error) {
         SPDY_DEBUG(@"PUSH.%u: replaying didFailWithError: %@", _stream.streamId, _error);
         [protocol.client URLProtocol:protocol didFailWithError:_error];
@@ -147,7 +158,7 @@
 @implementation SPDYPushStreamManager
 {
     NSMapTable *_streamToNodeMap;
-    NSMapTable *_urlToNodeMap;
+    NSMapTable *_requestToNodeMap;
     NSMapTable *_associatedStreamToNodeArrayMap;
 }
 
@@ -156,7 +167,7 @@
     self = [super init];
     if (self) {
         _streamToNodeMap = [NSMapTable strongToStrongObjectsMapTable];
-        _urlToNodeMap = [NSMapTable strongToStrongObjectsMapTable];
+        _requestToNodeMap = [NSMapTable strongToStrongObjectsMapTable];
         _associatedStreamToNodeArrayMap = [NSMapTable strongToStrongObjectsMapTable];
     }
     return self;
@@ -174,10 +185,9 @@
 
 - (SPDYStream *)streamForProtocol:(SPDYProtocol *)protocol
 {
-    // @@@ This lookup in our "cache" is only based on the URL. Is there more we need to take
-    // into account?
-    NSURL *requestURL = protocol.request.URL;  // protocol.request has already been canonicalized
-    SPDYPushStreamNode *node = [_urlToNodeMap objectForKey:requestURL];
+    // This lookup in our "cache" is only based on the URL and user agent. It is not quite the
+    // same as a standard HTTP cache lookup. protocol.request has already been canonicalized.
+    SPDYPushStreamNode *node = [_requestToNodeMap objectForKey:[protocol.request keyForMemoryCache]];
 
     if (node == nil) {
         return nil;
@@ -185,7 +195,7 @@
 
     [self removeStream:node.stream];
 
-    SPDY_DEBUG(@"PUSH.%u: attaching push stream to protocol for request %@", node.stream.streamId, requestURL);
+    SPDY_DEBUG(@"PUSH.%u: attaching push stream to protocol for request %@", node.stream.streamId, protocol.request.URL);
     return [node attachStreamToProtocol:protocol];
 }
 
@@ -215,7 +225,7 @@
 
     // Add mapping from URL to node to provide cache lookups
     NSAssert(stream.request, @"push stream must have a request object");
-    [_urlToNodeMap setObject:node forKey:stream.request.URL];
+    [_requestToNodeMap setObject:node forKey:[stream.request keyForMemoryCache]];
 }
 
 - (void)stopLoadingStream:(SPDYStream *)stream
@@ -277,7 +287,7 @@
         SPDYPushStreamNode *pushNode = [_streamToNodeMap objectForKey:stream];
         [_streamToNodeMap removeObjectForKey:stream];
         if (stream.request != nil) {
-            [_urlToNodeMap removeObjectForKey:stream.request.URL];
+            [_requestToNodeMap removeObjectForKey:[stream.request keyForMemoryCache]];
         }
 
         // Remove the stream from the list of streams related to associated (original) stream.
