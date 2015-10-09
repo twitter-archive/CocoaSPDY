@@ -31,7 +31,6 @@
 @property (nonatomic) SPDYMetadata *metadata;
 @property (nonatomic) NSData *data;
 @property (nonatomic) NSInputStream *dataStream;
-@property (nonatomic) NSDictionary *headers;
 @property (nonatomic, weak) NSURLRequest *request;
 @property (nonatomic, weak) SPDYProtocol *protocol;
 @property (nonatomic, weak) SPDYPushStreamManager *pushStreamManager;
