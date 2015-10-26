@@ -421,16 +421,16 @@
     }
 
     if (_headers) {
-        // See if any headers collide with previous
-        if ([[NSSet setWithArray:[_headers allKeys]] intersectsSet:[NSSet setWithArray:[newHeaders allKeys]]]) {
-            NSError *error = SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"received duplicate headers");
-            [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
-            return;
-        }
-
-        // Merge raw headers
         NSMutableDictionary *merged = [NSMutableDictionary dictionaryWithDictionary:_headers];
-        [merged addEntriesFromDictionary:newHeaders];
+        for (NSString *newKey in newHeaders) {
+            NSString *newValue = newHeaders[newKey];
+            if (nil != merged[newKey]) {
+                NSError *error = SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"received duplicate headers");
+                [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
+                return;
+            }
+            merged[newKey] = newValue;
+        }
         _headers = merged;
     } else {
         _headers = [newHeaders copy];
