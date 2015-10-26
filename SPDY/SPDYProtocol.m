@@ -51,6 +51,7 @@ static dispatch_once_t initConfig;
 @end
 
 @interface SPDYProtocolContext : NSObject <SPDYProtocolContext>
+- (void)associateWithStream:(SPDYStream *)stream;
 @end
 
 @implementation SPDYAssertionHandler
@@ -122,14 +123,12 @@ static dispatch_once_t initConfig;
     SPDYMetadata *_metadata;
 }
 
-- (instancetype)initWithStream:(SPDYStream *)stream
+- (void)associateWithStream:(SPDYStream *)stream
 {
-    self = [super init];
-    if (self) {
-        _metadata = stream.metadata;
-    }
-    return self;
+    _metadata = stream.metadata;
 }
+
+#pragma mark SPDYProtocolContext protocol
 
 - (SPDYMetadata *)metadata
 {
@@ -385,8 +384,8 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     }
 
     // Create the context, but delay stream creation (to allow for looking up push cache
-    // as late as possible)
-    _context = [[SPDYProtocolContext alloc] initWithStream:_stream];
+    // as late as possible). Must associate stream with this instance of the context then.
+    _context = [[SPDYProtocolContext alloc] init];
 
     if (request.SPDYURLSession) {
         [self detectSessionAndTaskThenContinueWithOrigin:origin];
@@ -457,6 +456,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         _stream = [[SPDYStream alloc] initWithProtocol:self pushStreamManager:manager.pushStreamManager];
         [manager queueStream:_stream];
     }
+    [_context associateWithStream:_stream];
 }
 
 - (void)stopLoading

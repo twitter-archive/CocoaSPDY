@@ -106,10 +106,10 @@
 		5C5EA4701A119B630058FB64 /* SPDYOriginEndpoint.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C5EA46A1A119B630058FB64 /* SPDYOriginEndpoint.m */; };
 		5C5EA4731A119C950058FB64 /* SPDYMockOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C5EA4721A119C950058FB64 /* SPDYMockOriginEndpointManager.m */; };
 		5C5EA4751A119CAB0058FB64 /* SPDYSocketTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C5EA4741A119CAB0058FB64 /* SPDYSocketTest.m */; };
-		5C6D809A1BC44C19003AF2E0 /* SPDYURLCacheTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80991BC44C19003AF2E0 /* SPDYURLCacheTest.m */; settings = {ASSET_TAGS = (); }; };
-		5C6D80AB1BC457B3003AF2E0 /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80A91BC457A9003AF2E0 /* SPDYCanonicalRequest.m */; settings = {ASSET_TAGS = (); }; };
-		5C6D80AC1BC457B4003AF2E0 /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80A91BC457A9003AF2E0 /* SPDYCanonicalRequest.m */; settings = {ASSET_TAGS = (); }; };
-		5C6D80AD1BC457B5003AF2E0 /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80A91BC457A9003AF2E0 /* SPDYCanonicalRequest.m */; settings = {ASSET_TAGS = (); }; };
+		5C6D809A1BC44C19003AF2E0 /* SPDYURLCacheTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80991BC44C19003AF2E0 /* SPDYURLCacheTest.m */; };
+		5C6D80AB1BC457B3003AF2E0 /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80A91BC457A9003AF2E0 /* SPDYCanonicalRequest.m */; };
+		5C6D80AC1BC457B4003AF2E0 /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80A91BC457A9003AF2E0 /* SPDYCanonicalRequest.m */; };
+		5C6D80AD1BC457B5003AF2E0 /* SPDYCanonicalRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D80A91BC457A9003AF2E0 /* SPDYCanonicalRequest.m */; };
 		5C750B501A390C7200CC0F2F /* SPDYPushStreamManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C750B4F1A390C7200CC0F2F /* SPDYPushStreamManagerTest.m */; };
 		5C7E662F1B0533360037AD91 /* SPDYProtocolTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C7E662E1B0533360037AD91 /* SPDYProtocolTest.m */; };
 		5C8089701A266C5700CAC4FF /* SPDYPushStreamManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C80896D1A266C5700CAC4FF /* SPDYPushStreamManager.h */; };
@@ -120,6 +120,7 @@
 		5C9A0BD11A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
 		5C9A0BD21A363BDC00CF2D3D /* SPDYOriginEndpointManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */; };
 		5CA0B9C81A6486F10068ABD9 /* SPDYSettingsStoreTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0B9C71A6486F10068ABD9 /* SPDYSettingsStoreTest.m */; };
+		5CC7B9051BDECD43006E2952 /* SPDYProtocolContextTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CC7B9041BDECD43006E2952 /* SPDYProtocolContextTest.m */; };
 		5CE43CE11AD74FC900E73FAC /* SPDYMetadata+Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */; };
 		5CE43CE21AD74FC900E73FAC /* SPDYMetadata+Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */; };
 		5CE43CE31AD74FCA00E73FAC /* SPDYMetadata+Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */; };
@@ -212,6 +213,7 @@
 		5C9A0BCB1A363B7700CF2D3D /* SPDYOriginEndpointManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPDYOriginEndpointManager.h; sourceTree = "<group>"; };
 		5C9A0BCF1A363BDC00CF2D3D /* SPDYOriginEndpointManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYOriginEndpointManager.m; sourceTree = "<group>"; };
 		5CA0B9C71A6486F10068ABD9 /* SPDYSettingsStoreTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYSettingsStoreTest.m; sourceTree = "<group>"; };
+		5CC7B9041BDECD43006E2952 /* SPDYProtocolContextTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYProtocolContextTest.m; sourceTree = "<group>"; };
 		5CE43CDE1AD74E2200E73FAC /* SPDYMetadata+Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SPDYMetadata+Utils.h"; sourceTree = "<group>"; };
 		5CE43CDF1AD74E2200E73FAC /* SPDYMetadata+Utils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "SPDYMetadata+Utils.m"; sourceTree = "<group>"; };
 		5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SPDYMetadataTest.m; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 				5CF0A2C81A089BC500B6D141 /* SPDYMetadataTest.m */,
 				5C04570419B043CB009E0AC2 /* SPDYOriginEndpointTest.m */,
 				0679F3CE186217FC006F122E /* SPDYOriginTest.m */,
+				5CC7B9041BDECD43006E2952 /* SPDYProtocolContextTest.m */,
 				5C7E662E1B0533360037AD91 /* SPDYProtocolTest.m */,
 				5C750B4F1A390C7200CC0F2F /* SPDYPushStreamManagerTest.m */,
 				7774C803F0948788139CD2C1 /* SPDYServerPushTest.m */,
@@ -695,6 +698,7 @@
 				5C5EA4751A119CAB0058FB64 /* SPDYSocketTest.m in Sources */,
 				5C2229591952257800CAF160 /* SPDYURLRequestTest.m in Sources */,
 				5CF0A2CC1A0952D900B6D141 /* SPDYMockURLProtocolClient.m in Sources */,
+				5CC7B9051BDECD43006E2952 /* SPDYProtocolContextTest.m in Sources */,
 				064EFB2F1671638A002F0AEC /* SPDYMockFrameDecoderDelegate.m in Sources */,
 				5C5EA4731A119C950058FB64 /* SPDYMockOriginEndpointManager.m in Sources */,
 				069D0E8B167F9D010037D8AF /* SPDYStream.m in Sources */,
