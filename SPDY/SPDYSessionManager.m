@@ -19,6 +19,7 @@
 #import "SPDYCommonLogger.h"
 #import "SPDYOrigin.h"
 #import "SPDYProtocol.h"
+#import "SPDYPushStreamManager.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYSessionPool.h"
@@ -74,6 +75,7 @@ static void SPDYReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkR
 {
     self = [super init];
     if (self) {
+        _pushStreamManager = [[SPDYPushStreamManager alloc] init];
         _origin = origin;
         _pendingStreams = [[SPDYStreamManager alloc] init];
         _basePool = [[SPDYSessionPool alloc] init];

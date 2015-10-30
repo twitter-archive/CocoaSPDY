@@ -549,7 +549,7 @@ NSMutableURLRequest *request2 = [[NSMutableURLRequest alloc] initWithURL:url]; \
     EQUALITYTEST_SETUP();
     request1.HTTPShouldHandleCookies = YES;
     request2.HTTPShouldHandleCookies = NO;
-    
+
     XCTAssertFalse([request1 isEqual:request2]);
 }
 

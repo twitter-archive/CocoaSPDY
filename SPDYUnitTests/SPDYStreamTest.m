@@ -1,4 +1,3 @@
-//
 //  SPDYStreamTest.m
 //  SPDY
 //
@@ -89,51 +88,72 @@ static NSThread *_streamThread;
     XCTAssertEqual(_mockURLProtocolClient.lastError.code, (errorCode)); \
 } while (0)
 
-- (void)testReceiveResponseMissingStatusCodeDoesAbort
+- (void)testMergeHeadersCollisionDoesAbort
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
-                              @":version":@"http/1.1"};
+            @":status":@"200", @":version":@"http/1.1"};
+    NSDictionary *headersDup = @{@":scheme":@"http"};
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    XCTAssertFalse(_mockURLProtocolClient.calledDidFailWithError);
+
+    [stream mergeHeaders:headersDup];
+    SPDYAssertStreamError(SPDYStreamErrorDomain, SPDYStreamProtocolError);
+}
+
+- (void)testReceiveResponseMissingStatusCodeDoesAbort
+{
+    SPDYStream *stream = [self createStream];
+    [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
+
+    NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
+            @":version":@"http/1.1"};
+
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     SPDYAssertStreamError(NSURLErrorDomain, NSURLErrorBadServerResponse);
 }
 
 - (void)testReceiveResponseInvalidStatusCodeDoesAbort
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
                               @":status":@"99", @":version":@"http/1.1"};
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     SPDYAssertStreamError(NSURLErrorDomain, NSURLErrorBadServerResponse);
 }
 
 - (void)testReceiveResponseMissingVersionDoesAbort
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
                               @":status":@"200"};
-    [stream didReceiveResponse:headers];
+
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     SPDYAssertStreamError(NSURLErrorDomain, NSURLErrorBadServerResponse);
 }
 
 - (void)testReceiveResponseDoesSucceed
 {
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
                               @":status":@"200", @":version":@"http/1.1", @"Header1":@"Value1",
                               @"HeaderMany":@[@"ValueMany1", @"ValueMany2"]};
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     XCTAssertTrue(_mockURLProtocolClient.calledDidReceiveResponse);
 
     NSHTTPURLResponse *response = _mockURLProtocolClient.lastResponse;
@@ -153,7 +173,7 @@ static NSThread *_streamThread;
     _URLRequest.SPDYBodyFile = @"bodyfile.txt";
     _URLRequest.SPDYDeferrableInterval = 1.0;
 
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -161,7 +181,8 @@ static NSThread *_streamThread;
                               @"location":@"newpath"};
     NSURL *redirectUrl = [NSURL URLWithString:@"http://mocked/newpath"];
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     XCTAssertEqualObjects(_mockURLProtocolClient.lastRedirectedRequest.URL.absoluteString, redirectUrl.absoluteString);
@@ -181,7 +202,7 @@ static NSThread *_streamThread;
     _URLRequest.HTTPMethod = @"POST";
     _URLRequest.SPDYBodyStream = inputStream;
 
-    SPDYStream *stream = [[SPDYStream alloc] initWithProtocol:[self createProtocol]];
+    SPDYStream *stream = [self createStream];
     [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
 
     NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
@@ -189,7 +210,8 @@ static NSThread *_streamThread;
                               @"location":@"https://mocked2/newpath"};
     NSURL *redirectUrl = [NSURL URLWithString:@"https://mocked2/newpath"];
 
-    [stream didReceiveResponse:headers];
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
     XCTAssertTrue(_mockURLProtocolClient.calledWasRedirectedToRequest);
 
     XCTAssertEqualObjects(_mockURLProtocolClient.lastRedirectedRequest.URL.absoluteString, redirectUrl.absoluteString);

@@ -17,10 +17,13 @@
 #import <objc/runtime.h>
 #import "NSURLRequest+SPDYURLRequest.h"
 #import "SPDYCacheStoragePolicy.h"
+#import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYDefinitions.h"
 #import "SPDYMetadata+Utils.h"
+#import "SPDYOrigin.h"
 #import "SPDYProtocol+Project.h"
+#import "SPDYPushStreamManager.h"
 #import "SPDYStopwatch.h"
 #import "SPDYStream.h"
 
@@ -51,6 +54,7 @@
     NSData *_data;
     NSString *_dataFile;
     NSInputStream *_dataStream;
+    NSDictionary *_headers;
     NSRunLoop *_runLoop;
     CFReadStreamRef _dataStreamRef;
     CFRunLoopRef _runLoopRef;
@@ -61,16 +65,22 @@
     bool _compressedResponse;
     bool _writeStreamOpened;
     int _zlibStreamStatus;
+    bool _ignoreHeaders;
     SPDYStopwatch *_blockedStopwatch;
     SPDYTimeInterval _blockedElapsed;
     bool _blocked;
+
+    NSURLRequest *_pushRequest;  // stored because we need a strong reference, _request is weak.
+    NSHTTPURLResponse *_response;
 }
 
 - (instancetype)initWithProtocol:(SPDYProtocol *)protocol
+               pushStreamManager:(SPDYPushStreamManager *)pushStreamManager
 {
     self = [super init];
     if (self) {
         _protocol = protocol;
+        _pushStreamManager = pushStreamManager;
         _client = protocol.client;
         _request = protocol.request;
         _priority = (uint8_t)MIN(_request.SPDYPriority, 0x07);
@@ -80,8 +90,35 @@
         _remoteSideClosed = NO;
         _compressedResponse = NO;
         _receivedReply = NO;
+        _delegate = nil;
         _metadata = [[SPDYMetadata alloc] init];
         _blockedStopwatch = [[SPDYStopwatch alloc] init];
+        _associatedStream = nil;
+
+        _metadata.timeStreamCreated = [SPDYStopwatch currentSystemTime];
+    }
+    return self;
+}
+
+- (id)initWithAssociatedStream:(SPDYStream *)associatedStream priority:(uint8_t)priority
+{
+    self = [super init];
+    if (self) {
+        _protocol = nil;
+        _pushStreamManager = associatedStream.pushStreamManager;
+        _client = nil;
+        _request = nil;
+        _priority = priority;
+        _dispatchAttempts = 0;
+        _local = NO;
+        _localSideClosed = YES; // this is a push request, our side has nothing to say
+        _remoteSideClosed = NO;
+        _compressedResponse = NO;
+        _receivedReply = NO;
+        _delegate = associatedStream.delegate;
+        _metadata = [[SPDYMetadata alloc] init];
+        _blockedStopwatch = [[SPDYStopwatch alloc] init];
+        _associatedStream = associatedStream;
 
         _metadata.timeStreamCreated = [SPDYStopwatch currentSystemTime];
     }
@@ -295,9 +332,7 @@
     [self markUnblocked];  // just in case. safe if already unblocked.
     _metadata.blockedMs = _blockedElapsed * 1000;
 
-    if (_client) {
-        [_client URLProtocolDidFinishLoading:_protocol];
-    }
+    [_client URLProtocolDidFinishLoading:_protocol];
 
     if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
         [_delegate streamClosed:self];
@@ -374,10 +409,46 @@
     return nil;
 }
 
-- (void)didReceiveResponse:(NSDictionary *)headers
+- (void)mergeHeaders:(NSDictionary *)newHeaders
 {
-    _receivedReply = YES;
+    // If the server sends a HEADERS frame after sending a data frame
+    // for the same stream, the client MAY ignore the HEADERS frame.
+    // Ignoring the HEADERS frame after a data frame prevents handling of HTTP's
+    // trailing headers (http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.40).
+    if (_ignoreHeaders) {
+        SPDY_WARNING(@"ignoring trailing headers: %@", newHeaders);
+        return;
+    }
 
+    if (_headers) {
+        NSMutableDictionary *merged = [NSMutableDictionary dictionaryWithDictionary:_headers];
+        for (NSString *newKey in newHeaders) {
+            NSString *newValue = newHeaders[newKey];
+            if (nil != merged[newKey]) {
+                NSError *error = SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"received duplicate headers");
+                [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
+                return;
+            }
+            merged[newKey] = newValue;
+        }
+        _headers = merged;
+    } else {
+        _headers = [newHeaders copy];
+    }
+}
+
+- (void)didReceiveResponse
+{
+    if (_receivedReply) {
+        SPDY_WARNING(@"already received a response for stream %u", _streamId);
+        return;
+    }
+
+    NSDictionary *headers = _headers;
+    _receivedReply = YES;
+    _ignoreHeaders = NO;
+
+    // Pull out and validate statusCode for later use
     NSInteger statusCode = [headers[@":status"] intValue];
     if (statusCode < 100 || statusCode > 599) {
         NSDictionary *info = @{ NSLocalizedDescriptionKey: @"invalid http response code" };
@@ -388,6 +459,7 @@
         return;
     }
 
+    // Pull out and validate version for later use
     NSString *version = headers[@":version"];
     if (!version) {
         NSDictionary *info = @{ NSLocalizedDescriptionKey: @"response missing version header" };
@@ -398,6 +470,7 @@
         return;
     }
 
+    // Create a "clean" set of headers for the NSURLResponse
     NSMutableDictionary *allHTTPHeaders = [[NSMutableDictionary alloc] init];
     for (NSString *key in headers) {
         if (![key hasPrefix:@":"]) {
@@ -410,7 +483,7 @@
         }
     }
 
-    NSURL *requestURL = _protocol.request.URL;
+    NSURL *requestURL = _request.URL;
     BOOL cookiesOn = NO;
     NSHTTPCookieStorage *cookieStore = nil;
 
@@ -418,7 +491,7 @@
     if (config) {
         switch (config.HTTPCookieAcceptPolicy) {
             case NSHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain:
-                if ([_protocol.request.URL.host compare:_protocol.request.mainDocumentURL.host options:NSCaseInsensitiveSearch] != NSOrderedSame) {
+                if ([_request.URL.host compare:_request.mainDocumentURL.host options:NSCaseInsensitiveSearch] != NSOrderedSame) {
                     break;
                 } // else, fall through
             case NSHTTPCookieAcceptPolicyAlways:
@@ -429,7 +502,7 @@
                 break;
         }
     } else {
-        cookiesOn = _protocol.request.HTTPShouldHandleCookies;
+        cookiesOn = _request.HTTPShouldHandleCookies;
         cookieStore = [NSHTTPCookieStorage sharedHTTPCookieStorage];
     }
 
@@ -448,10 +521,11 @@
 
             [cookieStore setCookies:cookies
                              forURL:requestURL
-                    mainDocumentURL:_protocol.request.mainDocumentURL];
+                    mainDocumentURL:_request.mainDocumentURL];
         }
     }
 
+    // Check encoding, but only do it once, so look at newHeaders
     NSString *encoding = allHTTPHeaders[@"content-encoding"];
     _compressedResponse = [encoding hasPrefix:@"deflate"] || [encoding hasPrefix:@"gzip"];
     if (_compressedResponse) {
@@ -461,13 +535,12 @@
 
     [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:allHTTPHeaders];
 
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:requestURL
-                                                              statusCode:statusCode
-                                                             HTTPVersion:version
-                                                            headerFields:allHTTPHeaders];
+    _response = [[NSHTTPURLResponse alloc] initWithURL:requestURL
+                                            statusCode:statusCode
+                                           HTTPVersion:version
+                                          headerFields:allHTTPHeaders];
 
     NSString *location = allHTTPHeaders[@"location"];
-
     if (location != nil) {
         NSURL *redirectURL = [[NSURL alloc] initWithString:location relativeToURL:requestURL];
         if (redirectURL == nil) {
@@ -482,7 +555,7 @@
         // shouldStartLoadWithRequest callback, the hostname gets stripped out. By flattening
         // the NSURL with absoluteString, we can avoid that. This is observed in iOS8 but not iOS7.
         NSURL *finalRedirectURL = [NSURL URLWithString:redirectURL.absoluteString];
-        NSMutableURLRequest *redirect = [_protocol.request mutableCopy];
+        NSMutableURLRequest *redirect = [_request mutableCopy];
         redirect.URL = finalRedirectURL;
         redirect.SPDYPriority = _request.SPDYPriority;
         redirect.SPDYBodyFile = _request.SPDYBodyFile;
@@ -507,20 +580,91 @@
             redirect.SPDYBodyStream = nil;
         }
 
-        [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:response];
+        [_client URLProtocol:_protocol wasRedirectedToRequest:redirect redirectResponse:_response];
+
         return;
     }
 
-    NSURLCacheStoragePolicy cachePolicy = SPDYCacheStoragePolicy(_request, response);
-    [_client URLProtocol:_protocol
-      didReceiveResponse:response
-      cacheStoragePolicy:cachePolicy];
+    if (_client) {
+        NSURLCacheStoragePolicy cachePolicy = SPDYCacheStoragePolicy(_request, _response);
+        [_client URLProtocol:_protocol
+          didReceiveResponse:_response
+          cacheStoragePolicy:cachePolicy];
+    }
+}
+
+- (void)didReceivePushRequest
+{
+    NSAssert(!_local, @"should only be called for pushed streams");
+
+    // Validate :scheme, :host, and :path for pushed responses, and create the cloned request
+    // The SYN_STREAM MUST include headers for ":scheme", ":host",
+    // ":path", which represent the URL for the resource being pushed.
+    NSString *scheme = _headers[@":scheme"];
+    NSString *host = _headers[@":host"];
+    NSString *path = _headers[@":path"];
+    if (!scheme || !host || !path) {
+        SPDY_WARNING(@"SYN_STREAM missing :scheme, :host, and :path headers for stream %u", _streamId);
+        NSError *error = SPDY_STREAM_ERROR(SPDYStreamProtocolError, @"missing :scheme, :host, or :path header");
+        [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
+        return;
+    }
+
+    // Browsers receiving a pushed response MUST validate that the server is authorized to
+    // push the URL using the browser same-origin policy. For example, a SPDY connection to
+    // www.foo.com is generally not permitted to push a response for www.evil.com.
+    // Enforce by canonicalizing origins and comparing them.
+    NSError *error;
+    NSURL *pushURL = [[NSURL alloc] initWithScheme:scheme host:host path:path];
+    SPDYOrigin *pushOrigin = [[SPDYOrigin alloc] initWithURL:pushURL error:&error];
+    if (!pushOrigin) {
+        SPDY_WARNING(@"pushed stream invalid origin: %@", error);
+        [self abortWithError:error status:SPDY_STREAM_INVALID_STREAM];
+        return;
+    }
+
+    NSURL *associatedURL = _associatedStream.request.URL;
+    SPDYOrigin *associatedOrigin = [[SPDYOrigin alloc] initWithURL:associatedURL error:&error];
+    NSAssert(associatedOrigin, @"original request must have had valid origin");
+
+    if (![associatedOrigin isEqual:pushOrigin]) {
+        SPDY_WARNING(@"Pushed URL is not same origin (%@) as associated stream (%@)", pushOrigin, associatedOrigin);
+        [self abortWithError:error status:SPDY_STREAM_REFUSED_STREAM];
+        return;
+    }
+
+    // Because pushed responses have no request, they have no request headers associated with
+    // them. At the framing layer, SPDY pushed streams contain an "associated-stream-id" which
+    // indicates the requested stream for which the pushed stream is related. The pushed
+    // stream inherits all of the headers from the associated-stream-id with the exception
+    // of ":host", ":scheme", and ":path", which are provided as part of the pushed response
+    // stream headers. The browser MUST store these inherited and implied request headers
+    // with the cached resource.
+    NSMutableURLRequest *requestCopy = [NSMutableURLRequest requestWithURL:pushURL
+                                                               cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                                           timeoutInterval:_request.timeoutInterval];
+    requestCopy.allHTTPHeaderFields = _request.allHTTPHeaderFields;
+    requestCopy.HTTPMethod = @"GET";
+    requestCopy.SPDYPriority = (NSUInteger)_priority;
+
+    _pushRequest = [SPDYProtocol canonicalRequestForRequest:requestCopy];
+    _request = _pushRequest;  // need a strong reference for _request's weak one
+
+    [_pushStreamManager addStream:self associatedWithStream:_associatedStream];
+
+    // Fire global notification on current thread
+    [[NSNotificationCenter defaultCenter] postNotificationName:SPDYPushRequestReceivedNotification
+                                                        object:nil
+                                                      userInfo:@{ @"request": _request }];
 }
 
 - (void)didLoadData:(NSData *)data
 {
     NSUInteger dataLength = data.length;
     if (dataLength == 0) return;
+
+    // No more header merging after this point
+    _ignoreHeaders = YES;
 
     if (_compressedResponse) {
         _zlibStream.avail_in = (uInt)dataLength;

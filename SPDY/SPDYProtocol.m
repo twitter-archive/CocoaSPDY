@@ -21,6 +21,7 @@
 #import "SPDYMetadata+Utils.h"
 #import "SPDYOrigin.h"
 #import "SPDYProtocol+Project.h"
+#import "SPDYPushStreamManager.h"
 #import "SPDYSession.h"
 #import "SPDYSessionManager.h"
 #import "SPDYStream.h"
@@ -32,6 +33,7 @@ NSString *const SPDYCodecErrorDomain = @"SPDYCodecErrorDomain";
 NSString *const SPDYSocketErrorDomain = @"SPDYSocketErrorDomain";
 NSString *const SPDYOriginRegisteredNotification = @"SPDYOriginRegisteredNotification";
 NSString *const SPDYOriginUnregisteredNotification = @"SPDYOriginUnregisteredNotification";
+NSString *const SPDYPushRequestReceivedNotification = @"SPDYPushRequestReceivedNotification";
 
 static char *const SPDYConfigQueue = "com.twitter.SPDYConfigQueue";
 
@@ -49,6 +51,7 @@ static dispatch_once_t initConfig;
 @end
 
 @interface SPDYProtocolContext : NSObject <SPDYProtocolContext>
+- (void)associateWithStream:(SPDYStream *)stream;
 @end
 
 @implementation SPDYAssertionHandler
@@ -120,14 +123,12 @@ static dispatch_once_t initConfig;
     SPDYMetadata *_metadata;
 }
 
-- (instancetype)initWithStream:(SPDYStream *)stream
+- (void)associateWithStream:(SPDYStream *)stream
 {
-    self = [super init];
-    if (self) {
-        _metadata = stream.metadata;
-    }
-    return self;
+    _metadata = stream.metadata;
 }
+
+#pragma mark SPDYProtocolContext protocol
 
 - (SPDYMetadata *)metadata
 {
@@ -382,16 +383,14 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         origin = aliasedOrigin;
     }
 
-    // Create the stream
-    _stream = [[SPDYStream alloc] initWithProtocol:self];
-    _context = [[SPDYProtocolContext alloc] initWithStream:_stream];
+    // Create the context, but delay stream creation (to allow for looking up push cache
+    // as late as possible). Must associate stream with this instance of the context then.
+    _context = [[SPDYProtocolContext alloc] init];
 
     if (request.SPDYURLSession) {
         [self detectSessionAndTaskThenContinueWithOrigin:origin];
     } else {
-        // Start the stream
-        SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
-        [manager queueStream:_stream];
+        [self startStreamForOrigin:origin];
     }
 }
 
@@ -435,9 +434,7 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
                     }
                 }
 
-                // Start the stream
-                SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
-                [manager queueStream:_stream];
+                [self startStreamForOrigin:origin];
             }
         };
 
@@ -447,9 +444,26 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     }];
 }
 
+- (void)startStreamForOrigin:(SPDYOrigin *)origin
+{
+    SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
+
+    // See if this is currently being pushed, and if so, hook it up, else create it
+    _stream = [manager.pushStreamManager streamForProtocol:self];
+    if (_stream != nil) {
+        SPDY_INFO(@"using in-progress push stream %@ for %@", _stream, self.request.URL.absoluteString);
+    } else {
+        _stream = [[SPDYStream alloc] initWithProtocol:self pushStreamManager:manager.pushStreamManager];
+        [manager queueStream:_stream];
+    }
+    [_context associateWithStream:_stream];
+}
+
 - (void)stopLoading
 {
     SPDY_INFO(@"stop loading %@", self.request.URL.absoluteString);
+
+    [_stream.pushStreamManager stopLoadingStream:_stream];
 
     if (_stream && !_stream.closed) {
         [_stream cancel];

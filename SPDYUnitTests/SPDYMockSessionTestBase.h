@@ -53,6 +53,10 @@ typedef void (^SPDYAsyncTestCallback)();
     SPDYMockFrameDecoderDelegate *_mockDecoderDelegate;
     SPDYMockURLProtocolClient *_mockURLProtocolClient;
     SPDYMockStreamDelegate *_mockStreamDelegate;
+
+    SPDYPushStreamManager *_pushStreamManager;
+    NSMutableArray *_pushProtocolList;
+    SPDYMockURLProtocolClient *_mockPushURLProtocolClient;
 }
 
 - (void)setUp;
@@ -61,6 +65,8 @@ typedef void (^SPDYAsyncTestCallback)();
 - (SPDYProtocol *)createProtocol;
 - (SPDYStream *)createStream;
 - (void)makeSessionReadData:(NSData *)data;
+- (SPDYStream *)attachToPushRequestWithUrl:(NSString *)url;
+- (SPDYStream *)attachToPushRequest:(NSURLRequest *)request;
 
 - (SPDYStream *)mockSynStreamAndReplyWithId:(SPDYStreamId)streamId last:(bool)last;
 - (void)mockServerSynReplyWithId:(SPDYStreamId)streamId last:(BOOL)last;

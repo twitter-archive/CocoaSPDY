@@ -12,8 +12,19 @@
 #import <Foundation/Foundation.h>
 #import "SPDYLogger.h"
 
+
+/**
+  NSNotification calls are posted using the NSURL loader thread. Care must be taken to
+  not block or delay the execution of this thread. Any substantive work should be done
+  on a different thread.
+*/
+
+// userInfo has a key "origin", value is an NSString
 extern NSString *const SPDYOriginRegisteredNotification;
 extern NSString *const SPDYOriginUnregisteredNotification;
+
+// userInfo has a key "request", value is an NSURLRequest
+extern NSString *const SPDYPushRequestReceivedNotification;
 
 @class SPDYConfiguration;
 
