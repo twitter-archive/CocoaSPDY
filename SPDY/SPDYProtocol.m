@@ -132,6 +132,11 @@ static dispatch_once_t initConfig;
 
 - (SPDYMetadata *)metadata
 {
+    // Provide a default metadata (to at least indicate SPDY version) if stream has not yet started.
+    // This will get replaced with the real metadata if/when it becomes available.
+    if (_metadata == nil) {
+        _metadata = [[SPDYMetadata alloc] init];
+    }
     return _metadata;
 }
 
