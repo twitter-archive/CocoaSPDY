@@ -386,8 +386,10 @@ typedef enum {
 /**
   Get the SPDY metadata from a protocol instance. This should only be called
   once a request has either completed or returned an error. Use at any other
-  time has undefined behavior. The use of this, metadataForResponse, and
-  metadataForError are all interchangeable.
+  time may result in unexpected values. It may be called inside the
+  URLSession:task:didStartLoadingRequest:withContext: callback, though only
+  the version will be populated. Metadata will never be nil. The use of this,
+  metadataForResponse, and metadataForError are all interchangeable.
  */
 - (SPDYMetadata *)metadata;
 

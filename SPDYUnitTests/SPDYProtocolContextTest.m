@@ -18,6 +18,7 @@
 @implementation SPDYProtocolContextTest
 {
     id<SPDYProtocolContext> _spdyContext;
+    SPDYMetadata *_spdyMetadataAtTimeOfCallback;
 }
 
 - (void)tearDown
@@ -28,6 +29,7 @@
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didStartLoadingRequest:(NSURLRequest *)request withContext:(id<SPDYProtocolContext>)context
 {
     _spdyContext = context;
+    _spdyMetadataAtTimeOfCallback = [context metadata];
 }
 
 - (void)testSPDYProtocolContextDoesProvideMetadata
@@ -58,9 +60,14 @@
 
     XCTAssertNotNil(_spdyContext, @"URLSession:task:didStartLoadingRequest:withContext delegate not called");
 
+    XCTAssertNotNil(_spdyMetadataAtTimeOfCallback, @"Metadata should be provided at time of context");
+    XCTAssertEqualObjects(_spdyMetadataAtTimeOfCallback.version, @"3.1");
+    XCTAssertEqual(_spdyMetadataAtTimeOfCallback.timeStreamCreated, (uint32_t)0);
+
     SPDYMetadata *metadata = [_spdyContext metadata];
     XCTAssertNotNil(metadata);
     XCTAssertEqualObjects(metadata.version, @"3.1");
+    XCTAssertGreaterThan(metadata.timeStreamCreated, 0);
 }
 
 @end
