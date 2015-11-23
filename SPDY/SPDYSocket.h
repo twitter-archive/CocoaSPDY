@@ -15,7 +15,6 @@
 @class SPDYSocketReadOp;
 @class SPDYSocketWriteOp;
 @class SPDYOrigin;
-@class SPDYOriginEndpoint;
 
 extern NSString *const SPDYSocketException;
 
@@ -190,6 +189,11 @@ extern NSString *const SPDYSocketException;
   @return YES if a proxy server is being used
 */
 - (bool)connectedToProxy;
+
+/**
+  @return status of proxy connection when connectedToProxy is true. Maps to SPDYProxyStatus.
+*/
+- (int)proxyStatus;
 
 /**
   @return the IP address of the host to which the socket is connected

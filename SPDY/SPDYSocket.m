@@ -1286,6 +1286,13 @@ static void SPDYSocketCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEve
     return _endpointManager.endpoint.type != SPDYOriginEndpointTypeDirect;
 }
 
+- (int)proxyStatus
+{
+    CHECK_THREAD_SAFETY();
+
+    return _endpointManager.proxyStatus;
+}
+
 - (in_port_t)connectedPort
 {
     CHECK_THREAD_SAFETY();
