@@ -196,6 +196,7 @@
     stream.metadata.hostAddress = _socket.connectedHost;
     stream.metadata.hostPort = _socket.connectedPort;
     stream.metadata.viaProxy = _socket.connectedToProxy;
+    stream.metadata.proxyStatus = _socket.proxyStatus;
     stream.metadata.cellular = _cellular;
 
     [stream startWithStreamId:streamId
