@@ -30,7 +30,7 @@
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{}];
+    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{@"Date":@"Wed, 25 Nov 2015 00:10:13 GMT"}];
 
     NSURLCacheStoragePolicy policy = SPDYCacheStoragePolicy(request, response);
     XCTAssertEqual(policy, NSURLCacheStorageAllowed);
@@ -40,7 +40,7 @@
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"1.1" headerFields:@{}];
+    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"1.1" headerFields:@{@"Date":@"Wed, 25 Nov 2015 00:10:13 GMT"}];
 
     NSURLCacheStoragePolicy policy = SPDYCacheStoragePolicy(request, response);
     XCTAssertEqual(policy, NSURLCacheStorageAllowed);
@@ -56,23 +56,23 @@
     XCTAssertEqual(policy, NSURLCacheStorageNotAllowed);
 }
 
-- (void)testCacheAllowedFor200WithNoStoreRequestHeader
+- (void)testCacheNotAllowedFor200WithNoStoreRequestHeader
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
     [request addValue:@"no-store" forHTTPHeaderField:@"Cache-Control"];
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{}];
+    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{@"Date":@"Wed, 25 Nov 2015 00:10:13 GMT"}];
 
     NSURLCacheStoragePolicy policy = SPDYCacheStoragePolicy(request, response);
-    XCTAssertEqual(policy, NSURLCacheStorageAllowed);
+    XCTAssertEqual(policy, NSURLCacheStorageNotAllowed);
 }
 
 - (void)testCacheNotAllowedFor200WithNoStoreNoCacheRequestHeader
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    [request addValue:@"no-store; no-cache" forHTTPHeaderField:@"Cache-Control"];
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{}];
+    [request addValue:@"no-store, no-cache" forHTTPHeaderField:@"Cache-Control"];
+    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{@"Date":@"Wed, 25 Nov 2015 00:10:13 GMT"}];
 
     NSURLCacheStoragePolicy policy = SPDYCacheStoragePolicy(request, response);
     XCTAssertEqual(policy, NSURLCacheStorageNotAllowed);
@@ -82,7 +82,7 @@
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{@"Cache-Control":@"no-cache"}];
+    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{@"Cache-Control":@"no-cache",@"Date":@"Wed, 25 Nov 2015 00:10:13 GMT"}];
 
     NSURLCacheStoragePolicy policy = SPDYCacheStoragePolicy(request, response);
     XCTAssertEqual(policy, NSURLCacheStorageAllowed);
@@ -92,7 +92,7 @@
 {
     NSURL *url = [[NSURL alloc] initWithString:@"http://example.com/test/path"];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{@"Cache-Control":@"no-store"}];
+    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"1.1" headerFields:@{@"Cache-Control":@"no-store",@"Date":@"Wed, 25 Nov 2015 00:10:13 GMT"}];
 
     NSURLCacheStoragePolicy policy = SPDYCacheStoragePolicy(request, response);
     XCTAssertEqual(policy, NSURLCacheStorageNotAllowed);

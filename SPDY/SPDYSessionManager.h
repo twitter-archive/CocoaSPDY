@@ -11,7 +11,9 @@
 
 #import <Foundation/Foundation.h>
 
+@class SPDYOrigin;
 @class SPDYPushStreamManager;
+@class SPDYStream;
 
 @interface SPDYSessionManager : NSObject
 

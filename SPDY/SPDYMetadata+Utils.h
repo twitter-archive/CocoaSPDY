@@ -28,6 +28,7 @@
 @property (nonatomic) NSUInteger streamId;
 @property (nonatomic, copy) NSString *version;
 @property (nonatomic) BOOL viaProxy;
+@property (nonatomic) SPDYLoadSource loadSource;
 @property (nonatomic) NSTimeInterval timeSessionConnected;
 @property (nonatomic) NSTimeInterval timeStreamCreated;
 @property (nonatomic) NSTimeInterval timeStreamRequestStarted;

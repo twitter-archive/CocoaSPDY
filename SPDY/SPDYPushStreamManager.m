@@ -12,6 +12,7 @@
 #import <objc/runtime.h>
 #import <Foundation/Foundation.h>
 #import "SPDYCommonLogger.h"
+#import "SPDYMetadata+Utils.h"
 #import "SPDYPushStreamManager.h"
 #import "SPDYProtocol.h"
 #import "SPDYStream.h"
@@ -271,6 +272,9 @@
             [self removeStream:stream];
         } else {
             SPDY_DEBUG(@"PUSH.%u: leaving pushed stream with associated stream %u", stream.streamId, stream.associatedStream.streamId);
+
+            // Transition load source of this stream since it is done pulling from network.
+            stream.metadata.loadSource = SPDYLoadSourcePushCache;
         }
     }
 }
