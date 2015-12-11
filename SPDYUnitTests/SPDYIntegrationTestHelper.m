@@ -43,17 +43,22 @@
 
 - (BOOL)didLoadFromNetwork
 {
-    return self.didGetResponse && _stream != nil;
+    return self.didGetResponse && self.didLoadData && _stream != nil;
 }
 
 - (BOOL)didLoadFromCache
 {
-    return self.didGetResponse && _stream == nil;
+    return self.didGetResponse && self.didLoadData && _stream == nil;
 }
 
 - (BOOL)didGetResponse
 {
     return _response != nil;
+}
+
+- (BOOL)didLoadData
+{
+    return _data.length > 0;
 }
 
 - (BOOL)didGetError
@@ -100,12 +105,10 @@
     return string;
 }
 
-- (void)provideResponseWithStatus:(NSUInteger)status cacheControl:(NSString *)cacheControl date:(NSDate *)date
+- (void)provideResponseWithStatus:(NSUInteger)status cacheControl:(NSString *)cacheControl date:(NSDate *)date dataChunks:(NSArray *)dataChunks
 {
     [SPDYMockSessionManager shared].streamQueuedBlock = ^(SPDYStream *stream) {
         _stream = stream;
-        uint8_t dataBytes[] = {1};
-        NSData *data = [NSData dataWithBytes:dataBytes length:1];
         NSMutableDictionary *headers = [NSMutableDictionary dictionaryWithDictionary:@{
                 @":status": [@(status) stringValue],
                 @":version": @"1.1",
@@ -119,8 +122,17 @@
 
         [stream mergeHeaders:headers];
         [stream didReceiveResponse];
-        [stream didLoadData:data];
+        for (NSData *data in dataChunks) {
+            [stream didLoadData:data];
+        }
     };
+}
+
+- (void)provideResponseWithStatus:(NSUInteger)status cacheControl:(NSString *)cacheControl date:(NSDate *)date
+{
+    uint8_t dataBytes[] = {1};
+    NSArray *dataChunks = @[ [NSData dataWithBytes:dataBytes length:1] ];
+    [self provideResponseWithStatus:status cacheControl:cacheControl date:date dataChunks:dataChunks];
 }
 
 - (void)provideBasicUncacheableResponse
@@ -157,6 +169,7 @@
     NSDictionary *params = @{
                              @"didLoadFromNetwork": @([self didLoadFromNetwork]),
                              @"didGetResponse": @([self didGetResponse]),
+                             @"didLoadData": @([self didLoadData]),
                              @"didGetError": @([self didGetError]),
                              @"didCacheResponse": @([self didCacheResponse]),
                              @"stream": _stream ?: @"<nil>",
@@ -237,6 +250,7 @@
     }
     return self;
 }
+
 - (void)loadRequest:(NSMutableURLRequest *)request
 {
     [super loadRequest:request];

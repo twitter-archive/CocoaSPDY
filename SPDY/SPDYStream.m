@@ -72,6 +72,10 @@
 
     NSURLRequest *_pushRequest;  // stored because we need a strong reference, _request is weak.
     NSHTTPURLResponse *_response;
+
+    NSURLCacheStoragePolicy _cachePolicy;
+    NSMutableData *_cacheDataBuffer; // only used for manual caching.
+    NSInteger _cacheMaxItemSize;
 }
 
 - (instancetype)initWithProtocol:(SPDYProtocol *)protocol
@@ -332,6 +336,9 @@
     [self markUnblocked];  // just in case. safe if already unblocked.
     _metadata.blockedMs = _blockedElapsed * 1000;
 
+    // Manually make the willCacheResponse callback when needed
+    [self _storeCacheResponse];
+
     [_client URLProtocolDidFinishLoading:_protocol];
 
     if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
@@ -585,11 +592,24 @@
         return;
     }
 
-    if (_client) {
-        NSURLCacheStoragePolicy cachePolicy = SPDYCacheStoragePolicy(_request, _response);
-        [_client URLProtocol:_protocol
-          didReceiveResponse:_response
-          cacheStoragePolicy:cachePolicy];
+    _cachePolicy = SPDYCacheStoragePolicy(_request, _response);
+    [_client URLProtocol:_protocol
+      didReceiveResponse:_response
+      cacheStoragePolicy:_cachePolicy];
+
+    // Prepare for manual caching, if needed
+    NSURLCache *cache = _protocol.associatedSession.configuration.URLCache;
+    if (_cachePolicy != NSURLCacheStorageNotAllowed &&  // cacheable?
+        [self _shouldUseManualCaching] &&                // hack needed and NSURLSession used?
+        cache != nil &&                                 // cache configured (NSURLSession-specific)?
+        _local) {                                       // not a push request?
+
+        // The NSURLCache has a heuristic to limit the max size of items based on the capacity of the
+        // cache. This is our attempt to mimic that behavior and prevent unlimited buffering of large
+        // responses. These numbers were found by manually experimenting and are only approximate.
+        // See SPDYNSURLCachingTest testResponseNearItemCacheSize_DoesUseCache.
+        _cacheDataBuffer = [[NSMutableData alloc] init];
+        _cacheMaxItemSize = MAX(cache.memoryCapacity * 0.05, cache.diskCapacity * 0.01);
     }
 }
 
@@ -689,7 +709,7 @@
             NSUInteger inflatedLength = DECOMPRESSED_CHUNK_LENGTH - _zlibStream.avail_out;
             inflatedData.length = inflatedLength;
             if (inflatedLength > 0) {
-                [_client URLProtocol:_protocol didLoadData:inflatedData];
+                [self _didLoadDataChunk:inflatedData];
             }
 
             // This can happen if the decompressed data is size N * DECOMPRESSED_CHUNK_LENGTH,
@@ -711,7 +731,77 @@
         }
     } else {
         NSData *dataCopy = [[NSData alloc] initWithBytes:data.bytes length:dataLength];
-        [_client URLProtocol:_protocol didLoadData:dataCopy];
+        [self _didLoadDataChunk:dataCopy];
+    }
+}
+
+- (void)_didLoadDataChunk:(NSData *)data
+{
+    [_client URLProtocol:_protocol didLoadData:data];
+
+    if (_cacheDataBuffer) {
+        NSUInteger bufferSize = _cacheDataBuffer.length + data.length;
+        if (bufferSize < _cacheMaxItemSize) {
+            [_cacheDataBuffer appendData:data];
+        } else {
+            // Throw away anything already buffered, it's going to be too big
+            _cacheDataBuffer = nil;
+        }
+    }
+}
+
+// NSURLSession on iOS 8 and iOS 7 does not cache items. Seems to be a bug with its interation
+// with NSURLProtocol. This flag represents whether our workaround, to insert into the cache
+// ourselves, is turned on.
+- (bool)_shouldUseManualCaching
+{
+    NSInteger osVersion = 0;
+    NSProcessInfo *processInfo = [NSProcessInfo processInfo];
+    if ([processInfo respondsToSelector:@selector(operatingSystemVersion)]) {
+        osVersion = [processInfo operatingSystemVersion].majorVersion;
+    }
+
+    // iOS 8 and earlier and using NSURLSession
+    return (osVersion <= 8 && _protocol.associatedSession != nil && _protocol.associatedSessionTask != nil);
+}
+
+- (void)_storeCacheResponse
+{
+    if (_cacheDataBuffer == nil) {
+        return;
+    }
+
+    NSCachedURLResponse *cachedResponse;
+    cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:_response
+                                                              data:_cacheDataBuffer
+                                                          userInfo:nil
+                                                     storagePolicy:_cachePolicy];
+    NSURLCache *cache = _protocol.associatedSession.configuration.URLCache;
+    NSURLSessionDataTask *dataTask = (NSURLSessionDataTask *)_protocol.associatedSessionTask;
+
+    // Make "official" willCacheResponse callback to app, bypassing the NSURL loading system.
+    id<NSURLSessionDataDelegate> delegate = (id)_protocol.associatedSession.delegate;
+    if ([delegate respondsToSelector:@selector(URLSession:dataTask:willCacheResponse:completionHandler:)]) {
+        NSOperationQueue *queue = _protocol.associatedSession.delegateQueue;
+        [(queue) ?: [NSOperationQueue mainQueue] addOperationWithBlock:^{
+            [delegate URLSession:_protocol.associatedSession dataTask:dataTask willCacheResponse:cachedResponse completionHandler:^(NSCachedURLResponse * cachedResponse) {
+                // This block may execute asynchronously at any time. No need to come back to the SPDY/NSURL thread
+                if (cachedResponse) {
+                    if ([cache respondsToSelector:@selector(storeCachedResponse:forDataTask:)]) {
+                        [cache storeCachedResponse:cachedResponse forDataTask:dataTask];
+                    } else {
+                        [cache storeCachedResponse:cachedResponse forRequest:_request];
+                    }
+                }
+            }];
+        }];
+    } else {
+        // willCacheResponse delegate not implemented. Default behavior is to cache.
+        if ([cache respondsToSelector:@selector(storeCachedResponse:forDataTask:)]) {
+            [cache storeCachedResponse:cachedResponse forDataTask:dataTask];
+        } else {
+            [cache storeCachedResponse:cachedResponse forRequest:_request];
+        }
     }
 }
 

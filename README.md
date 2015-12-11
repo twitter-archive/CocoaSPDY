@@ -67,6 +67,29 @@ Most existing SPDY implementations use a TLS extension called Next Protocol Impl
 In order to aid with protocol inference, this SPDY implementation includes a non-standard settings id at index 0: `SETTINGS_MINOR_VERSION`. This is necessary to differentiate between SPDY/3 and SPDY/3.1 connections that were not negotiated with NPN, since only the major version is included in the frame header. Because not all servers may support this particular setting, sending it can be disabled at runtime through protocol configuration.
 
 ## Implementation Notes
+### Caching with NSURLCache
+CocoaSPDY partially supports HTTP caching using NSURLCaches, though there are a number of caveats. The default policy for `NSURLConnection` is to disable caching, in order to maintain backward-compatibility and mimize risk. CocoaSPDY does not perform HEAD validation requests, so any cached response that will require revalidation with the server will result in a full request and response. 
+
+**NSURLConnection**
+* Ensure the global `[NSURLCache sharedCached]` is set to the desired `NSURLCache`
+* Set the `NSMutableURLRequest.cachePolicy` to the desired policy (`NSURLRequestUseProtocolCachePolicy` will result in no caching)
+
+**NSURLSession**
+* Set the `NSMutableURLRequest.SPDYURLSession` to your NSURLSession instance
+* Set the `NSURLSessionConfiguration.URLCache` to the desired `NSURLCache`
+* Set the `NSURLSessionConfiguration.cachePolicy` to the desired policy (can be left as `NSURLRequestUseProtocolCachePolicy`)
+
+**Request/response requirements**
+* Request must not include an `Authorization` header.
+* Request must be a GET.
+* Response must include a `Date` header.
+* Response must include a `Cache-Control` header with a "max-age" parameter set to a non-zero value. And when retrieving the cached response, this must not result in a stale item.
+* The `Cache-Control` response header must not have "no-cache", "no-store", or "must-revalidate" in it.
+* To prevent caching of a response, set `Cache-Control: no-store` in the request.
+* For all the requirements, see implementation details at https://github.com/twitter/CocoaSPDY/blob/develop/SPDY/SPDYCacheStoragePolicy.m
+
+Essentially, you must opt-in with `NSURLConnection` by setting a cache policy or with `NSURLSession` by configuring a cache. The response must be cacheable and have a max-age defined, and the request must be a GET request. The cached response must be usable without revalidation.
+
 ### CRIME attack
 The [CRIME attack](http://en.wikipedia.org/wiki/CRIME) is a plaintext injection technique that exploits the fact that information can be inferred from compressed content length to potentially reveal the contents of an encrypted stream. This is a serious issue for browsers, which are subject to hijacks that may allow an attacker to issue an arbitrary number of requests with known plaintext header content and observe the resulting effect on compression. 
 

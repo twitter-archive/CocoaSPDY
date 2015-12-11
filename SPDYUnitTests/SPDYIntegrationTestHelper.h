@@ -29,11 +29,13 @@
 - (BOOL)didLoadFromNetwork;
 - (BOOL)didLoadFromCache;
 - (BOOL)didGetResponse;
+- (BOOL)didLoadData;
 - (BOOL)didGetError;
 - (BOOL)didCacheResponse;
 
 - (void)reset;
 - (void)loadRequest:(NSURLRequest *)request;
+- (void)provideResponseWithStatus:(NSUInteger)status cacheControl:(NSString *)cacheControl date:(NSDate *)date dataChunks:(NSArray *)dataChunks;
 - (void)provideResponseWithStatus:(NSUInteger)status cacheControl:(NSString *)cacheControl date:(NSDate *)date;
 - (void)provideBasicUncacheableResponse;
 - (void)provideBasicCacheableResponse;

@@ -27,6 +27,8 @@
     [SPDYIntegrationTestHelper setUp];
 
     [SPDYURLConnectionProtocol registerOrigin:@"http://example.com"];
+
+    [NSURLCache setSharedURLCache:[[NSURLCache alloc] initWithMemoryCapacity:1000000 diskCapacity:10000000 diskPath:nil]];
 }
 
 + (void)tearDown
@@ -105,7 +107,7 @@
     }
 }
 
-- (void)testCachedItem_DoesHaveMetadata
+- (void)testCachedItem_DoesHaveFreshMetadata
 {
     for (NSArray *testParams in [self parameterizedTestInputs]) {
         GET_TEST_PARAMS;
@@ -124,6 +126,7 @@
         SPDYMetadata *metadata = [SPDYProtocol metadataForResponse:testHelper.response];
         XCTAssertNotNil(metadata, @"%@", testHelper);
         XCTAssertEqual(metadata.loadSource, SPDYLoadSourceNetwork, @"%@", testHelper);
+        XCTAssertEqual(metadata.streamId, 1, @"%@", testHelper);
 
         // Now make request again. Should pull from cache.
         [testHelper reset];
@@ -136,6 +139,7 @@
         metadata = [SPDYProtocol metadataForResponse:testHelper.response];
         XCTAssertNotNil(metadata, @"%@", testHelper);
         XCTAssertEqual(metadata.loadSource,  shouldPullFromCache ? SPDYLoadSourceCache : SPDYLoadSourceNetwork, @"%@", testHelper);
+        XCTAssertEqual(metadata.streamId, shouldPullFromCache ? 0 : 1, @"%@", testHelper);
 
         // Special logic for metadata provided by SPDYProtocolContext
         if ([testHelper isMemberOfClass:[SPDYURLSessionIntegrationTestHelper class]]) {
@@ -144,6 +148,7 @@
 
             XCTAssertNotNil(metadata2, @"%@", testHelper);
             XCTAssertEqual(metadata2.loadSource,  shouldPullFromCache ? SPDYLoadSourceCache : SPDYLoadSourceNetwork, @"%@", testHelper);
+            XCTAssertEqual(metadata2.streamId, 0, @"%@", testHelper);
         }
     }
 }
@@ -473,6 +478,128 @@
 
         XCTAssertTrue(testHelper.didLoadFromNetwork, @"%@", testHelper);
         XCTAssertFalse(testHelper.didCacheResponse, @"%@", testHelper);
+    }
+}
+
+- (void)testResponseNearItemCacheSize_DoesUseCache
+{
+    for (NSArray *testParams in [self parameterizedTestInputs]) {
+        GET_TEST_PARAMS;
+        NSLog(@"- using %@, policy %tu", [testHelper class], cachePolicy);
+
+        [self resetSharedCache];
+
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://example.com/test/path"]];
+        request.cachePolicy = cachePolicy;
+
+        // Note: per observational manual testing, NSURL system has a much lower limit for item size.
+        // Seems to be less than 1% of max capacity.
+        // Base memory capacity 1000000, base disk capacity 10000000:
+        // - Response size 50000 is ok.
+        // - Response size 50001 is not ok.
+        // - If memory capacity goes from 1000000 to 999999, 50000 is no longer ok.
+        // - If disk capacity goes from 10000000 to 6000000, 50000 is still ok.
+        // - If disk capacity goes from 10000000 to 5000000, 50000 is no longer ok.
+        // So we're walking the line here with little understanding of Apple's heuristic. I thought
+        // 10% was the limit, but apparently its somewhere less than 1% depending on memory/disk
+        // setttings.
+        // This test may need to change if this starts failing.
+        NSArray *dataChunks = @[
+                                [NSMutableData dataWithLength:30000],
+                                [NSMutableData dataWithLength:20000],
+                                ];
+
+        [testHelper provideResponseWithStatus:200 cacheControl:@"public, max-age=1200" date:[NSDate date] dataChunks:dataChunks];
+        [testHelper loadRequest:request];
+
+        XCTAssertTrue(testHelper.didLoadFromNetwork, @"%@", testHelper);
+        XCTAssertTrue(testHelper.didCacheResponse, @"%@", testHelper);
+
+        // Now make request again. Should pull from cache.
+        [testHelper reset];
+        [testHelper loadRequest:request];
+
+        XCTAssertEqual(testHelper.didLoadFromCache, shouldPullFromCache, @"%@", testHelper);
+    }
+}
+
+- (void)testResponseExceedsItemCacheSize_DoesNotUseCache
+{
+    for (NSArray *testParams in [self parameterizedTestInputs]) {
+        GET_TEST_PARAMS;
+        NSLog(@"- using %@, policy %tu", [testHelper class], cachePolicy);
+
+        [self resetSharedCache];
+
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://example.com/test/path"]];
+        request.cachePolicy = cachePolicy;
+
+        // 10% of cache. Limit is 10%. Disk capacity is set to 10M.
+        NSArray *dataChunks = @[
+                                [NSMutableData dataWithLength:500000],
+                                [NSMutableData dataWithLength:500000],
+                                ];
+
+        [testHelper provideResponseWithStatus:200 cacheControl:@"public, max-age=1200" date:[NSDate date] dataChunks:dataChunks];
+        [testHelper loadRequest:request];
+
+        XCTAssertTrue(testHelper.didLoadFromNetwork, @"%@", testHelper);
+        XCTAssertFalse(testHelper.didCacheResponse, @"%@", testHelper);
+    }
+}
+
+- (void)testCacheDoesStoreAndLoadCorrectData
+{
+    for (NSArray *testParams in [self parameterizedTestInputs]) {
+        GET_TEST_PARAMS;
+        NSLog(@"- using %@, policy %tu", [testHelper class], cachePolicy);
+
+        [self resetSharedCache];
+
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://example.com/test/path"]];
+        request.cachePolicy = cachePolicy;
+
+        uint8_t buffer1[50] = {0};
+        uint8_t buffer2[3] = {0};
+        uint8_t buffer3[50] = {0};
+        const NSUInteger expectedLength = sizeof(buffer1) + sizeof(buffer2) + sizeof(buffer3);
+        uint8_t finalBuffer[expectedLength];
+
+        int i = 0;
+        for (int j = 0; j < sizeof(buffer1); j++) {
+            finalBuffer[i] = i % 256;
+            buffer1[j] = i++ % 256;
+        }
+        for (int j = 0; j < sizeof(buffer2); j++) {
+            finalBuffer[i] = i % 256;
+            buffer2[j] = i++ % 256;
+        }
+        for (int j = 0; j < sizeof(buffer3); j++) {
+            finalBuffer[i] = i % 256;
+            buffer3[j] = i++ % 256;
+        }
+        NSData *finalData = [NSData dataWithBytes:finalBuffer length:expectedLength];
+
+        NSArray *dataChunks = @[
+                                [NSMutableData dataWithBytes:buffer1 length:sizeof(buffer1)],
+                                [NSMutableData dataWithBytes:buffer2 length:sizeof(buffer2)],
+                                [NSMutableData dataWithBytes:buffer3 length:sizeof(buffer3)],
+                                ];
+
+        [testHelper provideResponseWithStatus:200 cacheControl:@"public, max-age=1200" date:[NSDate date] dataChunks:dataChunks];
+        [testHelper loadRequest:request];
+
+        XCTAssertTrue(testHelper.didLoadFromNetwork, @"%@", testHelper);
+        XCTAssertTrue(testHelper.didCacheResponse, @"%@", testHelper);
+
+        // Now make request again. Should pull from cache.
+        [testHelper reset];
+        [testHelper loadRequest:request];
+
+        XCTAssertEqual(testHelper.didLoadFromCache, shouldPullFromCache, @"%@", testHelper);
+        XCTAssertEqual(testHelper.data.length, expectedLength, @"%@", testHelper);
+
+        XCTAssertEqualObjects(testHelper.data, finalData, @"%@", testHelper);
     }
 }
 
