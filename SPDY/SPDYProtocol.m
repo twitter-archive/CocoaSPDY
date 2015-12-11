@@ -353,8 +353,15 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     // We're making some choices here to limit the surface area of caching, given we don't yet
     // have a fully-featured client caching implementation (missing sufficient validity checks).
     //
-    // For the default request cache policy (NSURLRequestUseProtocolCachePolicy), we have to load
-    // the cache ourselves. We're applying the following rules in that case:
+    // On iOS 8 and 9, the NSURL loading system will supply the cached item to our constructor
+    // for NSURLRequestReturnCacheDataElseLoad and NSURLRequestReturnCacheDataDontLoad. For
+    // NSURLRequestUseProtocolCachePolicy, we have to load it ourselves.
+    //
+    // On iOS 7, the NSURL loading system never supplies the cached item to our constructor.
+    // We have to load it ourselves for NSURLRequestReturnCacheDataElseLoad,
+    // NSURLRequestReturnCacheDataDontLoad, and NSURLRequestUseProtocolCachePolicy.
+
+    // For NSURLRequestUseProtocolCachePolicy, we're applying the following rules regarding loading:
     // - NSURLConnection-based requests will not support caching.
     // - NSURLSession-based requests must set the SPDYURLSession property on the request, and
     //   must provide a NSURLCache in their NSURLSessionConfiguration. There is no fallback to
@@ -363,19 +370,38 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     //
     // This behavior may change in the future.
 
-    NSCachedURLResponse *response;
+    // version 7 and lower will be represented as 0
+    static NSInteger osVersion;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        NSProcessInfo *processInfo = [NSProcessInfo processInfo];
+        if ([processInfo respondsToSelector:@selector(operatingSystemVersion)]) {
+            osVersion = [processInfo operatingSystemVersion].majorVersion;
+        } else {
+            osVersion = 0;
+        }
+    });
 
     BOOL isNSURLSession = (_associatedSession != nil ||
                            _associatedSessionTask != nil ||
                            ([self respondsToSelector:@selector(task)] && self.task != nil));
     if (isNSURLSession) {
         NSURLSessionConfiguration *config = _associatedSession.configuration;
-        if (config.requestCachePolicy == NSURLRequestUseProtocolCachePolicy) {
-            response = [config.URLCache cachedResponseForRequest:self.request];
+        NSURLRequestCachePolicy cachePolicy = config.requestCachePolicy;
+        if (cachePolicy == NSURLRequestUseProtocolCachePolicy ||
+            (osVersion < 8 && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad))) {
+            return [config.URLCache cachedResponseForRequest:self.request];
+        }
+    } else {
+        // NSURLConnection on iOS 7 forces us to always load the cache item. But we don't want to
+        // do that for NSURLRequestUseProtocolCachePolicy.
+        NSURLRequestCachePolicy cachePolicy = self.request.cachePolicy;
+        if (osVersion < 8 && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad)) {
+            return [[NSURLCache sharedURLCache] cachedResponseForRequest:self.request];
         }
     }
 
-    return response;
+    return nil;
 }
 
 - (instancetype)initWithRequest:(NSURLRequest *)request cachedResponse:(NSCachedURLResponse *)cachedResponse client:(id <NSURLProtocolClient>)client
