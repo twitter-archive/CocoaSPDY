@@ -370,15 +370,21 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     //
     // This behavior may change in the future.
 
-    // version 7 and lower will be represented as 0
-    static NSInteger osVersion;
+    static BOOL osVersionRequiresManualLoadFromCache;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         NSProcessInfo *processInfo = [NSProcessInfo processInfo];
         if ([processInfo respondsToSelector:@selector(operatingSystemVersion)]) {
-            osVersion = [processInfo operatingSystemVersion].majorVersion;
+            NSOperatingSystemVersion osVersion = [processInfo operatingSystemVersion];
+#if TARGET_OS_MAC
+            // 10.9 and earlier
+            osVersionRequiresManualLoadFromCache = osVersion.majorVersion < 10 || (osVersion.majorVersion == 10 && osVersion.minorVersion <= 9);
+#else
+            // iOS 7 and earlier
+            osVersionRequiresManualLoadFromCache = osVersion.majorVersion < 8;
+#endif
         } else {
-            osVersion = 0;
+            osVersionRequiresManualLoadFromCache = YES;
         }
     });
 
@@ -389,14 +395,14 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
         NSURLSessionConfiguration *config = _associatedSession.configuration;
         NSURLRequestCachePolicy cachePolicy = config.requestCachePolicy;
         if (cachePolicy == NSURLRequestUseProtocolCachePolicy ||
-            (osVersion < 8 && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad))) {
+            (osVersionRequiresManualLoadFromCache && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad))) {
             return [config.URLCache cachedResponseForRequest:self.request];
         }
     } else {
         // NSURLConnection on iOS 7 forces us to always load the cache item. But we don't want to
         // do that for NSURLRequestUseProtocolCachePolicy.
         NSURLRequestCachePolicy cachePolicy = self.request.cachePolicy;
-        if (osVersion < 8 && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad)) {
+        if (osVersionRequiresManualLoadFromCache && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad)) {
             return [[NSURLCache sharedURLCache] cachedResponseForRequest:self.request];
         }
     }

@@ -337,13 +337,13 @@
     _metadata.blockedMs = _blockedElapsed * 1000;
 
     // Manually make the willCacheResponse callback when needed
-    [self _storeCacheResponse];
+    [self _storeCacheResponseCompletion:^{
+        [_client URLProtocolDidFinishLoading:_protocol];
 
-    [_client URLProtocolDidFinishLoading:_protocol];
-
-    if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
-        [_delegate streamClosed:self];
-    }
+        if (_delegate && [_delegate respondsToSelector:@selector(streamClosed:)]) {
+            [_delegate streamClosed:self];
+        }
+    }];
 }
 
 - (bool)closed
@@ -597,19 +597,18 @@
       didReceiveResponse:_response
       cacheStoragePolicy:_cachePolicy];
 
-    // Prepare for manual caching, if needed
-    NSURLCache *cache = _protocol.associatedSession.configuration.URLCache;
-    if (_cachePolicy != NSURLCacheStorageNotAllowed &&  // cacheable?
-        [self _shouldUseManualCaching] &&                // hack needed and NSURLSession used?
-        cache != nil &&                                 // cache configured (NSURLSession-specific)?
-        _local) {                                       // not a push request?
-
-        // The NSURLCache has a heuristic to limit the max size of items based on the capacity of the
-        // cache. This is our attempt to mimic that behavior and prevent unlimited buffering of large
-        // responses. These numbers were found by manually experimenting and are only approximate.
-        // See SPDYNSURLCachingTest testResponseNearItemCacheSize_DoesUseCache.
-        _cacheDataBuffer = [[NSMutableData alloc] init];
-        _cacheMaxItemSize = MAX(cache.memoryCapacity * 0.05, cache.diskCapacity * 0.01);
+    // Prepare for manual caching, if allowed and needed
+    if (_cachePolicy != NSURLCacheStorageNotAllowed && [self _shouldUseManualCaching]) {
+        // Cache configured and not a push stream?
+        NSURLCache *cache = _protocol.associatedSession.configuration.URLCache;
+        if (cache != nil && _local) {
+            // The NSURLCache has a heuristic to limit the max size of items based on the capacity of the
+            // cache. This is our attempt to mimic that behavior and prevent unlimited buffering of large
+            // responses. These numbers were found by manually experimenting and are only approximate.
+            // See SPDYNSURLCachingTest testResponseNearItemCacheSize_DoesUseCache.
+            _cacheDataBuffer = [[NSMutableData alloc] init];
+            _cacheMaxItemSize = MAX(cache.memoryCapacity * 0.05, cache.diskCapacity * 0.05);
+        }
     }
 }
 
@@ -741,7 +740,7 @@
 
     if (_cacheDataBuffer) {
         NSUInteger bufferSize = _cacheDataBuffer.length + data.length;
-        if (bufferSize < _cacheMaxItemSize) {
+        if (bufferSize <= _cacheMaxItemSize) {
             [_cacheDataBuffer appendData:data];
         } else {
             // Throw away anything already buffered, it's going to be too big
@@ -755,19 +754,33 @@
 // ourselves, is turned on.
 - (bool)_shouldUseManualCaching
 {
-    NSInteger osVersion = 0;
-    NSProcessInfo *processInfo = [NSProcessInfo processInfo];
-    if ([processInfo respondsToSelector:@selector(operatingSystemVersion)]) {
-        osVersion = [processInfo operatingSystemVersion].majorVersion;
-    }
+    static BOOL osVersionRequiresManualStoreToCache;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        NSProcessInfo *processInfo = [NSProcessInfo processInfo];
+        if ([processInfo respondsToSelector:@selector(operatingSystemVersion)]) {
+            NSOperatingSystemVersion osVersion = [processInfo operatingSystemVersion];
+#if TARGET_OS_MAC
+            // 10.10 and earlier
+            osVersionRequiresManualStoreToCache = osVersion.majorVersion < 10 || (osVersion.majorVersion == 10 && osVersion.minorVersion <= 10);
+#else
+            // iOS 8 and earlier
+            osVersionRequiresManualStoreToCache = osVersion.majorVersion <= 8;
+#endif
+        } else {
+            osVersionRequiresManualStoreToCache = YES;
+        }
+    });
 
-    // iOS 8 and earlier and using NSURLSession
-    return (osVersion <= 8 && _protocol.associatedSession != nil && _protocol.associatedSessionTask != nil);
+    return (osVersionRequiresManualStoreToCache && _protocol.associatedSession != nil && _protocol.associatedSessionTask != nil);
 }
 
-- (void)_storeCacheResponse
+- (void)_storeCacheResponseCompletion:(dispatch_block_t)completion
 {
     if (_cacheDataBuffer == nil) {
+        if (completion) {
+            completion();
+        }
         return;
     }
 
@@ -776,32 +789,51 @@
                                                               data:_cacheDataBuffer
                                                           userInfo:nil
                                                      storagePolicy:_cachePolicy];
-    NSURLCache *cache = _protocol.associatedSession.configuration.URLCache;
+    NSURLSession *session = _protocol.associatedSession;
     NSURLSessionDataTask *dataTask = (NSURLSessionDataTask *)_protocol.associatedSessionTask;
+    NSURLCache *cache = session.configuration.URLCache;
+
+    // Already validated these items are not nil, just being safe
+    NSParameterAssert(session);
+    NSParameterAssert(cache);
+    NSParameterAssert(dataTask);
+
+    void (^finalCompletion)(NSCachedURLResponse *) = ^(NSCachedURLResponse *finalCachedResponse){
+        if (finalCachedResponse) {
+            if ([cache respondsToSelector:@selector(storeCachedResponse:forDataTask:)]) {
+                [cache storeCachedResponse:finalCachedResponse forDataTask:dataTask];
+            } else {
+                [cache storeCachedResponse:finalCachedResponse forRequest:_request];
+            }
+        }
+
+        if (completion) {
+            completion();
+        }
+    };
 
     // Make "official" willCacheResponse callback to app, bypassing the NSURL loading system.
-    id<NSURLSessionDataDelegate> delegate = (id)_protocol.associatedSession.delegate;
+    id<NSURLSessionDataDelegate> delegate = (id)session.delegate;
     if ([delegate respondsToSelector:@selector(URLSession:dataTask:willCacheResponse:completionHandler:)]) {
-        NSOperationQueue *queue = _protocol.associatedSession.delegateQueue;
+        CFRunLoopRef clientRunLoop = CFRunLoopGetCurrent();
+        CFRetain(clientRunLoop);
+
+        NSOperationQueue *queue = session.delegateQueue;
         [(queue) ?: [NSOperationQueue mainQueue] addOperationWithBlock:^{
-            [delegate URLSession:_protocol.associatedSession dataTask:dataTask willCacheResponse:cachedResponse completionHandler:^(NSCachedURLResponse * cachedResponse) {
-                // This block may execute asynchronously at any time. No need to come back to the SPDY/NSURL thread
-                if (cachedResponse) {
-                    if ([cache respondsToSelector:@selector(storeCachedResponse:forDataTask:)]) {
-                        [cache storeCachedResponse:cachedResponse forDataTask:dataTask];
-                    } else {
-                        [cache storeCachedResponse:cachedResponse forRequest:_request];
-                    }
-                }
+            [delegate URLSession:session dataTask:dataTask willCacheResponse:cachedResponse completionHandler:^(NSCachedURLResponse * cachedResponse) {
+
+                // Hop back to the NSURL thread and finish up
+                CFRunLoopPerformBlock(clientRunLoop, kCFRunLoopDefaultMode, ^{
+                    finalCompletion(cachedResponse);
+                });
+                CFRunLoopWakeUp(clientRunLoop);
+                CFRelease(clientRunLoop);
+
             }];
         }];
     } else {
         // willCacheResponse delegate not implemented. Default behavior is to cache.
-        if ([cache respondsToSelector:@selector(storeCachedResponse:forDataTask:)]) {
-            [cache storeCachedResponse:cachedResponse forDataTask:dataTask];
-        } else {
-            [cache storeCachedResponse:cachedResponse forRequest:_request];
-        }
+        finalCompletion(cachedResponse);
     }
 }
 
