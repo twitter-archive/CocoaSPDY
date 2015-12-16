@@ -98,7 +98,10 @@
         XCTAssertTrue(testHelper.didLoadFromNetwork, @"%@", testHelper);
         XCTAssertTrue(testHelper.didCacheResponse, @"%@", testHelper);
 
-        // Now make request again. Should pull from cache.
+        // Now make request again. Should pull from cache. Create a new request object just in case.
+        request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://example.com/test/path"]];
+        request.cachePolicy = cachePolicy;
+
         [testHelper reset];
         [testHelper loadRequest:request];
 
@@ -424,7 +427,7 @@
     }
 }
 
-- (void)testRequestWithAuthorization_DoesNotUseCache
+- (void)testRequestWithAuthorization_DoesUseCache
 {
     for (NSArray *testParams in [self parameterizedTestInputs]) {
         GET_TEST_PARAMS;
@@ -439,7 +442,40 @@
         [testHelper loadRequest:request];
 
         XCTAssertTrue(testHelper.didLoadFromNetwork, @"%@", testHelper);
-        XCTAssertFalse(testHelper.didCacheResponse, @"%@", testHelper);
+        XCTAssertTrue(testHelper.didCacheResponse, @"%@", testHelper);
+
+        // Now make request again. Should pull from cache.
+        [testHelper reset];
+        [testHelper loadRequest:request];
+
+        XCTAssertEqual(testHelper.didLoadFromCache, shouldPullFromCache, @"%@", testHelper);
+    }
+}
+
+- (void)disabled_testRequestWithAuthorization_DoesNotUseCache_WhenHeaderChanges
+{
+    for (NSArray *testParams in [self parameterizedTestInputs]) {
+        GET_TEST_PARAMS;
+
+        NSLog(@"- using %@, policy %tu, shouldPullFromCache %tu", [testHelper class], cachePolicy, NO);
+        [self resetSharedCache];
+
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://example.com/test/path"]];
+        request.cachePolicy = cachePolicy;
+        [request addValue:@"foo" forHTTPHeaderField:@"Authorization"];
+
+        [testHelper provideBasicCacheableResponse];
+        [testHelper loadRequest:request];
+
+        XCTAssertTrue(testHelper.didLoadFromNetwork, @"%@", testHelper);
+        XCTAssertTrue(testHelper.didCacheResponse, @"%@", testHelper);
+
+        // Now make request again. Should not pull from cache.
+        [testHelper reset];
+        [request setValue:@"bar" forHTTPHeaderField:@"Authorization"];
+        [testHelper loadRequest:request];
+
+        XCTAssertEqual(testHelper.didLoadFromCache, NO, @"%@", testHelper);
     }
 }
 

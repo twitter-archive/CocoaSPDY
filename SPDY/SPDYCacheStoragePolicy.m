@@ -12,6 +12,8 @@
 //
 
 #import "SPDYCacheStoragePolicy.h"
+#include <time.h>
+#include <xlocale.h>
 
 typedef struct _HTTPTimeFormatInfo {
     const char *readFormat;
@@ -31,12 +33,12 @@ static NSDate *HTTPDateFromString(NSString *string)
 {
     NSDate *date = nil;
     if (string) {
-        struct tm parsedTime;
         const char *utf8String = [string UTF8String];
 
         for (int format = 0; (size_t)format < (sizeof(kTimeFormatInfos) / sizeof(kTimeFormatInfos[0])); format++) {
             HTTPTimeFormatInfo info = kTimeFormatInfos[format];
-            if (info.readFormat != NULL && strptime(utf8String, info.readFormat, &parsedTime)) {
+            struct tm parsedTime = { 0 };
+            if (info.readFormat != NULL && strptime_l(utf8String, info.readFormat, &parsedTime, NULL)) {
                 NSTimeInterval ti = (info.usesHasTimezoneInfo ? mktime(&parsedTime) : timegm(&parsedTime));
                 date = [NSDate dateWithTimeIntervalSince1970:ti];
                 if (date) {
@@ -49,18 +51,110 @@ static NSDate *HTTPDateFromString(NSString *string)
     return date;
 }
 
-NSDictionary *HTTPCacheControlParameters(NSString *cacheControl)
+static NSString *GetKey(const char **ppStr) {
+    const char *p = *ppStr;
+
+    // Advance to next delimiter
+    while (*p != '\0' && *p != '=' && *p != ',') {
+        p++;
+    }
+
+    // No progress? Error.
+    if (p == *ppStr) {
+        return nil;
+    }
+
+    NSString *str = [[NSString alloc] initWithBytes:*ppStr length:(p - *ppStr) encoding:NSUTF8StringEncoding];
+    *ppStr = p;
+    return [str stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
+static NSString *GetValue(const char **ppStr) {
+    // **ppStr, at input, should be null for EOS, "," for single token, or "=" for dual token.
+    const char *p = *ppStr;
+
+    // Single token with no value, EOS
+    if (*p == '\0') {
+        return @"";
+    }
+
+    // Single token with no value, more after
+    if (*p == ',') {
+        (*ppStr)++;
+        return @"";
+    }
+
+    // Must be token with value, error if not
+    if (*p != '=') {
+        return nil;
+    }
+
+    // skip '='
+    p++;
+    (*ppStr)++;
+
+    // Value is either a quoted string or a token
+    NSString *str;
+    if (*p == '"') {
+        p++; // skip opening quote
+
+        // Advance to delimiter, ignoring escaped quotes like '\"' in the string
+        while (*p != '\0' && (*p != '"' || *(p-1) == '\\')) {
+            p++;
+        }
+
+        // EOS before closing quote? Error.
+        if (*p == '\0') {
+            return nil;
+        }
+
+        p++; // skip closing quote
+
+        // Don't trim whitespace from within quoted string
+        str = [[NSString alloc] initWithBytes:(*ppStr + 1) length:(p - *ppStr - 2) encoding:NSUTF8StringEncoding];
+    } else {
+        // Advance to delimiter
+        while (*p != '\0' && *p != ',') {
+            p++;
+        }
+
+        // No progress? Error.
+        if (p == *ppStr) {
+            return nil;
+        }
+
+        str = [[[NSString alloc] initWithBytes:*ppStr length:(p - *ppStr) encoding:NSUTF8StringEncoding] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    }
+
+    // Skip trailing whitespace and trailing token delimiter
+    while (*p != '\0' && (*p == ' ' || *p == ',')) {
+        p++;
+    }
+
+    *ppStr = p;
+    return str;
+}
+
+// Exposed only for tests
+extern NSDictionary *HTTPCacheControlParameters(NSString *cacheControl)
 {
     if (cacheControl.length == 0) {
         return nil;
     }
 
-    NSArray *components = [cacheControl componentsSeparatedByString:@","];
-    NSMutableDictionary *parameters = [NSMutableDictionary dictionaryWithCapacity:components.count];
-    for (NSString *component in components) {
-        NSArray *pair = [component componentsSeparatedByString:@"="];
-        NSString *key = [pair[0] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-        NSString *value = pair.count == 2 ? [pair[1] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] : @"";
+    const char *pStr = [cacheControl cStringUsingEncoding:NSUTF8StringEncoding];
+
+    NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
+
+    while (YES) {
+        NSString *key = GetKey(&pStr);
+        if (key.length == 0) {
+            break;
+        }
+        NSString *value = GetValue(&pStr);
+        if (value == nil) {
+            break;
+        }
         parameters[key] = value;
     }
     return parameters;
@@ -125,14 +219,13 @@ extern NSURLCacheStoragePolicy SPDYCacheStoragePolicy(NSURLRequest *request, NSH
     }
 
     // If we still think it might be cacheable, look at the "Cache-Control" header in 
-    // the request. Also rule out requests with Authorization in them.
+    // the request.
 
     if (cacheable) {
         NSString *requestHeader;
 
         requestHeader = [[request valueForHTTPHeaderField:@"cache-control"] lowercaseString];
-        if ((requestHeader != nil && [requestHeader rangeOfString:@"no-store"].location != NSNotFound) ||
-            [request valueForHTTPHeaderField:@"authorization"].length > 0) {
+        if (requestHeader != nil && [requestHeader rangeOfString:@"no-store"].location != NSNotFound) {
             cacheable = NO;
         }
     }
@@ -207,13 +300,17 @@ extern SPDYCachedResponseState SPDYCacheLoadingPolicy(NSURLRequest *request, NSC
         }
     }
 
-    // Note: there's a lot more validation we should do, to be a well-behaving user agent.
+    // Note: there's a lot more validation we should do, to be a well-behaving user agent. RFC7234
+    // should be consulted.
     // We don't support Pragma header.
     // We don't support Expires header.
     // We don't support Vary header.
     // We don't support ETag response header or If-None-Match request header.
     // We don't support Last-Modified response header or If-Modified-Since request header.
     // We don't look at more of the Cache-Control parameters, including ones that specify a field name.
+    // We need to generate the Age header in the cached response.
+    // We need to invalidate the cached item if PUT,POST,DELETE request gets a successful response.
+    // - including the item in Location header.
     // ...
 
     return SPDYCachedResponseStateValid;

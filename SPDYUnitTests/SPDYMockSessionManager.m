@@ -48,14 +48,6 @@
     return instance;
 }
 
-- (instancetype)init
-{
-    self = [super init];
-    if (self != nil) {
-    }
-    return self;
-}
-
 #pragma mark SPDYSessionManager methods
 
 - (SPDYPushStreamManager *)pushStreamManager
