@@ -109,9 +109,7 @@
     XCTAssertTrue([SPDYURLConnectionProtocol canInitWithRequest:[self makeRequest:@"https://alias.twitter.com/foo"]]);
     XCTAssertTrue([SPDYURLConnectionProtocol canInitWithRequest:[self makeRequest:@"https://bare.twitter.com/foo"]]);
 
-    // TODO: Replace with unregisterAllAliases when available
-    [SPDYProtocol unregisterAlias:@"https://alias.twitter.com"];
-    [SPDYProtocol unregisterAlias:@"https://bare.twitter.com"];
+    [SPDYProtocol unregisterAllAliases];
 }
 
 - (void)testURLConnectionAliasToNoOriginCanInitFalse
@@ -125,9 +123,7 @@
     XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:[self makeRequest:@"https://alias.twitter.com/foo"]]);
     XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:[self makeRequest:@"https://bare.twitter.com/foo"]]);
 
-    // TODO: Replace with unregisterAllAliases when available
-    [SPDYProtocol unregisterAlias:@"https://alias.twitter.com"];
-    [SPDYProtocol unregisterAlias:@"https://bare.twitter.com"];
+    [SPDYProtocol unregisterAllAliases];
 }
 
 - (void)testURLConnectionBadAliasCanInitFalse
@@ -137,8 +133,7 @@
 
     XCTAssertFalse([SPDYURLConnectionProtocol canInitWithRequest:[self makeRequest:@"ftp://alias.twitter.com/foo"]]);
 
-    // TODO: Replace with unregisterAllAliases when available
-    [SPDYProtocol unregisterAlias:@"ftp://alias.twitter.com"];
+    [SPDYProtocol unregisterAllAliases];
 }
 
 - (void)testURLConnectionCanInitTrueAfterWeirdOrigins
@@ -199,8 +194,11 @@
     [SPDYProtocol setTLSTrustEvaluator:self];
     [SPDYURLConnectionProtocol registerOrigin:@"https://api.twitter.com"];
     [SPDYURLConnectionProtocol registerOrigin:@"https://1.2.3.4"];
+    [SPDYURLConnectionProtocol registerOrigin:@"https://[0:0:0:0:0:ffff:102:304]"];
+
     [SPDYProtocol registerAlias:@"https://alias.twitter.com" forOrigin:@"https://api.twitter.com"];
     [SPDYProtocol registerAlias:@"https://bare.twitter.com" forOrigin:@"https://1.2.3.4"];
+    [SPDYProtocol registerAlias:@"https://barev6.twitter.com" forOrigin:@"https://[0:0:0:0:0:ffff:102:304]"];
 
     XCTAssertFalse([SPDYProtocol evaluateServerTrust:nil forHost:@"api.twitter.com"]);
     XCTAssertEqualObjects(_lastTLSTrustHost, @"api.twitter.com");
@@ -208,9 +206,10 @@
     XCTAssertFalse([SPDYProtocol evaluateServerTrust:nil forHost:@"1.2.3.4"]);
     XCTAssertEqualObjects(_lastTLSTrustHost, @"bare.twitter.com");
 
-    // TODO: Replace with unregisterAllAliases when available
-    [SPDYProtocol unregisterAlias:@"https://alias.twitter.com"];
-    [SPDYProtocol unregisterAlias:@"https://bare.twitter.com"];
+    XCTAssertFalse([SPDYProtocol evaluateServerTrust:nil forHost:@"0:0:0:0:0:ffff:102:304"]);
+    XCTAssertEqualObjects(_lastTLSTrustHost, @"barev6.twitter.com");
+
+    [SPDYProtocol unregisterAllAliases];
 }
 
 - (void)testSetAndGetConfiguration

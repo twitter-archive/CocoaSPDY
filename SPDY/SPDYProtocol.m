@@ -263,7 +263,10 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
         // Use the alias hostname for TLS validation if the aliased origin contains a bare IP address
         struct in_addr ipTest;
-        if (inet_pton(AF_INET, [origin.host cStringUsingEncoding:NSUTF8StringEncoding], &ipTest)) {
+        struct in6_addr ip6Test;
+        const char *originHost = [origin.host cStringUsingEncoding:NSUTF8StringEncoding];
+        if (inet_pton(AF_INET, originHost, &ipTest) == 1 ||
+            inet_pton(AF_INET6, originHost, &ip6Test) == 1) {
             certificates[origin.host] = alias.host;
         }
 
