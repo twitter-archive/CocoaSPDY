@@ -13,6 +13,7 @@
 #error "This file requires ARC support."
 #endif
 
+#import <netdb.h>
 #import <zlib.h>
 #import <objc/runtime.h>
 #import "NSURLRequest+SPDYURLRequest.h"
@@ -40,6 +41,9 @@
 #define SCHEDULE_STREAM() [self _scheduleNSInputStream]
 #define UNSCHEDULE_STREAM() [self _unscheduleNSInputStream]
 #endif
+
+static BOOL SPDYDoesCFNetworkErrorCodeMapToNSURLErrorCode(NSInteger code);
+static NSError *SPDYCreateNSURLErrorFromCFNetworkError(NSError *cfNetworkError);
 
 @interface SPDYStream () <NSStreamDelegate>
 - (void)_scheduleCFReadStream;
@@ -268,29 +272,26 @@
 
         NSString *errorDomain = error.domain;
         NSInteger errorCode = error.code;
-        NSMutableDictionary *userInfo = [[error userInfo] mutableCopy];
+        NSMutableDictionary *mutableUserInfo = [NSMutableDictionary dictionaryWithDictionary:error.userInfo];
 
-        // We should map kCFErrorDomainCFNetwork errors to NSURLErrorDomain. All of
-        // NSURLErrorDomain's error codes are based on CFNetwork ones.
+        // We should convert kCFErrorDomainCFNetwork errors to NSURLErrorDomain errors.
+        // Most of NSURLErrorDomain's error codes are based on CFNetwork ones.
+        // Those that aren't can be mapped and we can keep an underlying error to track the conversion.
         if ([errorDomain isEqualToString:(__bridge NSString *)kCFErrorDomainCFNetwork]) {
-            errorDomain = NSURLErrorDomain;
-            userInfo[NSUnderlyingErrorKey] = error;
 
-            // Handle some codes present in kCFErrorDomainCFNetwork but not NSURLErrorDomain.
-            switch (errorCode) {
-                case kCFHostErrorHostNotFound:
-                    errorCode = NSURLErrorCannotFindHost;
-                    break;
-                case kCFHostErrorUnknown:
-                    errorCode = NSURLErrorCannotConnectToHost;
-                    break;
+            errorDomain = NSURLErrorDomain;
+            if (!SPDYDoesCFNetworkErrorCodeMapToNSURLErrorCode(errorCode)) {
+                NSError *nsURLError = SPDYCreateNSURLErrorFromCFNetworkError(error);
+                errorCode = nsURLError.code;
+                mutableUserInfo = [NSMutableDictionary dictionaryWithDictionary:nsURLError.userInfo];
             }
+
         }
 
-        [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:userInfo];
+        [SPDYMetadata setMetadata:_metadata forAssociatedDictionary:mutableUserInfo];
         NSError *errorWithMetadata = [[NSError alloc] initWithDomain:errorDomain
                                                                 code:errorCode
-                                                            userInfo:userInfo];
+                                                            userInfo:mutableUserInfo];
 
         [_client URLProtocol:_protocol didFailWithError:errorWithMetadata];
     } else {
@@ -847,3 +848,132 @@ static void SPDYStreamCFReadStreamCallback(CFReadStreamRef stream, CFStreamEvent
 }
 
 @end
+
+static BOOL SPDYDoesCFNetworkErrorCodeMapToNSURLErrorCode(NSInteger code)
+{
+    // 1) Specific codes
+
+    // Unknown has different values between each
+    if (code == -998) {
+        return NO;
+    }
+
+    // 2) Ranges of codes
+
+    // URL/Network errors
+    if (code >= -1022 && code <= -995) {
+        return YES;
+    }
+
+    // File read errors
+    if (code >= -1103 && code <= -1100) {
+        return YES;
+    }
+
+    // SSL
+    if (code >= -1206 && code <= -1200) {
+        return YES;
+    } else if (code == -2000) {
+        return YES;
+    }
+
+    // File I/O errors
+    if (code >= -3007 && code <= -3000) {
+        return YES;
+    }
+
+    return NO;
+}
+
+static NSError *SPDYCreateNSURLErrorFromCFNetworkError(NSError *cfNetworkError)
+{
+    if (![cfNetworkError.domain isEqualToString:(NSString *)kCFErrorDomainCFNetwork]) {
+        return nil;
+    }
+
+    NSInteger cfNetworkErrorCode = cfNetworkError.code;
+    NSDictionary *cfNetworkUserInfo = cfNetworkError.userInfo;
+    NSInteger nsURLErrorCode = cfNetworkError.code;
+    if (!SPDYDoesCFNetworkErrorCodeMapToNSURLErrorCode(cfNetworkErrorCode)) {
+        switch (cfNetworkErrorCode) {
+
+            case kCFHostErrorHostNotFound:
+                nsURLErrorCode = NSURLErrorCannotFindHost;
+                break;
+
+            case kCFHostErrorUnknown: {
+
+                // construct the underlying error with the getaddrinfo() failure
+                NSString *underlyingErrorDomain = @"getaddrinfo.failure.domain";
+                NSInteger underlyingErrorCode = [cfNetworkUserInfo[(__bridge NSString *)kCFGetAddrInfoFailureKey] integerValue];
+                NSDictionary *underlyingErrorUserInfo = nil;
+
+                // if the getaddrinfo() failure is a POSIX error, pull that out too
+                if (EAI_SYSTEM == underlyingErrorCode) {
+                    NSError *systemError = [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:nil];
+                    underlyingErrorUserInfo = @{ NSUnderlyingErrorKey : systemError };
+                }
+
+                NSError *underlyingError = [NSError errorWithDomain:underlyingErrorDomain code:underlyingErrorCode userInfo:underlyingErrorUserInfo];
+
+                cfNetworkUserInfo = [NSMutableDictionary dictionaryWithDictionary:cfNetworkUserInfo];
+                ((NSMutableDictionary *)cfNetworkUserInfo)[NSUnderlyingErrorKey] = underlyingError;
+
+                nsURLErrorCode = NSURLErrorCannotConnectToHost;
+                break;
+            }
+
+            case kCFSOCKS4ErrorRequestFailed:
+            case kCFSOCKS4ErrorIdentdFailed:
+            case kCFSOCKS4ErrorIdConflict:
+            case kCFSOCKS4ErrorUnknownStatusCode:
+            case kCFSOCKS5ErrorBadState:
+            case kCFSOCKS5ErrorBadResponseAddr:
+                nsURLErrorCode = NSURLErrorNetworkConnectionLost;
+                break;
+            case kCFSOCKS5ErrorBadCredentials:
+            case kCFSOCKS5ErrorUnsupportedNegotiationMethod:
+            case kCFSOCKS5ErrorNoAcceptableMethod:
+            case kCFSOCKSErrorUnknownClientVersion:
+            case kCFSOCKSErrorUnsupportedServerVersion:
+                nsURLErrorCode = NSURLErrorCannotConnectToHost;
+                break;
+
+            case kCFErrorHTTPBadURL:
+                nsURLErrorCode = NSURLErrorBadURL;
+                break;
+            case kCFErrorHTTPRedirectionLoopDetected:
+                nsURLErrorCode = NSURLErrorHTTPTooManyRedirects;
+                break;
+            case kCFErrorHTTPParseFailure:
+                nsURLErrorCode = NSURLErrorCannotParseResponse;
+                break;
+            case kCFErrorHTTPConnectionLost:
+                nsURLErrorCode = NSURLErrorNetworkConnectionLost;
+                break;
+            case kCFErrorHTTPAuthenticationTypeUnsupported:
+            case kCFErrorHTTPBadCredentials:
+            case kCFErrorHTTPBadProxyCredentials:
+            case kCFErrorPACFileAuth:
+                nsURLErrorCode = NSURLErrorUserAuthenticationRequired;
+                break;
+            case kCFErrorHTTPProxyConnectionFailure:
+            case kCFErrorHTTPSProxyConnectionFailure:
+            case kCFStreamErrorHTTPSProxyFailureUnexpectedResponseToCONNECTMethod:
+                nsURLErrorCode = NSURLErrorNetworkConnectionLost;
+                break;
+            case kCFErrorPACFileError:
+                nsURLErrorCode = NSURLErrorCannotOpenFile;
+                break;
+                
+            case kCFURLErrorUnknown:
+            default:
+                nsURLErrorCode = NSURLErrorUnknown;
+                break;
+        }
+    }
+    
+    NSError *underlyingCFNetworkError = [NSError errorWithDomain:(NSString *)kCFErrorDomainCFNetwork code:cfNetworkErrorCode userInfo:cfNetworkUserInfo];
+    NSError *nsURLError = [NSError errorWithDomain:NSURLErrorDomain code:nsURLErrorCode userInfo:@{ NSUnderlyingErrorKey : underlyingCFNetworkError }];
+    return nsURLError;
+}
