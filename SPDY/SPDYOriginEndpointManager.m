@@ -28,7 +28,6 @@
     NSMutableArray *_endpointList;
     NSInteger _endpointIndex;
     CFRunLoopSourceRef _autoConfigRunLoopSource;
-    NSMutableArray *_autoConfigRunLoopModes;
     void (^_resolveCallback)();
 }
 
@@ -40,7 +39,6 @@
         _endpointList = [[NSMutableArray alloc] initWithCapacity:1];
         _endpointIndex = -1;
         _autoConfigRunLoopSource = nil;
-        _autoConfigRunLoopModes = [NSMutableArray arrayWithCapacity:2];
         _resolveCallback = nil;
     }
     return self;
@@ -144,29 +142,17 @@
 
 - (void)_addRunLoopSource
 {
-    [_autoConfigRunLoopModes removeAllObjects];
-    [_autoConfigRunLoopModes addObject:(__bridge NSString *)kCFRunLoopDefaultMode];
-    CFStringRef currentMode = CFRunLoopCopyCurrentMode(CFRunLoopGetCurrent());
-    if (currentMode != NULL) {
-        if (CFStringCompare(currentMode, kCFRunLoopDefaultMode, 0) != kCFCompareEqualTo) {
-            [_autoConfigRunLoopModes addObject:(__bridge NSString *)currentMode];
-        }
-        CFRelease(currentMode);
-    }
-    for (NSString *mode in _autoConfigRunLoopModes) {
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), _autoConfigRunLoopSource, (__bridge CFStringRef)mode);
+    if (_autoConfigRunLoopSource != NULL && CFRunLoopSourceIsValid(_autoConfigRunLoopSource)) {
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), _autoConfigRunLoopSource, kCFRunLoopCommonModes);
     }
 }
 
 - (void)_removeRunLoopSource
 {
     if (_autoConfigRunLoopSource != NULL) {
-        for (NSString *mode in _autoConfigRunLoopModes) {
-            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), _autoConfigRunLoopSource, (__bridge CFStringRef)mode);
-        }
+        CFRunLoopSourceInvalidate(_autoConfigRunLoopSource);
         CFRelease(_autoConfigRunLoopSource);
         _autoConfigRunLoopSource = NULL;
-        [_autoConfigRunLoopModes removeAllObjects];
     }
 }
 
