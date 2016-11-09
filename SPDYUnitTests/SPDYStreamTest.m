@@ -130,6 +130,19 @@ static NSThread *_streamThread;
     SPDYAssertStreamError(NSURLErrorDomain, NSURLErrorBadServerResponse);
 }
 
+- (void)testReceiveResponseMultipleStatusCodeDoesAbort
+{
+    SPDYStream *stream = [self createStream];
+    [stream startWithStreamId:1 sendWindowSize:1024 receiveWindowSize:1024];
+
+    NSDictionary *headers = @{@":scheme":@"http", @":host":@"mocked", @":path":@"/init",
+                              @":status":@[@"200", @"300"], @":version":@"http/1.1"};
+
+    [stream mergeHeaders:headers];
+    [stream didReceiveResponse];
+    SPDYAssertStreamError(NSURLErrorDomain, NSURLErrorBadServerResponse);
+}
+
 - (void)testReceiveResponseMissingVersionDoesAbort
 {
     SPDYStream *stream = [self createStream];

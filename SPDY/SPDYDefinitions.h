@@ -93,3 +93,6 @@ static const uint8_t SPDY_SETTINGS_FLAG_PERSISTED      = 0x02;
 
 #define SPDY_CODEC_ERROR(CODE, MESSAGE) \
 [[NSError alloc] initWithDomain:SPDYCodecErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]
+
+#define SPDY_NSURL_ERROR(CODE, MESSAGE) \
+[[NSError alloc] initWithDomain:NSURLErrorDomain code:CODE userInfo:@{ NSLocalizedDescriptionKey: MESSAGE}]

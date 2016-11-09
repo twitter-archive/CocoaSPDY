@@ -449,25 +449,23 @@ static NSError *SPDYCreateNSURLErrorFromCFNetworkError(NSError *cfNetworkError);
     _receivedReply = YES;
     _ignoreHeaders = NO;
 
+    if ([headers[@":status"] isKindOfClass:[NSArray class]] || [headers[@":version"] isKindOfClass:[NSArray class]]) {
+        SPDY_ERROR(@"duplicate reserved headers in response: %@", headers);
+        [self abortWithError:SPDY_NSURL_ERROR(NSURLErrorBadServerResponse, @"duplicate reserved headers in response") status:SPDY_STREAM_PROTOCOL_ERROR];
+        return;
+    }
+    
     // Pull out and validate statusCode for later use
     NSInteger statusCode = [headers[@":status"] intValue];
     if (statusCode < 100 || statusCode > 599) {
-        NSDictionary *info = @{ NSLocalizedDescriptionKey: @"invalid http response code" };
-        NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                             code:NSURLErrorBadServerResponse
-                                         userInfo:info];
-        [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
+        [self abortWithError:SPDY_NSURL_ERROR(NSURLErrorBadServerResponse, @"invalid http response code") status:SPDY_STREAM_PROTOCOL_ERROR];
         return;
     }
 
     // Pull out and validate version for later use
     NSString *version = headers[@":version"];
     if (!version) {
-        NSDictionary *info = @{ NSLocalizedDescriptionKey: @"response missing version header" };
-        NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                             code:NSURLErrorBadServerResponse
-                                         userInfo:info];
-        [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
+        [self abortWithError:SPDY_NSURL_ERROR(NSURLErrorBadServerResponse, @"response missing version header") status:SPDY_STREAM_PROTOCOL_ERROR];
         return;
     }
 
@@ -545,10 +543,7 @@ static NSError *SPDYCreateNSURLErrorFromCFNetworkError(NSError *cfNetworkError);
     if (location != nil) {
         NSURL *redirectURL = [[NSURL alloc] initWithString:location relativeToURL:requestURL];
         if (redirectURL == nil) {
-            NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                                 code:NSURLErrorRedirectToNonExistentLocation
-                                             userInfo:nil];
-            [self abortWithError:error status:SPDY_STREAM_PROTOCOL_ERROR];
+            [self abortWithError:SPDY_NSURL_ERROR(NSURLErrorRedirectToNonExistentLocation, @"invalid redirect url") status:SPDY_STREAM_PROTOCOL_ERROR];
             return;
         }
 
@@ -675,10 +670,7 @@ static NSError *SPDYCreateNSURLErrorFromCFNetworkError(NSError *cfNetworkError);
             uint8_t *inflatedBytes = malloc(sizeof(uint8_t) * DECOMPRESSED_CHUNK_LENGTH);
             if (inflatedBytes == NULL) {
                 SPDY_ERROR(@"error decompressing response data: malloc failed");
-                NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                                     code:NSURLErrorCannotDecodeContentData
-                                                 userInfo:nil];
-                [self abortWithError:error status:SPDY_STREAM_INTERNAL_ERROR];
+                [self abortWithError:SPDY_NSURL_ERROR(NSURLErrorCannotDecodeContentData, @"malloc failed") status:SPDY_STREAM_INTERNAL_ERROR];
                 return;
             }
 
@@ -704,10 +696,7 @@ static NSError *SPDYCreateNSURLErrorFromCFNetworkError(NSError *cfNetworkError);
 
         if (_zlibStreamStatus != Z_OK && _zlibStreamStatus != Z_STREAM_END) {
             SPDY_WARNING(@"error decompressing response data: bad z_stream state");
-            NSError *error = [[NSError alloc] initWithDomain:NSURLErrorDomain
-                                                 code:NSURLErrorCannotDecodeContentData
-                                             userInfo:nil];
-            [self abortWithError:error status:SPDY_STREAM_INTERNAL_ERROR];
+            [self abortWithError:SPDY_NSURL_ERROR(NSURLErrorCannotDecodeContentData, @"bad z_stream state") status:SPDY_STREAM_INTERNAL_ERROR];
             return;
         }
     } else {
