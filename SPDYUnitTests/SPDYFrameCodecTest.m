@@ -334,6 +334,27 @@ NSDictionary *testHeaders()
     }
 }
 
+- (void)testSynReplyFrameWithDuplicateHeaders
+{
+    SPDYSynReplyFrame *inFrame = [[SPDYSynReplyFrame alloc] init];
+    inFrame.streamId = arc4random() & 0x7FFFFFFF;
+    inFrame.last = (bool)(arc4random() & 1);
+    inFrame.headers = @{
+        @":status"  : @[@"200", @"300"],
+        @":version" : @"HTTP/1.1",
+    };
+
+    NSInteger bytesEncoded = [_encoder encodeSynReplyFrame:inFrame error:nil];
+    XCTAssertTrue(bytesEncoded > 12);
+
+    SPDYSynReplyFrame *outFrame = _mock.lastFrame;
+
+    XCTAssertTrue([outFrame.headers[@":status"] isKindOfClass:[NSArray class]]);
+    XCTAssertEqualObjects(@"200", outFrame.headers[@":status"][0]);
+    XCTAssertEqualObjects(@"300", outFrame.headers[@":status"][1]);
+    XCTAssertEqualObjects(@"HTTP/1.1", outFrame.headers[@":version"]);
+}
+
 - (void)testRstStreamFrame
 {
     SPDYRstStreamFrame *inFrame = [[SPDYRstStreamFrame alloc] init];
