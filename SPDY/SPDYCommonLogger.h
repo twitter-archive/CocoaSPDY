@@ -9,12 +9,14 @@
 //  Created by Michael Schore and Jeffrey Pinner.
 //
 
+#include <stdatomic.h>
+
 #import <Foundation/Foundation.h>
 #import "SPDYLogger.h"
 
-extern volatile SPDYLogLevel __sharedLoggerLevel;
+extern volatile atomic_int_fast32_t __sharedLoggerLevel;
 
-#define LOG_LEVEL_ENABLED(l) ((l) <= __sharedLoggerLevel)
+#define LOG_LEVEL_ENABLED(l) ((l) <= atomic_load(&__sharedLoggerLevel))
 
 #define SPDY_DEBUG(message, ...) do { \
     if (LOG_LEVEL_ENABLED(SPDYLogLevelDebug)) { \

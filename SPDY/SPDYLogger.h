@@ -11,13 +11,13 @@
 
 #import <Foundation/Foundation.h>
 
-typedef enum {
+typedef NS_ENUM(int32_t, SPDYLogLevel) {
     SPDYLogLevelDisabled = -1,
     SPDYLogLevelError = 0,
     SPDYLogLevelWarning,
     SPDYLogLevelInfo,
     SPDYLogLevelDebug
-} SPDYLogLevel;
+};
 
 @protocol SPDYLogger <NSObject>
 - (void)log:(NSString *)message atLevel:(SPDYLogLevel)logLevel;
