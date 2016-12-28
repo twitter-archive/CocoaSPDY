@@ -29,7 +29,7 @@
     // Trigger execution of the URL, but we'll mock it out with mock_autoConfigScript
     manager.mock_proxyList = @[@{
             (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeAutoConfigurationURL,
-            (__bridge NSString *)kCFProxyAutoConfigurationURLKey : @""
+            (__bridge NSString *)kCFProxyAutoConfigurationURLKey : [NSURL URLWithString:@""],
     }];
     manager.mock_autoConfigScript = pacScript;
 
@@ -186,7 +186,7 @@
     // This URL will clearly result in an error, but will go through the Apple API to execute it.
     manager.mock_proxyList = @[@{
             (__bridge NSString *)kCFProxyTypeKey : (__bridge NSString *)kCFProxyTypeAutoConfigurationURL,
-            (__bridge NSString *)kCFProxyAutoConfigurationURLKey : @""
+            (__bridge NSString *)kCFProxyAutoConfigurationURLKey : [NSURL URLWithString:@""],
     }];
 
     [manager resolveEndpointsWithCompletionHandler:^{
