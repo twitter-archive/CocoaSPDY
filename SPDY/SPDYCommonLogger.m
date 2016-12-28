@@ -22,7 +22,7 @@ static const NSString *logLevels[4] = { @"ERROR", @"WARNING", @"INFO", @"DEBUG" 
 static dispatch_once_t __initialized;
 dispatch_queue_t __sharedLoggerQueue;
 static id<SPDYLogger> __sharedLogger;
-volatile atomic_int_fast32_t __sharedLoggerLevel;
+volatile atomic_int_fast32_t __sharedLoggerLevel = ATOMIC_VAR_INIT(SPDYLogLevelError);
 
 + (void)initialize
 {
@@ -30,9 +30,7 @@ volatile atomic_int_fast32_t __sharedLoggerLevel;
         __sharedLoggerQueue = dispatch_queue_create("com.twitter.SPDYProtocolLoggerQueue", DISPATCH_QUEUE_SERIAL);
         __sharedLogger = nil;
 #ifdef DEBUG
-        atomic_init(&__sharedLoggerLevel, SPDYLogLevelDebug);
-#else
-        atomic_init(&__sharedLoggerLevel, SPDYLogLevelError);
+        atomic_store(&__sharedLoggerLevel, SPDYLogLevelDebug);
 #endif
     });
 }
