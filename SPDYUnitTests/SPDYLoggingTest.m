@@ -205,7 +205,7 @@
     XCTAssertEqual(_lastLevel, SPDYLogLevelError);
 
     _lastMessage = nil;
-    _lastLevel = nil;
+    _lastLevel = (SPDYLogLevel)nil;
     NSCAssert(NO, @"test failing function");
     XCTAssertNotNil(_lastMessage);
     XCTAssertEqual(_lastLevel, SPDYLogLevelError);
