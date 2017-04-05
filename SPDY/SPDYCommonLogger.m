@@ -52,6 +52,12 @@ volatile atomic_int_fast32_t __sharedLoggerLevel = ATOMIC_VAR_INIT(SPDYLogLevelE
 }
 
 + (void)setLoggerLevel:(SPDYLogLevel)level
+#if defined(__has_feature)
+#  if __has_feature(thread_sanitizer)
+// not performing thread-sanitizer on this because __sharedLoggerLevel has been declared volatile
+ __attribute__((no_sanitize("thread")))
+#  endif // #  if __has_Feature(thread_sanitizer)
+#endif // #if defined(__has_feature)
 {
     atomic_store(&__sharedLoggerLevel, level);
 }
