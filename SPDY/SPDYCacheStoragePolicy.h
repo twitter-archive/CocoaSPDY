@@ -24,3 +24,13 @@
  *  \returns A cache storage policy to use.
  */
 extern NSURLCacheStoragePolicy SPDYCacheStoragePolicy(NSURLRequest *request, NSHTTPURLResponse *response);
+
+typedef enum {
+    SPDYCachedResponseStateValid = 0,
+    SPDYCachedResponseStateInvalid,
+    SPDYCachedResponseStateMustRevalidate
+} SPDYCachedResponseState;
+
+/*! Determines the validity of a cached response 
+ */
+extern SPDYCachedResponseState SPDYCacheLoadingPolicy(NSURLRequest *request, NSCachedURLResponse *response);

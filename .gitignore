@@ -12,3 +12,4 @@ build/
 xcuserdata/
 contents.xcworkspacedata
 *.xccheckout
+*.gcda

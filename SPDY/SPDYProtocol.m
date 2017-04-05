@@ -16,6 +16,7 @@
 #import <arpa/inet.h>
 #import <Foundation/Foundation.h>
 #import "NSURLRequest+SPDYURLRequest.h"
+#import "SPDYCacheStoragePolicy.h"
 #import "SPDYCanonicalRequest.h"
 #import "SPDYCommonLogger.h"
 #import "SPDYMetadata+Utils.h"
@@ -148,6 +149,7 @@ static dispatch_once_t initConfig;
     SPDYProtocolContext *_context;
     NSURLSession *_associatedSession;
     NSURLSessionTask *_associatedSessionTask;
+    NSCachedURLResponse *_overrideCachedResponse;
     struct {
         BOOL didStartLoading:1;
         BOOL didStopLoading:1;
@@ -340,6 +342,77 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
     return canonicalRequest;
 }
 
+- (NSCachedURLResponse *)cachedResponse
+{
+    if (_overrideCachedResponse != nil) {
+        return _overrideCachedResponse;
+    } else {
+        return [super cachedResponse];
+    }
+}
+
+- (NSCachedURLResponse *)loadCachedResponseIfAllowed
+{
+    // We're making some choices here to limit the surface area of caching, given we don't yet
+    // have a fully-featured client caching implementation (missing sufficient validity checks).
+    //
+    // On iOS 8 and 9, the NSURL loading system will supply the cached item to our constructor
+    // for NSURLRequestReturnCacheDataElseLoad and NSURLRequestReturnCacheDataDontLoad. For
+    // NSURLRequestUseProtocolCachePolicy, we have to load it ourselves.
+    //
+    // On iOS 7, the NSURL loading system never supplies the cached item to our constructor.
+    // We have to load it ourselves for NSURLRequestReturnCacheDataElseLoad,
+    // NSURLRequestReturnCacheDataDontLoad, and NSURLRequestUseProtocolCachePolicy.
+
+    // For NSURLRequestUseProtocolCachePolicy, we're applying the following rules regarding loading:
+    // - NSURLConnection-based requests will not support caching.
+    // - NSURLSession-based requests must set the SPDYURLSession property on the request, and
+    //   must provide a NSURLCache in their NSURLSessionConfiguration. There is no fallback to
+    //   other shared caches.
+    // - NSURLSession-based requests that do not set SPDYURLSession will not support caching.
+    //
+    // This behavior may change in the future.
+
+    static BOOL osVersionRequiresManualLoadFromCache;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        NSProcessInfo *processInfo = [NSProcessInfo processInfo];
+        if ([processInfo respondsToSelector:@selector(operatingSystemVersion)]) {
+            NSOperatingSystemVersion osVersion = [processInfo operatingSystemVersion];
+#if TARGET_OS_MAC
+            // 10.9 and earlier
+            osVersionRequiresManualLoadFromCache = osVersion.majorVersion < 10 || (osVersion.majorVersion == 10 && osVersion.minorVersion <= 9);
+#else
+            // iOS 7 and earlier
+            osVersionRequiresManualLoadFromCache = osVersion.majorVersion < 8;
+#endif
+        } else {
+            osVersionRequiresManualLoadFromCache = YES;
+        }
+    });
+
+    BOOL isNSURLSession = (_associatedSession != nil ||
+                           _associatedSessionTask != nil ||
+                           ([self respondsToSelector:@selector(task)] && self.task != nil));
+    if (isNSURLSession) {
+        NSURLSessionConfiguration *config = _associatedSession.configuration;
+        NSURLRequestCachePolicy cachePolicy = config.requestCachePolicy;
+        if (cachePolicy == NSURLRequestUseProtocolCachePolicy ||
+            (osVersionRequiresManualLoadFromCache && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad))) {
+            return [config.URLCache cachedResponseForRequest:self.request];
+        }
+    } else {
+        // NSURLConnection on iOS 7 forces us to always load the cache item. But we don't want to
+        // do that for NSURLRequestUseProtocolCachePolicy.
+        NSURLRequestCachePolicy cachePolicy = self.request.cachePolicy;
+        if (osVersionRequiresManualLoadFromCache && (cachePolicy == NSURLRequestReturnCacheDataDontLoad || cachePolicy == NSURLRequestReturnCacheDataElseLoad)) {
+            return [[NSURLCache sharedURLCache] cachedResponseForRequest:self.request];
+        }
+    }
+
+    return nil;
+}
+
 - (instancetype)initWithRequest:(NSURLRequest *)request cachedResponse:(NSCachedURLResponse *)cachedResponse client:(id <NSURLProtocolClient>)client
 {
     // iOS 8 will call this using the 'request' returned from canonicalRequestForRequest. However,
@@ -454,6 +527,39 @@ static id<SPDYTLSTrustEvaluator> trustEvaluator;
 
 - (void)startStreamForOrigin:(SPDYOrigin *)origin
 {
+    // Load the cached item, if necessary, now that we (potentially) have the associated NSURLSession.
+    if (self.cachedResponse == nil) {
+        _overrideCachedResponse = [self loadCachedResponseIfAllowed];
+    }
+
+    // If we have a cached item and it passes validity checks, notify NSURL system and bail out.
+    // Note we don't support revalidation at this time.
+    SPDYCachedResponseState cachedState = SPDYCacheLoadingPolicy(self.request, self.cachedResponse);
+    if (cachedState == SPDYCachedResponseStateValid) {
+        _context.metadata.loadSource = SPDYLoadSourceCache;
+
+        // Associate a new instance of the SPDYMetadata with this cached response. It has been
+        // stored in the cache with an old metadata identifier. That metadata no longer exists.
+        // First break it down and augment
+        NSCachedURLResponse *oldCachedResponse = self.cachedResponse;
+        NSHTTPURLResponse *oldHttpResponse = (NSHTTPURLResponse *)oldCachedResponse.response;
+        NSMutableDictionary *headers = [oldHttpResponse.allHeaderFields mutableCopy];
+        [SPDYMetadata setMetadata:_context.metadata forAssociatedDictionary:headers];
+
+        // Then rebuild it
+        NSHTTPURLResponse *newHttpResponse = [[NSHTTPURLResponse alloc] initWithURL:oldHttpResponse.URL
+                                                                         statusCode:oldHttpResponse.statusCode
+                                                                        HTTPVersion:@"HTTP/1.1"
+                                                                       headerFields:headers];
+        _overrideCachedResponse = [[NSCachedURLResponse alloc] initWithResponse:newHttpResponse
+                                                                           data:oldCachedResponse.data
+                                                                       userInfo:oldCachedResponse.userInfo
+                                                                  storagePolicy:oldCachedResponse.storagePolicy];
+
+        [self.client URLProtocol:self cachedResponseIsValid:self.cachedResponse];
+        return;
+    }
+
     SPDYSessionManager *manager = [SPDYSessionManager localManagerForOrigin:origin];
 
     // See if this is currently being pushed, and if so, hook it up, else create it

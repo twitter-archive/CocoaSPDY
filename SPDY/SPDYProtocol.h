@@ -42,6 +42,12 @@ typedef enum {
     SPDYProxyStatusConfigWithAuth   // info provided in SPDYConfiguration, proxy needs auth
 } SPDYProxyStatus;
 
+typedef enum {
+    SPDYLoadSourceNetwork = 0,      // regular stream or push stream from network
+    SPDYLoadSourceCache,            // from NSURLCache
+    SPDYLoadSourcePushCache         // from in-memory cache of in-progress pushed streams
+} SPDYLoadSource;
+
 @interface SPDYMetadata : NSObject
 
 // SPDY stream time spent blocked - while queued waiting for connection, flow control, etc.
@@ -85,6 +91,9 @@ typedef enum {
 
 // Indicates connection used a proxy server
 @property (nonatomic, readonly) BOOL viaProxy;
+
+// Indicates where this response came from
+@property (nonatomic, readonly) SPDYLoadSource loadSource;
 
 // The following measurements, presented in seconds, use mach_absolute_time() and are point-in-time
 // relative to whatever base mach_absolute_time() uses. They use the following function to convert

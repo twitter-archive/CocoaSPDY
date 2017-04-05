@@ -198,6 +198,7 @@
     stream.metadata.viaProxy = _socket.connectedToProxy;
     stream.metadata.proxyStatus = _socket.proxyStatus;
     stream.metadata.cellular = _cellular;
+    stream.metadata.loadSource = SPDYLoadSourceNetwork;
 
     [stream startWithStreamId:streamId
                sendWindowSize:_initialSendWindowSize
