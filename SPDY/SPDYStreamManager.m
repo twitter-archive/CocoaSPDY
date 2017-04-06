@@ -251,6 +251,14 @@ CFStringRef SPDYStreamIdCopyDescription(const void *key) {
 {
     // Update linked list
     for (int i = 0; i < 8; i++) {
+        SPDYStreamNode *currentNode = _priorityHead[i];
+        while (currentNode != NULL && currentNode->next != NULL) {
+            SPDYStreamNode *nextNode = currentNode->next;
+            currentNode->next = NULL;
+            currentNode->prev = NULL;
+            currentNode = nextNode;
+        }
+        currentNode = NULL;
         _priorityHead[i] = NULL;
         _priorityLast[i] = NULL;
     }
